@@ -21,12 +21,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-cron-approval-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-// No TARSEE_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
-delete process.env.TARSEE_API_TOKEN;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-cron-approval-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+// No ATLAS_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
+delete process.env.ATLAS_API_TOKEN;
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -43,7 +43,7 @@ const PUBLIC = fileURLToPath(new URL("../src/public/", import.meta.url));
 /** What the AI's shell reads: the token file in the state folder. */
 const TOKEN = fs.readFileSync(path.join(tmp, "api.token"), "utf8").trim();
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
 
@@ -69,7 +69,7 @@ const LIST_PAGE = `<!doctype html>
   window.toasts = [];
   window.App = { showToast(message, kind) { window.toasts.push({ message, kind }); } };
   window.signInShown = 0;
-  window.addEventListener("tarsee:auth-required", () => { window.signInShown++; });
+  window.addEventListener("atlas:auth-required", () => { window.signInShown++; });
 </script></body></html>`;
 
 let server;
@@ -93,7 +93,7 @@ before(async () => {
   // The owner, signed in to the dashboard, with the CSRF token the page gets.
   sessionId = createSession("127.0.0.1");
   const page = await fetch(`${base}/__cron.html`);
-  csrf = /tarsee_csrf=([^;]+)/.exec(page.headers.get("set-cookie") || "")?.[1];
+  csrf = /atlas_csrf=([^;]+)/.exec(page.headers.get("set-cookie") || "")?.[1];
   assert.ok(csrf, "the page hands out a CSRF token");
 });
 beforeEach(() => {
@@ -117,13 +117,13 @@ const call = (method, url, body, headers = {}) => fetch(`${base}${url}`, {
 /** The AI's shell: curl with the token it read from the state folder. */
 const asToken = () => ({ Authorization: `Bearer ${TOKEN}` });
 /** The owner's dashboard (js/api.js): the sign-in's cookie and the CSRF token, and the API token alongside. */
-const asDashboard = () => ({ Authorization: `Bearer ${TOKEN}`, Cookie: `tarsee_session=${sessionId}; tarsee_csrf=${csrf}`, "X-CSRF-Token": csrf });
+const asDashboard = () => ({ Authorization: `Bearer ${TOKEN}`, Cookie: `atlas_session=${sessionId}; atlas_csrf=${csrf}`, "X-CSRF-Token": csrf });
 /** Signed in, without the API token. */
-const asSignedIn = () => ({ Cookie: `tarsee_session=${sessionId}; tarsee_csrf=${csrf}`, "X-CSRF-Token": csrf });
+const asSignedIn = () => ({ Cookie: `atlas_session=${sessionId}; atlas_csrf=${csrf}`, "X-CSRF-Token": csrf });
 
 const statusOf = (id) => cron.getCronStatus().jobs.find((j) => j.id === id);
 const stateOf = (id) => [statusOf(id).state, statusOf(id).enabled, statusOf(id).scheduled];
-/** A task the AI scheduled in a chat (tarsee_schedule_task): switched off, waiting for the owner's OK. */
+/** A task the AI scheduled in a chat (atlas_schedule_task): switched off, waiting for the owner's OK. */
 const aiTask = (over = {}) => cron.addCronJob({ schedule: "0 9 * * 1", prompt: "Plan the week", name: "Week", createdBy: "ai", ...over });
 /** What the owner's row shows of a task, from GET /api/settings/cron as the page reads it. */
 async function seenOnTheRow(id) {
@@ -159,9 +159,9 @@ describe("the API token can't switch a task on", () => {
   it("nor with a session cookie that isn't a sign-in, a sign-in without the page's CSRF token, or a made-up token", async () => {
     const job = aiTask();
     for (const headers of [
-      { ...asToken(), Cookie: `tarsee_session=${"0".repeat(64)}; tarsee_csrf=${csrf}`, "X-CSRF-Token": csrf },
-      { ...asToken(), Cookie: `tarsee_session=${sessionId}` },
-      { ...asToken(), Cookie: `tarsee_session=${sessionId}`, "X-CSRF-Token": "123.abc" },
+      { ...asToken(), Cookie: `atlas_session=${"0".repeat(64)}; atlas_csrf=${csrf}`, "X-CSRF-Token": csrf },
+      { ...asToken(), Cookie: `atlas_session=${sessionId}` },
+      { ...asToken(), Cookie: `atlas_session=${sessionId}`, "X-CSRF-Token": "123.abc" },
     ]) {
       const res = await switchOn(job.id, headers);
       assert.equal(res.status, 403, JSON.stringify(headers));
@@ -293,7 +293,7 @@ describe("Switch on approves the task the owner saw", () => {
 /** The list page, signed in like the owner's dashboard: the sign-in's cookie, the page's CSRF cookie, the API token. */
 async function openList({ width = 1000, height = 900, signedIn = true } = {}) {
   const context = await browser.newContext({ viewport: { width, height }, serviceWorkers: "block" });
-  if (signedIn) await context.addCookies([{ name: "tarsee_session", value: sessionId, url: base }]);
+  if (signedIn) await context.addCookies([{ name: "atlas_session", value: sessionId, url: base }]);
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (err) => errors.push(err.message));

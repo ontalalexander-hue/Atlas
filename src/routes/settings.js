@@ -94,7 +94,7 @@ settingsRouter.post("/provider", (req, res) => {
  *   Body: { type, token, appToken?, enabled, ...opts }
  *
  * Email channel:
- *   Body: { type: "email", enabled, tarseeEmailAddress, imap:{host,port,user,password},
+ *   Body: { type: "email", enabled, atlasEmailAddress, imap:{host,port,user,password},
  *           smtp:{host,port,user,password}, allowlistFromAddresses?:string[],
  *           mentionKeyword?:string, replyAllMarker?:string, fromName?:string }
  *   Passwords in imap.password / smtp.password auto-encrypt via the
@@ -109,7 +109,7 @@ settingsRouter.post("/channel", (req, res) => {
   }
 
   if (type === "email") {
-    const { tarseeEmailAddress, imap, smtp, allowlistFromAddresses, mentionKeyword, replyAllMarker, fromName, defaultSubject } = body;
+    const { atlasEmailAddress, imap, smtp, allowlistFromAddresses, mentionKeyword, replyAllMarker, fromName, defaultSubject } = body;
     if (enabled) {
       if (!imap?.host || !imap?.user) return res.status(400).json({ error: "IMAP host + user required" });
       if (!smtp?.host || !smtp?.user) return res.status(400).json({ error: "SMTP host + user required" });
@@ -119,10 +119,10 @@ settingsRouter.post("/channel", (req, res) => {
     const prev = settingsStore.get("channel.email") || {};
     const payload = {
       enabled: !!enabled,
-      tarseeEmailAddress: tarseeEmailAddress || prev.tarseeEmailAddress || imap?.user || "",
+      atlasEmailAddress: atlasEmailAddress || prev.atlasEmailAddress || imap?.user || "",
       fromName: fromName || prev.fromName || "Atlas",
       defaultSubject: defaultSubject || prev.defaultSubject || "Atlas",
-      mentionKeyword: mentionKeyword || prev.mentionKeyword || "tarsee",
+      mentionKeyword: mentionKeyword || prev.mentionKeyword || "atlas",
       replyAllMarker: replyAllMarker || prev.replyAllMarker || "[reply-all]",
       allowlistFromAddresses: Array.isArray(allowlistFromAddresses)
         ? allowlistFromAddresses
@@ -314,7 +314,7 @@ settingsRouter.get("/channel/whatsapp/webhook-url", (_req, res) => {
  * Check if first-time setup is needed.
  *
  * An AI counts as set up when the owner chose one (the wizard or Settings > AI save ai.activeProvider), or when
- * Railway variables alone set up a ready one: TARSEE_AI_PROVIDER plus that provider's key, or the Claude plan's
+ * Railway variables alone set up a ready one: ATLAS_AI_PROVIDER plus that provider's key, or the Claude plan's
  * CLAUDE_CODE_OAUTH_TOKEN. A Claude sign-in that merely happens to be on the machine doesn't skip the wizard: the
  * owner still picks. ai says which AI would answer and whether it is ready (providerStatus, as Settings > AI shows
  * it); railway lists the providers connected through Railway variables, so the wizard can say so. No key is ever
@@ -535,7 +535,7 @@ settingsRouter.get("/cron", async (_req, res) => {
  *   "signed-out"  the dashboard after its sign-in ran out: the sign-in's cookie, no longer on (signInEnded), and the API
  *                 token the page still sends. Not the owner, but told to sign in again rather than of the token.
  *   "token"       anything else, the API token alone above all.
- * The API token is never enough. Atlas saves it in the state folder (api.token) unless TARSEE_API_TOKEN is set, and the
+ * The API token is never enough. Atlas saves it in the state folder (api.token) unless ATLAS_API_TOKEN is set, and the
  * AI's shell runs as the same user, so with the token alone the AI could OK the task it has just scheduled. The
  * dashboard sends the token too (js/api.js), and sessionAuth names a request by its token first (req.auth.method
  * "bearer"), so a token request is checked here for the sign-in and the CSRF token, which csrfProtect skips for it. A

@@ -5,15 +5,15 @@
  *
  * Where a model can be, in the order they are looked at:
  *   downloaded  <models>/<name>/, downloaded from Settings > Voice (on the data volume on Railway, so it survives
- *               redeploys); .tarsee-model.json is written last, once every file has been checked
- *   image       <bundled>/<name>/, put there by the Docker build (TARSEE_WHISPER_BUNDLED_DIR, outside /data so the
+ *               redeploys); .atlas-model.json is written last, once every file has been checked
+ *   image       <bundled>/<name>/, put there by the Docker build (ATLAS_WHISPER_BUNDLED_DIR, outside /data so the
  *               volume can't hide it); never deleted
  *   cache       <models>/hf_cache/hub/models--Systran--faster-whisper-<name>/snapshots/<rev>/, where the old version
  *               let faster-whisper download it (still used, and deletable)
  * faster-whisper is always handed the folder, never a model name, so it never downloads anything itself.
  *
  * This file imports nothing of Atlas's but install-common.js: the Docker build runs it on its own,
- *   node whisper-models.js download base.en /opt/tarsee/whisper-models
+ *   node whisper-models.js download base.en /opt/atlas/whisper-models
  */
 
 import fs from "node:fs";
@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 import { OFFICIAL_HOSTS, guardedFetch, downloadFile, writeFileAtomic } from "./install-common.js";
 
 export const DEFAULT_WHISPER_MODEL = "base.en";
-export const MODEL_MARKER = ".tarsee-model.json";
+export const MODEL_MARKER = ".atlas-model.json";
 
 const SHARED_EN = { tokenizer: [2128466, "15d7bdf9ba25718ca2504eec6a8f02bc55af0a6a"], vocabulary: [422309, "ee695b8d3e3c10d488304e04468efec4ca27554a"] };
 const SHARED_MULTI = { tokenizer: [2203239, "7818adb6de9fa3064d3ff81226fdd675be1f6344"], vocabulary: [459861, "c9074644d9d1205686f16d411564729461324b75"] };

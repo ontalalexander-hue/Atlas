@@ -20,7 +20,7 @@
  *    the owner sets, and it lives in its own setting, never in this table. A
  *    turn reads its host through engine-env.js hostFor(), the one way to get
  *    one (it adds Local AI's address and the test-only seam).
- *  - A provider is chosen by a setting or TARSEE_AI_PROVIDER, never because
+ *  - A provider is chosen by a setting or ATLAS_AI_PROVIDER, never because
  *    some provider's key happens to be in the environment.
  *  - resolveModelFor() never hands a claude-* id to DeepSeek, ChatGPT, OpenAI
  *    or Local AI.
@@ -356,9 +356,9 @@ const PROVIDER_TABLE = {
     shipped: true,
     engines: [CODEX],
     // Optional: only if the owner's server wants one.
-    envKey: "TARSEE_LOCAL_AI_KEY",
+    envKey: "ATLAS_LOCAL_AI_KEY",
     // The server's address: ai.local.baseUrl, else this variable. Never a constant here.
-    urlEnv: "TARSEE_LOCAL_AI_URL",
+    urlEnv: "ATLAS_LOCAL_AI_URL",
     keyNoun: "a key",
     keyPattern: null,
     // A key for another provider must not be sent to a host the owner typed in.
@@ -385,7 +385,7 @@ const PROVIDER_TABLE = {
 /** Every provider, by public id. Frozen all the way down: nothing at runtime can change a host or a price. */
 export const PROVIDERS = deepFreeze(PROVIDER_TABLE);
 
-/** The public ids, as TARSEE_AI_PROVIDER, /model, the API and the UI use them. */
+/** The public ids, as ATLAS_AI_PROVIDER, /model, the API and the UI use them. */
 export const PROVIDER_IDS = Object.freeze(Object.keys(PROVIDERS));
 
 /** Other names accepted for a provider: the Claude plan's storage id. */
@@ -441,13 +441,13 @@ export function hideProviders(ids = []) {
 
 /**
  * Whether Local AI is left out on this install: on Railway (RAILWAY_PROJECT_ID), which has no GPUs, a model server
- * would have to run somewhere else, so it isn't offered there, unless an address is already set (TARSEE_LOCAL_AI_URL,
+ * would have to run somewhere else, so it isn't offered there, unless an address is already set (ATLAS_LOCAL_AI_URL,
  * say a model server the owner runs as another Railway service, or one saved in Settings > AI), so a setup that works
  * keeps working. Self-hosted installs (Docker on the owner's own machine, npm start) always offer it.
  */
 export function localAiHiddenHere({ env = process.env, store = null } = {}) {
   if (!String(env?.RAILWAY_PROJECT_ID || "").trim()) return false;
-  if (String(env?.TARSEE_LOCAL_AI_URL || "").trim()) return false;
+  if (String(env?.ATLAS_LOCAL_AI_URL || "").trim()) return false;
   let saved = null;
   try { saved = store?.get?.("ai.local.baseUrl"); } catch { saved = null; }
   return !(typeof saved === "string" && saved.trim());
@@ -468,7 +468,7 @@ export function shippedProviders() {
 
 /**
  * The provider a turn uses when nothing more specific is chosen: the
- * ai.activeProvider setting, then TARSEE_AI_PROVIDER, then the Claude plan.
+ * ai.activeProvider setting, then ATLAS_AI_PROVIDER, then the Claude plan.
  * The first of those that is set decides; when it names a provider that does
  * not exist or is not shipped, the answer is the Claude plan. A provider's key
  * being present in the environment never chooses it.
@@ -476,18 +476,18 @@ export function shippedProviders() {
  * `isShipped` is for tests (to prove the order once more providers ship).
  */
 export function activeProviderId(store, { env = process.env, isShipped: shipped = isShipped } = {}) {
-  const chosen = nonEmpty(readSetting(store, "ai.activeProvider")) ?? nonEmpty(env?.TARSEE_AI_PROVIDER);
+  const chosen = nonEmpty(readSetting(store, "ai.activeProvider")) ?? nonEmpty(env?.ATLAS_AI_PROVIDER);
   if (chosen == null) return "claude";
   const id = normalizeProviderId(chosen);
   return id && shipped(id) ? id : "claude";
 }
 
-/** Whether TARSEE_KEYS_ONLY=1 locks "API keys only" on. */
+/** Whether ATLAS_KEYS_ONLY=1 locks "API keys only" on. */
 export function keysOnlyLocked(env = process.env) {
-  return truthy(env?.TARSEE_KEYS_ONLY);
+  return truthy(env?.ATLAS_KEYS_ONLY);
 }
 
-/** "API keys only": the ai.keysOnly setting, or locked on by TARSEE_KEYS_ONLY=1. */
+/** "API keys only": the ai.keysOnly setting, or locked on by ATLAS_KEYS_ONLY=1. */
 export function keysOnly(store, { env = process.env } = {}) {
   return keysOnlyLocked(env) || truthy(readSetting(store, "ai.keysOnly"));
 }

@@ -9,10 +9,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-stt-opt-in-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-stt-opt-in-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -57,7 +57,7 @@ const notInstalled = { available: () => false, transcribe: async () => { throw n
 describe("speech-to-text: the paid Whisper API is opt-in", () => {
   it("makes no paid call when an OpenAI key is only in the server's env and local is not installed", async () => {
     // The real settings store, with no STT provider chosen (so: local) and the key only in the environment.
-    const db = initDb(path.join(tmp, "tarsee.db"));
+    const db = initDb(path.join(tmp, "atlas.db"));
     const settings = new SettingsStore(db);
     const before = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = KEY;

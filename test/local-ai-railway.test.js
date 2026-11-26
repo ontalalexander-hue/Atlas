@@ -1,6 +1,6 @@
 // Local AI on Railway: Railway has no GPUs, so a model server would have to live somewhere else; Atlas doesn't offer
 // Local AI there (the setup wizard, Settings > AI, the model list, every route), unless an address is already set
-// (TARSEE_LOCAL_AI_URL, or one saved in Settings), so a setup that works keeps working. Self-hosted installs (Docker on
+// (ATLAS_LOCAL_AI_URL, or one saved in Settings), so a setup that works keeps working. Self-hosted installs (Docker on
 // your own machine, npm start) offer it as before.
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
@@ -9,9 +9,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-local-railway-"));
-process.env.TARSEE_STATE_DIR = tmp;
-for (const name of ["RAILWAY_PROJECT_ID", "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_KEYS_ONLY"]) delete process.env[name];
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-local-railway-"));
+process.env.ATLAS_STATE_DIR = tmp;
+for (const name of ["RAILWAY_PROJECT_ID", "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_KEYS_ONLY"]) delete process.env[name];
 
 const { localAiHiddenHere, hideProviders, isShipped, shippedProviders } = await import("../src/ai/provider-registry.js");
 const { runBootFixups } = await import("../src/lib/boot-fixups.js");
@@ -19,7 +19,7 @@ const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { createAiRouter } = await import("../src/routes/ai.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const fakeStore = (values = {}) => ({ get: (k) => (k in values ? values[k] : null) });
 after(() => {
@@ -31,7 +31,7 @@ after(() => {
 describe("Local AI isn't offered on Railway", () => {
   it("on Railway with no address set: hidden; an address set (the variable or Settings), or not on Railway: offered", () => {
     assert.equal(localAiHiddenHere({ env: { RAILWAY_PROJECT_ID: "p1" }, store: fakeStore() }), true);
-    assert.equal(localAiHiddenHere({ env: { RAILWAY_PROJECT_ID: "p1", TARSEE_LOCAL_AI_URL: "http://ollama.railway.internal:11434/v1" }, store: fakeStore() }), false, "a model server the owner runs as a Railway service");
+    assert.equal(localAiHiddenHere({ env: { RAILWAY_PROJECT_ID: "p1", ATLAS_LOCAL_AI_URL: "http://ollama.railway.internal:11434/v1" }, store: fakeStore() }), false, "a model server the owner runs as a Railway service");
     assert.equal(localAiHiddenHere({ env: { RAILWAY_PROJECT_ID: "p1" }, store: fakeStore({ "ai.local.baseUrl": "http://10.0.0.5:9931/v1" }) }), false, "an address already saved keeps working");
     assert.equal(localAiHiddenHere({ env: {}, store: fakeStore() }), false, "self-hosted: offered");
     assert.equal(localAiHiddenHere({ env: { RAILWAY_PROJECT_ID: "" }, store: fakeStore() }), false);
@@ -54,7 +54,7 @@ describe("Local AI isn't offered on Railway", () => {
       const out = runBootFixups({ settingsStore: store, stateDir: tmp, tmpDir: tmp, env: { RAILWAY_PROJECT_ID: "p1" } });
       assert.deepEqual(out.hidden, ["local"]);
       assert.equal(isShipped("local"), false);
-      assert.ok(logs.some((l) => /Local AI isn't offered on Railway/.test(l) && /TARSEE_LOCAL_AI_URL/.test(l)), logs.join("\n"));
+      assert.ok(logs.some((l) => /Local AI isn't offered on Railway/.test(l) && /ATLAS_LOCAL_AI_URL/.test(l)), logs.join("\n"));
       const self = runBootFixups({ settingsStore: store, stateDir: tmp, tmpDir: tmp, env: {} });
       assert.deepEqual(self.hidden, []);
       assert.equal(isShipped("local"), true, "a self-hosted boot offers it");

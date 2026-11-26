@@ -1,4 +1,4 @@
-// tarsee_railway (src/lib/railway-admin.js): Railway projects, variable names, set_variable and redeploy, done by Atlas
+// atlas_railway (src/lib/railway-admin.js): Railway projects, variable names, set_variable and redeploy, done by Atlas
 // with a token it reads from the vault, so a secret never goes through a command or the model's context. Railway is
 // never reached: fetch is a stand-in that answers like Railway's GraphQL API, and the vault is a stand-in or a
 // temporary one.
@@ -12,10 +12,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 // Keep every module that reads config away from the real state dir, vault and DB, and from a real Railway service.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-railway-admin-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-railway-admin-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 process.env.ENCRYPTION_KEY = "railway-admin-test-encryption-key-0123456789";
 for (const k of ["RAILWAY_API_TOKEN", "RAILWAY_PROJECT_ID", "RAILWAY_ENVIRONMENT_ID", "RAILWAY_SERVICE_ID"]) delete process.env[k];
 const { railwayAdmin, ACTIONS, DOCS, API_URL, TOKEN_KEY, maskValue, hereOf } = await import("../src/lib/railway-admin.js");
@@ -29,13 +29,13 @@ const HOOK = "https://discord.com/api/webhooks/1564447804183547987/wh-SECRET-abc
 const GO = "the owner in chat: put the alerts webhook on the watchdog and deploy";
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const P_ACME = id(1), P_TWIN1 = id(2), P_TWIN2 = id(3), P_GONE = id(4), P_TARSEE = id(5), P_OTHER = id(9);
+const P_ACME = id(1), P_TWIN1 = id(2), P_TWIN2 = id(3), P_GONE = id(4), P_ATLAS = id(5), P_OTHER = id(9);
 const E_PROD = id(11), E_STAGE = id(12), E_OLD = id(13);
 const S_WATCH = id(21), S_WEB = id(22), S_W1 = id(23), S_W2 = id(24);
 const D_LAST = id(31), D_NEW = id(32);
-const E_TARSEE = id(43), S_TARSEE = id(44), D_TARSEE = id(45);
+const E_ATLAS = id(43), S_ATLAS = id(44), D_ATLAS = id(45);
 /** Where Atlas runs, as Railway tells a service. */
-const ON_RAILWAY = { RAILWAY_PROJECT_ID: P_TARSEE, RAILWAY_ENVIRONMENT_ID: E_TARSEE, RAILWAY_SERVICE_ID: S_TARSEE };
+const ON_RAILWAY = { RAILWAY_PROJECT_ID: P_ATLAS, RAILWAY_ENVIRONMENT_ID: E_ATLAS, RAILWAY_SERVICE_ID: S_ATLAS };
 
 /** What the token can see, with its variables and deployments. */
 function railwayData() {
@@ -46,7 +46,7 @@ function railwayData() {
         { id: P_TWIN1, name: "Twin", deletedAt: null, environments: [{ id: id(41), name: "production" }], services: [] },
         { id: P_TWIN2, name: "twin", deletedAt: null, environments: [{ id: id(42), name: "production" }], services: [] },
         { id: P_GONE, name: "Old Thing", deletedAt: "2026-09-01T00:00:00Z", environments: [], services: [] },
-        { id: P_TARSEE, name: "Atlas", deletedAt: null, environments: [{ id: E_TARSEE, name: "production" }], services: [{ id: S_TARSEE, name: "tarsee" }] },
+        { id: P_ATLAS, name: "Atlas", deletedAt: null, environments: [{ id: E_ATLAS, name: "production" }], services: [{ id: S_ATLAS, name: "atlas" }] },
       ],
       variables: {
         [E_PROD]: [
@@ -56,11 +56,11 @@ function railwayData() {
           { name: "SHARED_REGION", serviceId: null, isSealed: false, value: "sin" },
         ],
         [E_STAGE]: [],
-        [E_TARSEE]: [{ name: "SETUP_PASSWORD", serviceId: S_TARSEE, isSealed: false, value: "1234" }],
+        [E_ATLAS]: [{ name: "SETUP_PASSWORD", serviceId: S_ATLAS, isSealed: false, value: "1234" }],
       },
       deployments: {
         [`${E_PROD}/${S_WATCH}`]: [{ id: D_LAST, status: "SUCCESS", createdAt: "2026-10-26T10:00:00Z" }],
-        [`${E_TARSEE}/${S_TARSEE}`]: [{ id: D_TARSEE, status: "SUCCESS", createdAt: "2026-10-27T08:00:00Z" }],
+        [`${E_ATLAS}/${S_ATLAS}`]: [{ id: D_ATLAS, status: "SUCCESS", createdAt: "2026-10-27T08:00:00Z" }],
       },
     },
   };
@@ -90,21 +90,21 @@ function railway({ fail = null } = {}) {
     const v = body.variables || {};
     const edges = (list) => ({ edges: list.map((node) => ({ node })) });
     switch (op) {
-      case "TarseeProjects":
+      case "AtlasProjects":
         return reply(200, { data: { projects: edges(acct.projects.map(({ id: pid, name, deletedAt }) => ({ id: pid, name, deletedAt }))) } });
-      case "TarseeProject": {
+      case "AtlasProject": {
         const p = acct.projects.find((x) => x.id === v.id);
         if (!p) return reply(200, { errors: [{ message: "Project not found" }], data: null });
         return reply(200, { data: { project: { id: p.id, name: p.name, deletedAt: p.deletedAt, environments: edges(p.environments.map((e) => ({ deletedAt: null, ...e }))), services: edges(p.services) } } });
       }
-      case "TarseeVariableNames": {
+      case "AtlasVariableNames": {
         const list = acct.variables[v.environmentId];
         if (!list) return reply(200, { errors: [{ message: "Environment not found" }], data: null });
         // Only what the document asks for: names, never values.
         const wantsValue = /\bvalue\b/.test(body.query);
         return reply(200, { data: { environment: { variables: edges(list.map((x) => (wantsValue ? x : { name: x.name, serviceId: x.serviceId, isSealed: x.isSealed }))) } } });
       }
-      case "TarseeVariableUpsert": {
+      case "AtlasVariableUpsert": {
         const list = (acct.variables[v.environmentId] ||= []);
         for (const [name, value] of Object.entries(v.variables)) {
           const had = list.find((x) => x.name === name && x.serviceId === v.serviceId);
@@ -112,9 +112,9 @@ function railway({ fail = null } = {}) {
         }
         return reply(200, { data: { variableCollectionUpsert: true } });
       }
-      case "TarseeLatestDeployment":
+      case "AtlasLatestDeployment":
         return reply(200, { data: { deployments: edges(acct.deployments[`${v.input.environmentId}/${v.input.serviceId}`] || []) } });
-      case "TarseeRedeploy":
+      case "AtlasRedeploy":
         return reply(200, { data: { deploymentRedeploy: { id: D_NEW } } });
       default:
         return reply(400, { errors: [{ message: `Cannot query: unknown operation ${op}` }] });
@@ -145,7 +145,7 @@ describe("list_projects", () => {
     const { out, lines, rw } = await run({ action: "list_projects" });
     assert.match(out, /^Railway projects in the owner's Railway account \(4\):/, out);
     assert.match(out, new RegExp(`- Acme \\(id ${P_ACME}\\)`));
-    assert.match(out, new RegExp(`- Atlas \\(id ${P_TARSEE}\\)\\n`));
+    assert.match(out, new RegExp(`- Atlas \\(id ${P_ATLAS}\\)\\n`));
     assert.ok(!out.includes("Old Thing"), "a deleted project is not listed");
     assert.ok(!out.includes("Atlas runs here"), "off Railway nothing is marked");
     assert.equal(rw.calls.length, 1);
@@ -163,9 +163,9 @@ describe("list_projects", () => {
     assert.match(out, /Environments \(2\):\n- production \(id [0-9a-f-]+\)\n- Staging/);
     assert.match(out, new RegExp(`- watchdog \\(id ${S_WATCH}\\)`));
     assert.ok(!out.includes("pr-12"));
-    assert.deepEqual(rw.calls.map((c) => c.op), ["TarseeProjects", "TarseeProject"]);
+    assert.deepEqual(rw.calls.map((c) => c.op), ["AtlasProjects", "AtlasProject"]);
     const byId = await run({ action: "list_projects", project: P_ACME });
-    assert.deepEqual(byId.rw.calls.map((c) => c.op), ["TarseeProject"], "an id goes straight to the project");
+    assert.deepEqual(byId.rw.calls.map((c) => c.op), ["AtlasProject"], "an id goes straight to the project");
     assert.equal(byId.out, out);
   });
 });
@@ -185,7 +185,7 @@ describe("the token: the vault's RAILWAY_API_TOKEN, else the environment's", () 
 
   it("with neither, it says where to get one and how to save it, and nothing is sent", async () => {
     const none = await run({ action: "list_projects" }, { vault: fakeVault({ RAILWAY_API_TOKEN: "  " }) });
-    assert.match(none.out, /^railway list_projects error: There is no Railway token: the vault has no RAILWAY_API_TOKEN and neither does the environment\. Ask the owner for a Railway account or workspace token .*a project token will not do.* save it with tarsee_set_key as RAILWAY_API_TOKEN\. Nothing was done\.$/);
+    assert.match(none.out, /^railway list_projects error: There is no Railway token: the vault has no RAILWAY_API_TOKEN and neither does the environment\. Ask the owner for a Railway account or workspace token .*a project token will not do.* save it with atlas_set_key as RAILWAY_API_TOKEN\. Nothing was done\.$/);
     assert.equal(none.rw.calls.length, 0);
   });
 
@@ -199,25 +199,25 @@ describe("the token: the vault's RAILWAY_API_TOKEN, else the environment's", () 
 
 describe("on Railway: Atlas's own project, environment and service by default", () => {
   it("reads where it runs from Railway's variables, ids only", () => {
-    assert.deepEqual(hereOf(ON_RAILWAY), { projectId: P_TARSEE, environmentId: E_TARSEE, serviceId: S_TARSEE });
+    assert.deepEqual(hereOf(ON_RAILWAY), { projectId: P_ATLAS, environmentId: E_ATLAS, serviceId: S_ATLAS });
     assert.deepEqual(hereOf({ RAILWAY_PROJECT_ID: "not-an-id" }), { projectId: null, environmentId: null, serviceId: null });
     assert.deepEqual(hereOf({}), { projectId: null, environmentId: null, serviceId: null });
   });
 
   it("list_projects marks Atlas's own project, environment and service", async () => {
     const all = await run({ action: "list_projects" }, { env: ON_RAILWAY });
-    assert.match(all.out, new RegExp(`- Atlas \\(id ${P_TARSEE}\\) \\(Atlas runs here\\)`));
+    assert.match(all.out, new RegExp(`- Atlas \\(id ${P_ATLAS}\\) \\(Atlas runs here\\)`));
     const one = await run({ action: "list_projects", project: "atlas" }, { env: ON_RAILWAY });
     assert.match(one.out, /- production \(id [^)]+\) \(Atlas runs here\)/);
-    assert.match(one.out, /- tarsee \(id [^)]+\) \(Atlas itself\)/);
+    assert.match(one.out, /- atlas \(id [^)]+\) \(Atlas itself\)/);
   });
 
   it("with no project, list_variables is about Atlas's own service (an id goes straight to it)", async () => {
     const { out, rw } = await run({ action: "list_variables" }, { env: ON_RAILWAY });
-    assert.match(out, new RegExp(`^Variables on tarsee \\(service id ${S_TARSEE}\\) in production \\(environment id ${E_TARSEE}\\), project "Atlas"`));
+    assert.match(out, new RegExp(`^Variables on atlas \\(service id ${S_ATLAS}\\) in production \\(environment id ${E_ATLAS}\\), project "Atlas"`));
     assert.match(out, /- SETUP_PASSWORD\n/);
     assert.ok(!out.includes("1234"));
-    assert.deepEqual(rw.calls.map((c) => c.op), ["TarseeProject", "TarseeVariableNames"]);
+    assert.deepEqual(rw.calls.map((c) => c.op), ["AtlasProject", "AtlasVariableNames"]);
   });
 
   it("another project named is not given Atlas's environment or service", async () => {
@@ -227,8 +227,8 @@ describe("on Railway: Atlas's own project, environment and service by default", 
 
   it("redeploying Atlas itself, or setting a variable on it with a deploy, says it restarts Atlas and ends the turn", async () => {
     const re = await run({ action: "redeploy", approved_by: GO }, { env: ON_RAILWAY });
-    assert.match(re.out, new RegExp(`^Asked Railway to redeploy tarsee \\(service id ${S_TARSEE}\\)`));
-    assert.deepEqual(re.rw.calls.at(-1).body.variables, { id: D_TARSEE });
+    assert.match(re.out, new RegExp(`^Asked Railway to redeploy atlas \\(service id ${S_ATLAS}\\)`));
+    assert.deepEqual(re.rw.calls.at(-1).body.variables, { id: D_ATLAS });
     assert.match(re.out, /This is Atlas's own service: the deploy restarts Atlas, which ends the turn that asked for it\./);
     const set = await run({ action: "set_variable", name: "LOG_LEVEL", value: "debug", approved_by: GO }, { env: ON_RAILWAY });
     assert.match(set.out, /restarts Atlas/);
@@ -344,7 +344,7 @@ describe("set_variable with from_key: the value goes to Railway and nowhere else
   it("when Railway's error repeats the value (as is or JSON-escaped), the error and the log show **** instead", async () => {
     const quoted = 'p"a\\ss-SECRET-word-0987';
     for (const [key, val, echo] of [["ALERTS_WEBHOOK", HOOK, HOOK], ["ODD_KEY", quoted, JSON.stringify(quoted).slice(1, -1)]]) {
-      const rw = railway({ fail: { op: "TarseeVariableUpsert", errors: [`Invalid value "${echo}" for ${key === "ODD_KEY" ? "X" : "ALERTS_WEBHOOK_URL"}`] } });
+      const rw = railway({ fail: { op: "AtlasVariableUpsert", errors: [`Invalid value "${echo}" for ${key === "ODD_KEY" ? "X" : "ALERTS_WEBHOOK_URL"}`] } });
       const { out, text } = await run({ action: "set_variable", project: "Acme", service: "watchdog", name: "ALERTS_WEBHOOK_URL", from_key: key, approved_by: GO }, { rw, vault: fakeVault({ RAILWAY_API_TOKEN: TOKEN, [key]: val }) });
       assert.match(out, /^railway set_variable error: Railway said: "Invalid value "\*\*\*\*" for /, out);
       assert.match(out, /Nothing was changed\.$/);
@@ -353,7 +353,7 @@ describe("set_variable with from_key: the value goes to Railway and nowhere else
   });
 
   it("an error that repeats the token is scrubbed too, the environment's token included", async () => {
-    const rw = railway({ fail: { op: "TarseeProjects", status: 401, errors: [`bad token ${TOKEN}`] } });
+    const rw = railway({ fail: { op: "AtlasProjects", status: 401, errors: [`bad token ${TOKEN}`] } });
     const { out, text } = await run({ action: "list_projects" }, { rw });
     assert.match(out, /Railway did not accept this with the token for the owner's Railway account \(Railway said: "bad token \*\*\*\*"\)/);
     assert.match(out, /it may be a project token \(this needs an account or workspace token\)/);
@@ -364,7 +364,7 @@ describe("set_variable with from_key: the value goes to Railway and nowhere else
 
   it("a vault key that is not there, or is empty, is refused before anything is sent", async () => {
     const missing = await run({ action: "set_variable", project: "Acme", service: "web", name: "A_B", from_key: "NOPE_KEY", approved_by: GO });
-    assert.match(missing.out, /The vault has no key named NOPE_KEY\. tarsee_list_keys lists the names\. Nothing was changed\.$/);
+    assert.match(missing.out, /The vault has no key named NOPE_KEY\. atlas_list_keys lists the names\. Nothing was changed\.$/);
     assert.equal(missing.rw.calls.length, 0);
     const empty = await run({ action: "set_variable", project: "Acme", service: "web", name: "A_B", from_key: "EMPTY_KEY", approved_by: GO }, { vault: fakeVault({ RAILWAY_API_TOKEN: TOKEN, EMPTY_KEY: "" }) });
     assert.match(empty.out, /The vault key EMPTY_KEY is empty/);
@@ -378,7 +378,7 @@ describe("set_variable with from_key: the value goes to Railway and nowhere else
   });
 
   it("if Railway stops answering during the write, it says the outcome is unknown and to check first", async () => {
-    const rw = railway({ fail: { op: "TarseeVariableUpsert", network: "ECONNRESET" } });
+    const rw = railway({ fail: { op: "AtlasVariableUpsert", network: "ECONNRESET" } });
     const { out } = await run({ action: "set_variable", project: "Acme", service: "watchdog", name: "ALERTS_WEBHOOK_URL", from_key: "ALERTS_WEBHOOK", approved_by: GO }, { rw });
     assert.match(out, /stopped answering while the variable was being set \(ECONNRESET\), so it is not known whether ALERTS_WEBHOOK_URL was set\. Check with list_variables before trying again\.$/);
     assert.ok(!out.includes("Nothing was changed"));
@@ -419,7 +419,7 @@ describe("set_variable: from_key or value, exactly one", () => {
       ["-----BEGIN RSA PRIVATE KEY-----\nabc", "a private key"],
     ]) {
       const { out, rw } = await run({ ...base, value });
-      assert.match(out, new RegExp(`value looks like a secret \\(${what}\\)\\. Save it in the vault with tarsee_set_key and pass from_key`), value);
+      assert.match(out, new RegExp(`value looks like a secret \\(${what}\\)\\. Save it in the vault with atlas_set_key and pass from_key`), value);
       assert.equal(rw.calls.length, 0);
     }
   });
@@ -457,7 +457,7 @@ describe("approved_by: a change needs someone's go", () => {
 describe("redeploy", () => {
   it("redeploys the service's latest deployment in the environment and gives the new deployment's id", async () => {
     const { out, rw, lines } = await run({ action: "redeploy", project: "Acme", service: "watchdog", approved_by: GO });
-    assert.deepEqual(rw.calls.map((c) => c.op), ["TarseeProjects", "TarseeProject", "TarseeLatestDeployment", "TarseeRedeploy"]);
+    assert.deepEqual(rw.calls.map((c) => c.op), ["AtlasProjects", "AtlasProject", "AtlasLatestDeployment", "AtlasRedeploy"]);
     assert.deepEqual(rw.calls[2].body.variables, { input: { environmentId: E_PROD, serviceId: S_WATCH } });
     assert.deepEqual(rw.calls[3].body.variables, { id: D_LAST });
     assert.match(out, new RegExp(`^Asked Railway to redeploy watchdog \\(service id ${S_WATCH}\\) in production .*\\nIt redeploys the latest deployment ${D_LAST} \\(success, made 2026-10-26T10:00:00Z\\), with the service's current variables\\.\\nnew deployment id: ${D_NEW}$`));
@@ -471,7 +471,7 @@ describe("redeploy", () => {
   });
 
   it("if Railway stops answering during the redeploy, the outcome is unknown and it says to check", async () => {
-    const rw = railway({ fail: { op: "TarseeRedeploy", network: "ETIMEDOUT" } });
+    const rw = railway({ fail: { op: "AtlasRedeploy", network: "ETIMEDOUT" } });
     const { out } = await run({ action: "redeploy", project: "Acme", service: "watchdog", approved_by: GO }, { rw });
     assert.match(out, /it is not known whether one started\. Check the service's deployments in Railway before trying again\.$/);
   });
@@ -501,7 +501,7 @@ describe("Railway's refusals in plain English", () => {
   });
 
   it("a write that Railway refuses ends with Nothing was changed", async () => {
-    const rw = railway({ fail: { op: "TarseeVariableUpsert", errors: ["Service instance not found"] } });
+    const rw = railway({ fail: { op: "AtlasVariableUpsert", errors: ["Service instance not found"] } });
     const { out } = await run({ action: "set_variable", project: "Acme", service: "web", name: "A_B", value: "1", approved_by: GO }, { rw });
     assert.equal(out, 'railway set_variable error: Railway said: "Service instance not found". Nothing was changed.');
   });
@@ -537,7 +537,7 @@ describe("unknown actions and no delete paths", () => {
     ]) await railwayAdmin(args, { vault: fakeVault(), env: {}, fetch: rw.fetch, log: () => {} });
     assert.ok(rw.calls.length >= 12);
     for (const c of rw.calls) assert.ok(known.has(c.body.query), c.body.query);
-    assert.deepEqual(rw.writes().map((c) => c.op), ["TarseeVariableUpsert", "TarseeVariableUpsert", "TarseeRedeploy"]);
+    assert.deepEqual(rw.writes().map((c) => c.op), ["AtlasVariableUpsert", "AtlasVariableUpsert", "AtlasRedeploy"]);
   });
 });
 
@@ -549,7 +549,7 @@ describe("wording", () => {
 
   it("the default TOOLS.md has a Railway section", () => {
     const tools = fs.readFileSync(path.join(here, "../src/workspace-defaults/TOOLS.md"), "utf8");
-    assert.match(tools, /## Railway \(projects, variables, redeploys\)\n- List projects, services and variable names, set a variable or redeploy with tarsee_railway\./);
+    assert.match(tools, /## Railway \(projects, variables, redeploys\)\n- List projects, services and variable names, set a variable or redeploy with atlas_railway\./);
     assert.match(tools, /pass set_variable from_key \(the vault key name\)/);
     assert.match(tools, /approved_by/);
     assert.match(tools, /Redeploying Atlas's own service restarts it/);
@@ -595,9 +595,9 @@ describe("the real vault (here a temporary one) and tools.js", () => {
     }
   });
 
-  it("the MCP server offers tarsee_railway with the right words, and a call runs the tool", async () => {
-    const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
-    const server = createTarseeMcp({});
+  it("the MCP server offers atlas_railway with the right words, and a call runs the tool", async () => {
+    const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
+    const server = createAtlasMcp({});
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const mcp = new Client({ name: "railway-test", version: "1.0.0" }, { capabilities: {} });
     await Promise.all([server.instance.connect(serverTransport), mcp.connect(clientTransport)]);
@@ -605,8 +605,8 @@ describe("the real vault (here a temporary one) and tools.js", () => {
     globalThis.fetch = rw.fetch;
     try {
       const { tools } = await mcp.listTools();
-      const tool = tools.find((t) => t.name === "tarsee_railway");
-      assert.ok(tool, "tarsee_railway is offered");
+      const tool = tools.find((t) => t.name === "atlas_railway");
+      assert.ok(tool, "atlas_railway is offered");
       assert.deepEqual(tool.inputSchema.properties.action.enum, [...ACTIONS]);
       assert.equal(tool.inputSchema.properties.account, undefined, "one account: the owner's");
       assert.ok(tool.inputSchema.required?.includes("action"));
@@ -617,14 +617,14 @@ describe("the real vault (here a temporary one) and tools.js", () => {
       assert.match(tool.description, /never put a Railway token or a secret value in a command/);
       assert.match(tool.description, /value is for plain, non-secret text only/);
       assert.match(tool.description, /needs the owner's go/);
-      assert.match(tool.description, /TARSEE'S OWN SERVICE: .*restarts Atlas and ends the turn doing it/);
+      assert.match(tool.description, /ATLAS'S OWN SERVICE: .*restarts Atlas and ends the turn doing it/);
       assert.match(tool.description, /NOTHING HERE DELETES/);
       assert.match(tool.inputSchema.properties.value.description, /NON-SECRET/);
-      const res = await mcp.callTool({ name: "tarsee_railway", arguments: { action: "list_projects", project: "Acme" } });
+      const res = await mcp.callTool({ name: "atlas_railway", arguments: { action: "list_projects", project: "Acme" } });
       assert.match(res.content[0].text, /^Project "Acme" \(id /);
-      const bad = await mcp.callTool({ name: "tarsee_railway", arguments: { action: "delete_variable", project: "Acme" } }).catch((e) => ({ isError: true, content: [{ text: e.message }] }));
+      const bad = await mcp.callTool({ name: "atlas_railway", arguments: { action: "delete_variable", project: "Acme" } }).catch((e) => ({ isError: true, content: [{ text: e.message }] }));
       assert.ok(bad.isError, "a delete does not pass the schema");
-      assert.deepEqual(rw.calls.map((c) => c.op), ["TarseeProjects", "TarseeProject"], "and never reaches Railway");
+      assert.deepEqual(rw.calls.map((c) => c.op), ["AtlasProjects", "AtlasProject"], "and never reaches Railway");
     } finally {
       globalThis.fetch = realFetch;
       await mcp.close();

@@ -13,12 +13,12 @@ import { fakePython, fakeInterpreter } from "./fakes/fake-python.js";
 import { fakeDownloadHost } from "./fakes/fake-download-host.js";
 import { makeTarGz } from "./fakes/tar.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-stt-install-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-delete process.env.TARSEE_STT_PYTHON;
-delete process.env.TARSEE_WHISPER_BUNDLED_DIR;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-stt-install-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+delete process.env.ATLAS_STT_PYTHON;
+delete process.env.ATLAS_WHISPER_BUNDLED_DIR;
 
 const runtime = await import("../src/voice/python-runtime.js");
 const stt = await import("../src/voice/stt-install.js");
@@ -117,7 +117,7 @@ describe("speech-to-text status", () => {
     fs.mkdirSync(path.join(image, "base.en"), { recursive: true });
     for (const [n, b] of Object.entries(MODEL_FILES["base.en"])) fs.writeFileSync(path.join(image, "base.en", n), b);
     fs.writeFileSync(path.join(image, "base.en", MODEL_MARKER), "{}");
-    process.env.TARSEE_WHISPER_BUNDLED_DIR = image;
+    process.env.ATLAS_WHISPER_BUNDLED_DIR = image;
     try {
       const s = await stt.getSttStatus({ refresh: true });
       assert.equal(s.runtime.state, "ready");
@@ -131,7 +131,7 @@ describe("speech-to-text status", () => {
       assert.equal(base.where, path.join(image, "base.en"));
       assert.equal(base.current, true);
     } finally {
-      delete process.env.TARSEE_WHISPER_BUNDLED_DIR;
+      delete process.env.ATLAS_WHISPER_BUNDLED_DIR;
     }
   });
 });
@@ -161,7 +161,7 @@ describe("Install faster-whisper", () => {
 
     const s = await stt.getSttStatus();
     assert.equal(s.runtime.state, "ready");
-    assert.equal(s.runtime.source, "tarsee");
+    assert.equal(s.runtime.source, "atlas");
     assert.equal(s.models.find((m) => m.name === "base.en").state, "downloaded");
     assert.equal(host.requests.filter((r) => r.url.startsWith("https://api.github.com")).length, 0, "no Python was downloaded");
     const rt = await stt.findSttRuntime();

@@ -1,5 +1,5 @@
 // Atlas's tools for the Codex engine (src/ai/mcp-http.js, design 4.9 and 4.5 R12). Codex can't take an in-process MCP
-// server the way Claude Code does, so Atlas serves the same tarsee_* tools on a loopback streamable-HTTP endpoint, and
+// server the way Claude Code does, so Atlas serves the same atlas_* tools on a loopback streamable-HTTP endpoint, and
 // each Codex turn gets a grant: a URL and a 32-byte bearer token tied to that turn's tool context. These tests drive it
 // with the MCP SDK's real streamable-HTTP client, the way Codex's own client calls it: the full tool list, a call that
 // reaches executeTool with the granted context (and only that one), Tool Permissions, and every refusal (no, wrong,
@@ -15,11 +15,11 @@ import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-mcp-http-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-delete process.env.TARSEE_TOOL_RESULT_MAX_CHARS;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-mcp-http-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+delete process.env.ATLAS_TOOL_RESULT_MAX_CHARS;
 
 const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
 const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
@@ -27,13 +27,13 @@ const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.j
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { getSecurityManager } = await import("../src/lib/security-manager.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const {
   startMcpHttp, stopMcpHttp, grantTurn, grantMcp, grantCount, isLoopbackAddress, pruneToolOutput, spillThreshold, MCP_BODY_LIMIT,
   TOOL_OUTPUT_KEEP_MS,
 } = await import("../src/ai/mcp-http.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 /** The tool context a turn would grant: this test's database and a conversation id the tools record. */
 const ctxFor = (conversationId) => ({ db, settingsStore: settings, conversationId });
@@ -152,7 +152,7 @@ describe("the loopback endpoint", () => {
 
 describe("tools over streamable HTTP", () => {
   it("tools/list returns the full Atlas tool list, the same one Claude Code gets in-process", async () => {
-    const inProcess = createTarseeMcp(ctxFor("conv-list"));
+    const inProcess = createAtlasMcp(ctxFor("conv-list"));
     const [a, b] = InMemoryTransport.createLinkedPair();
     const local = new Client({ name: "in-process", version: "1.0.0" }, { capabilities: {} });
     await Promise.all([inProcess.instance.connect(b), local.connect(a)]);
@@ -166,8 +166,8 @@ describe("tools over streamable HTTP", () => {
       await client.close();
       assert.deepEqual(listed.map((t) => t.name).sort(), expected);
       assert.ok(listed.length >= 26, `only ${listed.length} tools listed`);
-      assert.ok(listed.every((t) => t.name.startsWith("tarsee_")));
-      const schedule = listed.find((t) => t.name === "tarsee_schedule_task");
+      assert.ok(listed.every((t) => t.name.startsWith("atlas_")));
+      const schedule = listed.find((t) => t.name === "atlas_schedule_task");
       assert.equal(schedule.inputSchema?.properties?.action?.properties?.args?.type, "object");
     } finally {
       grant.revoke();
@@ -178,9 +178,9 @@ describe("tools over streamable HTTP", () => {
     const one = grantTurn(ctxFor("conv-one"));
     const two = grantTurn(ctxFor("conv-two"));
     try {
-      const { text } = await callTool(one, "tarsee_remember", { content: "The canary fact is teal-42", category: "fact" });
+      const { text } = await callTool(one, "atlas_remember", { content: "The canary fact is teal-42", category: "fact" });
       assert.equal(text, 'Remembered: "The canary fact is teal-42"');
-      await callTool(two, "tarsee_remember", { content: "The other turn's fact is amber-7" });
+      await callTool(two, "atlas_remember", { content: "The other turn's fact is amber-7" });
       assert.deepEqual(memoriesOf("conv-one").map((m) => m.content), ["The canary fact is teal-42"]);
       assert.deepEqual(memoriesOf("conv-two").map((m) => m.content), ["The other turn's fact is amber-7"]);
     } finally {
@@ -194,7 +194,7 @@ describe("tools over streamable HTTP", () => {
     const deniedBefore = db.prepare("SELECT COUNT(*) AS n FROM audit_log WHERE action = 'tool.denied' AND target = 'remember'").get().n;
     const grant = grantTurn(ctxFor("conv-denied"));
     try {
-      const { text } = await callTool(grant, "tarsee_remember", { content: "This must not be saved" });
+      const { text } = await callTool(grant, "atlas_remember", { content: "This must not be saved" });
       assert.match(text, /Refused by security policy/);
       assert.match(text, /Settings > Tool Permissions/);
       assert.equal(memoriesOf("conv-denied").length, 0, "a denied call still wrote a memory");
@@ -209,16 +209,16 @@ describe("tools over streamable HTTP", () => {
     const limit = spillThreshold();
     assert.equal(limit, 12_000);
     // The same setting as Claude Code's limit (context-limits.js), with the same floor.
-    assert.equal(spillThreshold({ TARSEE_TOOL_RESULT_MAX_CHARS: "5000" }), 5000);
-    assert.equal(spillThreshold({ TARSEE_TOOL_RESULT_MAX_CHARS: "500" }), 12_000);
+    assert.equal(spillThreshold({ ATLAS_TOOL_RESULT_MAX_CHARS: "5000" }), 5000);
+    assert.equal(spillThreshold({ ATLAS_TOOL_RESULT_MAX_CHARS: "500" }), 12_000);
     const body = Array.from({ length: 900 }, (_, i) => `- line ${i}: the owner's notes go on for a while here`).join("\n");
     const full = `# Memory\n${body}\nEND-OF-MEMORY-CANARY\n`;
     assert.ok(full.length > limit * 2);
-    fs.writeFileSync(path.join(process.env.TARSEE_WORKSPACE_DIR, "MEMORY.md"), full);
+    fs.writeFileSync(path.join(process.env.ATLAS_WORKSPACE_DIR, "MEMORY.md"), full);
 
     const grant = grantTurn(ctxFor("conv-spill"), { turnId: "turn-spill-1" });
     try {
-      const { text } = await callTool(grant, "tarsee_read_file", { filename: "MEMORY.md" });
+      const { text } = await callTool(grant, "atlas_read_file", { filename: "MEMORY.md" });
       assert.ok(text.length < limit, `the model still got ${text.length} characters`);
       const m = text.match(/saved in full to (.+?\.txt)/);
       assert.ok(m, `no path in: ${text.slice(0, 400)}`);
@@ -226,7 +226,7 @@ describe("tools over streamable HTTP", () => {
       assert.ok(path.isAbsolute(saved));
       const outputRoot = path.join(tmp, "tool-output");
       assert.ok(saved.startsWith(path.join(outputRoot, "turn-spill-1") + path.sep), `saved at ${saved}`);
-      assert.ok(!saved.startsWith(path.resolve(process.env.TARSEE_WORKSPACE_DIR)), "the spill file is in the workspace");
+      assert.ok(!saved.startsWith(path.resolve(process.env.ATLAS_WORKSPACE_DIR)), "the spill file is in the workspace");
       assert.equal(fs.readFileSync(saved, "utf8"), full, "the file must hold the whole result");
       assert.ok(text.includes("# Memory\n- line 0:"), "the model gets the start of it to go on");
       assert.ok(!text.includes("END-OF-MEMORY-CANARY"));
@@ -243,8 +243,8 @@ describe("tools over streamable HTTP", () => {
     try {
       const client = await connect(grant);
       await client.listTools();
-      await client.callTool({ name: "tarsee_calculator", arguments: { expression: "1 + 1" } });
-      await client.callTool({ name: "tarsee_calculator", arguments: { expression: "2 + 2" } });
+      await client.callTool({ name: "atlas_calculator", arguments: { expression: "1 + 1" } });
+      await client.callTool({ name: "atlas_calculator", arguments: { expression: "2 + 2" } });
       await client.close();
     } finally {
       console.log = realLog;
@@ -258,7 +258,7 @@ describe("tools over streamable HTTP", () => {
   it("leaves a short result as it is", async () => {
     const grant = grantTurn(ctxFor("conv-short"), { turnId: "turn-short" });
     try {
-      const { text } = await callTool(grant, "tarsee_calculator", { expression: "6 * 7" });
+      const { text } = await callTool(grant, "atlas_calculator", { expression: "6 * 7" });
       assert.match(text, /42/);
       assert.ok(!fs.existsSync(path.join(tmp, "tool-output", "turn-short")));
     } finally {
@@ -392,11 +392,11 @@ describe("refusals", () => {
 });
 
 /**
- * The pinned codex binary, found the way @openai/codex-sdk finds it (TARSEE_CODEX_BIN first), or null when this
+ * The pinned codex binary, found the way @openai/codex-sdk finds it (ATLAS_CODEX_BIN first), or null when this
  * machine doesn't have it installed.
  */
 function findCodexBin() {
-  if (process.env.TARSEE_CODEX_BIN && fs.existsSync(process.env.TARSEE_CODEX_BIN)) return process.env.TARSEE_CODEX_BIN;
+  if (process.env.ATLAS_CODEX_BIN && fs.existsSync(process.env.ATLAS_CODEX_BIN)) return process.env.ATLAS_CODEX_BIN;
   const triples = {
     "linux-x64": "x86_64-unknown-linux-musl", "linux-arm64": "aarch64-unknown-linux-musl",
     "darwin-x64": "x86_64-apple-darwin", "darwin-arm64": "aarch64-apple-darwin",
@@ -415,28 +415,28 @@ function findCodexBin() {
 }
 
 /**
- * Codex's app-server on stdio, set up the way a Codex turn reaches Atlas's tools: the tarsee MCP server at the
- * grant's url, its token read from TARSEE_MCP_TOKEN. Its own home, no credentials, its model hosts pointed at a closed
+ * Codex's app-server on stdio, set up the way a Codex turn reaches Atlas's tools: the atlas MCP server at the
+ * grant's url, its token read from ATLAS_MCP_TOKEN. Its own home, no credentials, its model hosts pointed at a closed
  * port on this machine, and the features that reach out on their own switched off (on startup it otherwise git-fetches
  * OpenAI's plugin list from GitHub, in a child that outlives it), so nothing can leave the machine.
  * rpc(method, params) resolves the reply (or {timeout:true}).
  */
 function codexAppServer(bin, grant) {
   const home = fs.mkdtempSync(path.join(tmp, "codex-home-"));
-  const env = { ...process.env, CODEX_HOME: home, TARSEE_MCP_TOKEN: grant.token };
+  const env = { ...process.env, CODEX_HOME: home, ATLAS_MCP_TOKEN: grant.token };
   for (const name of Object.keys(env)) {
-    if (name !== "TARSEE_MCP_TOKEN" && /^(OPENAI_|CODEX_API|ANTHROPIC_|CLAUDE_CODE_OAUTH)|(_KEY|_TOKEN|SECRET|PASSWORD)$/i.test(name)) delete env[name];
+    if (name !== "ATLAS_MCP_TOKEN" && /^(OPENAI_|CODEX_API|ANTHROPIC_|CLAUDE_CODE_OAUTH)|(_KEY|_TOKEN|SECRET|PASSWORD)$/i.test(name)) delete env[name];
   }
   const closed = "http://127.0.0.1:9";
   const offline = ["plugins", "remote_plugin", "plugin_discovery_prefetch", "apps", "in_app_updates", "daemon_auto_start"];
   const child = spawn(bin, [
     "app-server",
     ...offline.flatMap((feature) => ["--disable", feature]),
-    "-c", `mcp_servers.tarsee.url="${grant.url}"`,
-    "-c", 'mcp_servers.tarsee.bearer_token_env_var="TARSEE_MCP_TOKEN"',
-    "-c", 'mcp_servers.tarsee.default_tools_approval_mode="approve"',
-    "-c", "mcp_servers.tarsee.required=true",
-    "-c", "mcp_servers.tarsee.startup_timeout_sec=20",
+    "-c", `mcp_servers.atlas.url="${grant.url}"`,
+    "-c", 'mcp_servers.atlas.bearer_token_env_var="ATLAS_MCP_TOKEN"',
+    "-c", 'mcp_servers.atlas.default_tools_approval_mode="approve"',
+    "-c", "mcp_servers.atlas.required=true",
+    "-c", "mcp_servers.atlas.startup_timeout_sec=20",
     "-c", "check_for_update_on_startup=false",
     "-c", "analytics.enabled=false",
     "-c", `openai_base_url="${closed}/v1"`,
@@ -480,14 +480,14 @@ describe("with Codex's own MCP client (the pinned codex binary)", { skip: codexB
     const grant = grantTurn(ctxFor("conv-codex"), { turnId: "turn-codex" });
     const codex = codexAppServer(codexBin, grant);
     try {
-      const init = await codex.rpc("initialize", { clientInfo: { name: "tarsee-test", version: "1.0.0" } });
+      const init = await codex.rpc("initialize", { clientInfo: { name: "atlas-test", version: "1.0.0" } });
       assert.ok(init.result, `initialize: ${JSON.stringify(init)}`);
       codex.notify("initialized");
 
-      const status = await codex.rpc("mcpServerStatus/list", { serverName: "tarsee" });
-      const server = status.result?.data?.find((s) => s.name === "tarsee");
-      assert.ok(server, `no tarsee server in ${JSON.stringify(status).slice(0, 500)}`);
-      const inProcess = createTarseeMcp(ctxFor("conv-codex"));
+      const status = await codex.rpc("mcpServerStatus/list", { serverName: "atlas" });
+      const server = status.result?.data?.find((s) => s.name === "atlas");
+      assert.ok(server, `no atlas server in ${JSON.stringify(status).slice(0, 500)}`);
+      const inProcess = createAtlasMcp(ctxFor("conv-codex"));
       const [a, b] = InMemoryTransport.createLinkedPair();
       const local = new Client({ name: "in-process", version: "1.0.0" }, { capabilities: {} });
       await Promise.all([inProcess.instance.connect(b), local.connect(a)]);
@@ -499,7 +499,7 @@ describe("with Codex's own MCP client (the pinned codex binary)", { skip: codexB
       const threadId = thread.result?.thread?.id;
       assert.ok(threadId, `thread/start: ${JSON.stringify(thread).slice(0, 500)}`);
       const call = await codex.rpc("mcpServer/tool/call", {
-        server: "tarsee", threadId, tool: "tarsee_remember", arguments: { content: "Codex reached the tools" },
+        server: "atlas", threadId, tool: "atlas_remember", arguments: { content: "Codex reached the tools" },
       });
       assert.equal(call.result?.content?.[0]?.text, 'Remembered: "Codex reached the tools"', JSON.stringify(call).slice(0, 500));
       assert.deepEqual(memoriesOf("conv-codex").map((m) => m.content), ["Codex reached the tools"]);
@@ -517,7 +517,7 @@ describe("spilled results are kept for a week", () => {
     const recent = path.join(root, "turn-recent");
     for (const dir of [old, recent]) {
       fs.mkdirSync(dir, { recursive: true });
-      fs.writeFileSync(path.join(dir, "1-tarsee_read_file.txt"), "x");
+      fs.writeFileSync(path.join(dir, "1-atlas_read_file.txt"), "x");
     }
     const now = Date.now();
     const eightDaysAgo = new Date(now - 8 * 24 * 3600_000);

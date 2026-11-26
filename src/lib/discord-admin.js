@@ -1,5 +1,5 @@
 /**
- * Discord server admin for the agent (tarsee_discord_admin): list, make and edit
+ * Discord server admin for the agent (atlas_discord_admin): list, make and edit
  * channels, and make webhooks, done by Atlas's own logged-in discord.js client
  * (src/channels/discord.js `admin`). The agent never handles the bot token:
  * without this tool it would pull DISCORD_BOT_TOKEN from the vault and call
@@ -80,7 +80,7 @@ class AdminError extends Error {}
 const fail = (msg) => { throw new AdminError(msg); };
 
 /**
- * @param {object} args the tool's input (see the tarsee_discord_admin schema in src/ai/tarsee-mcp.js)
+ * @param {object} args the tool's input (see the atlas_discord_admin schema in src/ai/atlas-mcp.js)
  * @param {object} deps
  * @param {import("discord.js").Client} deps.client the logged-in client
  * @param {{ hasKey: Function, setKey: Function }} [deps.vault] defaults to lib/key-vault.js

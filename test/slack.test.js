@@ -4,11 +4,11 @@ import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
 
-// Isolate everything to a temp dir so we don't touch ~/.tarsee
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-slack-test-"));
-process.env.TARSEE_STATE_DIR = TMP_DIR;
-process.env.TARSEE_WORKSPACE_DIR = path.join(TMP_DIR, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(TMP_DIR, "data");
+// Isolate everything to a temp dir so we don't touch ~/.atlas
+const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-slack-test-"));
+process.env.ATLAS_STATE_DIR = TMP_DIR;
+process.env.ATLAS_WORKSPACE_DIR = path.join(TMP_DIR, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(TMP_DIR, "data");
 process.env.ENCRYPTION_KEY = "test-key-for-unit-tests-only-32chars!";
 
 const { getChannelKey, decideSlackMessage, isSlackFileUrl, slackChatTitle, parseAllowlist, readSlashText } = await import("../src/channels/slack.js");
@@ -184,7 +184,7 @@ describe("Slack in the shared commands and labels", () => {
   });
 });
 
-describe("readSlashText (what /tarsee <text> asks for)", () => {
+describe("readSlashText (what /atlas <text> asks for)", () => {
   it("runs a command when it is written with its slash, or is one bare word", () => {
     assert.deepEqual(readSlashText(""), { command: "/help" });
     assert.deepEqual(readSlashText("/model opus"), { command: "/model opus" });

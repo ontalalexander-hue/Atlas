@@ -4,7 +4,7 @@
 //   node scripts/e2e/ai-ui.e2e.mjs [--shots <dir>] [--out <results.json>]
 //
 // What it does:
-//   - boots `node src/server.js` on a free port with a fresh temp TARSEE_STATE_DIR and a temp HOME (so no Claude or
+//   - boots `node src/server.js` on a free port with a fresh temp ATLAS_STATE_DIR and a temp HOME (so no Claude or
 //     Codex sign-in of this machine is seen), a SETUP_PASSWORD and ENCRYPTION_KEY made up at run time (never written
 //     to a file), and every AI credential variable of this shell removed
 //   - runs a tiny loopback server that answers GET /v1/models like an Ollama/LM Studio box (the owner's "Local AI")
@@ -32,7 +32,7 @@ const { chromium } = require("playwright");
 
 const argv = process.argv.slice(2);
 const arg = (name, dflt) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : dflt; };
-const SHOTS = path.resolve(arg("--shots", path.join(os.tmpdir(), "tarsee-e2e-shots", "ai")));
+const SHOTS = path.resolve(arg("--shots", path.join(os.tmpdir(), "atlas-e2e-shots", "ai")));
 const OUT = arg("--out", null);
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -180,21 +180,21 @@ await new Promise((r) => localAi.listen(0, "127.0.0.1", r));
 const LOCAL_URL = `http://127.0.0.1:${localAi.address().port}/v1`;
 
 // The server, fresh.
-const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-e2e-state-"));
-const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-e2e-home-"));
+const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-e2e-state-"));
+const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-e2e-home-"));
 const port = await freePort();
 const ORIGIN = `http://127.0.0.1:${port}`;
-const CRED_NAME_RE = /^(ANTHROPIC_|OPENAI_|OPENROUTER_|DEEPSEEK_|CLAUDE|CODEX_|TARSEE_|AWS_BEARER|SETUP_PASSWORD$|ENCRYPTION_KEY$|NODE_ENV$|PORT$)/i;
+const CRED_NAME_RE = /^(ANTHROPIC_|OPENAI_|OPENROUTER_|DEEPSEEK_|CLAUDE|CODEX_|ATLAS_|AWS_BEARER|SETUP_PASSWORD$|ENCRYPTION_KEY$|NODE_ENV$|PORT$)/i;
 const serverEnv = {};
 for (const [k, v] of Object.entries(process.env)) if (!CRED_NAME_RE.test(k)) serverEnv[k] = v;
 Object.assign(serverEnv, {
   PORT: String(port),
-  TARSEE_STATE_DIR: stateDir,
+  ATLAS_STATE_DIR: stateDir,
   SETUP_PASSWORD,
   ENCRYPTION_KEY,
   HOME: homeDir,
   USERPROFILE: homeDir,
-  TARSEE_PHONON_AUTO_INSTALL: "0",
+  ATLAS_PHONON_AUTO_INSTALL: "0",
 });
 let serverOut = "";
 const server = spawn(process.execPath, ["src/server.js"], { cwd: ROOT, env: serverEnv, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
@@ -792,7 +792,7 @@ await step("Settings > AI: Claude plan signs in (placeholder sign-in file), Use 
   await page.waitForTimeout(500);
   const btnText = (await page.locator("#modelPickerBtn").innerText()).trim();
   check(!/e2e-local-model/.test(btnText), "composer: after Use this AI (Claude plan) the model button no longer shows the old default's model", {
-    file: "src/public/js/chat.js", detail: "Settings > AI dispatches tarsee:ai-changed, but nothing listens for it, so the composer keeps the old default until its 5-minute cache runs out.", evidence: btnText,
+    file: "src/public/js/chat.js", detail: "Settings > AI dispatches atlas:ai-changed, but nothing listens for it, so the composer keeps the old default until its 5-minute cache runs out.", evidence: btnText,
   });
   await page.locator("#modelPickerBtn").click();
   await page.locator(".mp-menu .mp-group[aria-label]").first().waitFor({ timeout: 10_000 });
@@ -800,7 +800,7 @@ await step("Settings > AI: Claude plan signs in (placeholder sign-in file), Use 
   const groups = await page.locator(".mp-menu .mp-group[aria-label]").evaluateAll((gs) => gs.map((g) => g.getAttribute("aria-label")));
   const listCalls = apiCalls.filter((c) => c.where === "desktop" && c.path === "/api/chat/models").map((c) => new Date(c.at).toISOString());
   check(groups.includes("Claude plan"), "model picker: opened right after the Claude plan turned Ready and became the default, it lists the Claude plan", {
-    file: "src/public/js/chat.js", detail: "refreshPicker() only asks GET /api/chat/models again when its copy is over 5 minutes old; the tarsee:ai-changed event Settings sends has no listener.", evidence: `groups ${JSON.stringify(groups)}; GET /api/chat/models at ${listCalls.join(", ")}`,
+    file: "src/public/js/chat.js", detail: "refreshPicker() only asks GET /api/chat/models again when its copy is over 5 minutes old; the atlas:ai-changed event Settings sends has no listener.", evidence: `groups ${JSON.stringify(groups)}; GET /api/chat/models at ${listCalls.join(", ")}`,
   });
   await shot(page, "12b-composer-after-default-change-1280");
   await page.keyboard.press("Escape");
@@ -989,7 +989,7 @@ await step("the call: Call <name> in the topbar, the real /api/call behind sign-
   wavProbe.write("RIFF", 0); wavProbe.writeUInt32LE(36 + 3200, 4); wavProbe.write("WAVE", 8); wavProbe.write("fmt ", 12); wavProbe.writeUInt32LE(16, 16);
   wavProbe.writeUInt16LE(1, 20); wavProbe.writeUInt16LE(1, 22); wavProbe.writeUInt32LE(16000, 24); wavProbe.writeUInt32LE(32000, 28); wavProbe.writeUInt16LE(2, 32);
   wavProbe.writeUInt16LE(16, 34); wavProbe.write("data", 36); wavProbe.writeUInt32LE(3200, 40);
-  const csrf = (await desk.cookies()).find((c) => c.name === "tarsee_csrf")?.value || "";
+  const csrf = (await desk.cookies()).find((c) => c.name === "atlas_csrf")?.value || "";
   const sttRes = await desk.request.post(`${ORIGIN}/api/voice/transcribe`, { headers: { "X-CSRF-Token": csrf }, multipart: { audio: { name: "probe.wav", mimeType: "audio/wav", buffer: wavProbe } } });
   const sttBody = await sttRes.json().catch(() => ({}));
   if (sttRes.ok()) note(`speech-to-text is set up on this machine (it heard "${sttBody.text}")`);

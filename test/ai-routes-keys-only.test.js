@@ -1,6 +1,6 @@
 // "API keys only" promises that no plan sign-in is ever used. Reading the ChatGPT account's model list starts
 // `codex app-server` in the plan's home, which sends the plan's sign-in to ChatGPT's backend, so with keys-only on
-// (the ai.keysOnly setting, or TARSEE_KEYS_ONLY=1) /api/ai (src/routes/ai.js) never reads it either: not for a model
+// (the ai.keysOnly setting, or ATLAS_KEYS_ONLY=1) /api/ai (src/routes/ai.js) never reads it either: not for a model
 // change on the ChatGPT card (PUT /providers/chatgpt, which a script or a Settings tab left open can still send),
 // not for its model list, and not when a device sign-in started before keys-only was switched on finishes later.
 // lib/model-catalog.js's own reader has the same rule (test/chatgpt-list-keys-only.test.js). Every Codex call here is
@@ -12,13 +12,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-ai-keys-only-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-ai-keys-only-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_HOME", "CODEX_HOME",
 ];
 for (const name of CLEARED) delete process.env[name];
@@ -28,7 +28,7 @@ const { SettingsStore } = await import("../src/db/settings.js");
 const { createAiRouter } = await import("../src/routes/ai.js");
 const { setCatalogModels, catalogModels } = await import("../src/ai/provider-registry.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const emptyClaudeHome = fs.mkdtempSync(path.join(tmp, "claude-empty-"));
 
@@ -77,7 +77,7 @@ let api;
 let locked;
 before(async () => {
   api = await serve();
-  locked = await serve({ env: { TARSEE_KEYS_ONLY: "1" } });
+  locked = await serve({ env: { ATLAS_KEYS_ONLY: "1" } });
 });
 after(() => {
   for (const s of servers) s.close();
@@ -94,7 +94,7 @@ beforeEach(() => {
 
 const KEYS_ONLY_WAYS = [
   ["keys-only switched on in Settings", () => { store.set("ai.keysOnly", true); return api; }],
-  ["keys-only locked on by TARSEE_KEYS_ONLY=1", () => locked],
+  ["keys-only locked on by ATLAS_KEYS_ONLY=1", () => locked],
 ];
 
 describe("API keys only: the ChatGPT card's model never starts Codex", () => {

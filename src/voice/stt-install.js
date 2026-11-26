@@ -3,7 +3,7 @@
  * models. What the page shows (getSttStatus) and does (startSttInstall, startModelDownload, removeSttModel).
  *
  * Which Python runs faster-whisper (findSttRuntime), first that can import it:
- *   1. TARSEE_STT_PYTHON, when set (a Python you manage yourself);
+ *   1. ATLAS_STT_PYTHON, when set (a Python you manage yourself);
  *   2. Atlas's own: <state>/python/stt-venv, made by "Install faster-whisper";
  *   3. a Python on this computer (the Docker image installs faster-whisper for its python3).
  *
@@ -49,12 +49,12 @@ export function __setForTests({ catalog } = {}) {
 
 // ── Folders ──────────────────────────────────────────────────────────────
 
-/** Where everything is. bundled: TARSEE_WHISPER_BUNDLED_DIR (the Docker image's models, read-only). */
+/** Where everything is. bundled: ATLAS_WHISPER_BUNDLED_DIR (the Docker image's models, read-only). */
 export function sttDirs() {
   const models = path.join(config.DATA_DIR, "whisper-models");
-  const bundled = String(process.env.TARSEE_WHISPER_BUNDLED_DIR || "").split(path.delimiter).map((s) => s.trim()).filter(Boolean);
+  const bundled = String(process.env.ATLAS_WHISPER_BUNDLED_DIR || "").split(path.delimiter).map((s) => s.trim()).filter(Boolean);
   // The old version let faster-whisper download into <dir>/hf_cache, with <dir> worked out its own way.
-  const old = path.join(process.env.TARSEE_DATA_DIR || process.env.TARSEE_STATE_DIR || "/data/tarsee", "whisper-models");
+  const old = path.join(process.env.ATLAS_DATA_DIR || process.env.ATLAS_STATE_DIR || "/data/atlas", "whisper-models");
   const caches = [...new Set([path.join(models, "hf_cache"), path.join(old, "hf_cache")])];
   return { home: pythonHome(), venv: path.join(pythonHome(), "stt-venv"), models, bundled, caches };
 }
@@ -69,7 +69,7 @@ export function resetSttRuntime() {
 }
 
 /**
- * { ready, python: { cmd, args }, label, version, executable, fasterWhisper, source: "custom"|"tarsee"|"system" }
+ * { ready, python: { cmd, args }, label, version, executable, fasterWhisper, source: "custom"|"atlas"|"system" }
  * when a Python can import faster-whisper; else { ready: false, base (a Python an install would use, or null),
  * problem }. Cached until resetSttRuntime() or refresh.
  */
@@ -94,17 +94,17 @@ function readyFrom(probe, source) {
 }
 
 async function detectRuntime() {
-  const custom = process.env.TARSEE_STT_PYTHON?.trim();
+  const custom = process.env.ATLAS_STT_PYTHON?.trim();
   if (custom) {
     const p = await probePython({ cmd: custom, args: [], label: custom });
     if (p.fasterWhisper) return readyFrom(p, "custom");
-    return { ready: false, base: null, custom: true, problem: `TARSEE_STT_PYTHON (${custom}) ${p.found ? "can't load faster-whisper" : "was not found"}` };
+    return { ready: false, base: null, custom: true, problem: `ATLAS_STT_PYTHON (${custom}) ${p.found ? "can't load faster-whisper" : "was not found"}` };
   }
   const venvPy = venvInterpreter(sttDirs().venv);
   let broken = null;
   if (fs.existsSync(venvPy)) {
     const p = await probePython({ cmd: venvPy, args: [], label: "Atlas's faster-whisper" });
-    if (p.fasterWhisper) return readyFrom(p, "tarsee");
+    if (p.fasterWhisper) return readyFrom(p, "atlas");
     broken = "Atlas's faster-whisper folder is there but doesn't work";
   }
   const all = await findPythons();
@@ -359,7 +359,7 @@ async function installFasterWhisper(update, opts) {
   if (!probe.fasterWhisper) {
     throw new Error(`Installing faster-whisper failed: it was installed but doesn't load (${probe.problem || "no faster-whisper"}).`);
   }
-  writeFileAtomic(path.join(dirs.venv, "tarsee-stt.json"), JSON.stringify({
+  writeFileAtomic(path.join(dirs.venv, "atlas-stt.json"), JSON.stringify({
     fasterWhisper: probe.fasterWhisper, python: base.version, pythonFrom: base.label, installedAt: new Date().toISOString(),
   }, null, 2) + "\n");
   log(`faster-whisper ${probe.fasterWhisper} is ready in ${dirs.venv}`);
@@ -438,7 +438,7 @@ export async function getSttStatus({ refresh = false, settingsStore } = {}) {
   const dirs = sttDirs();
   const current = chosenModel(settingsStore);
   const target = pythonTarget();
-  const own = rt.ready && rt.source === "tarsee";
+  const own = rt.ready && rt.source === "atlas";
   const python = rt.ready ? pythonInfo({ ...rt, source: rt.source }) : pythonInfo(rt.base);
   const installing = _job?.kind === "install";
   const lastError = _last.install?.error || null;

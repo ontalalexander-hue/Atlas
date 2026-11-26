@@ -21,16 +21,16 @@ export async function startMcpStub({ token }) {
   const sockets = new Set();
 
   const tools = (server) => {
-    server.tool("tarsee_datetime", "The current date and time.", { timezone: z.string().optional() }, async (args) => {
-      calls.push({ tool: "tarsee_datetime", args });
+    server.tool("atlas_datetime", "The current date and time.", { timezone: z.string().optional() }, async (args) => {
+      calls.push({ tool: "atlas_datetime", args });
       return { content: [{ type: "text", text: "Monday, 9 November 2026, 09:00 UTC (stub)" }] };
     });
-    server.tool("tarsee_remember", "Remember a fact.", { content: z.string() }, async (args) => {
-      calls.push({ tool: "tarsee_remember", args });
+    server.tool("atlas_remember", "Remember a fact.", { content: z.string() }, async (args) => {
+      calls.push({ tool: "atlas_remember", args });
       return { content: [{ type: "text", text: "Remembered." }] };
     });
-    server.tool("tarsee_fail", "A tool that reports an error.", {}, async (args) => {
-      calls.push({ tool: "tarsee_fail", args });
+    server.tool("atlas_fail", "A tool that reports an error.", {}, async (args) => {
+      calls.push({ tool: "atlas_fail", args });
       return { isError: true, content: [{ type: "text", text: "This tool always fails (stub)." }] };
     });
   };
@@ -43,7 +43,7 @@ export async function startMcpStub({ token }) {
     for await (const c of req) chunks.push(c);
     let body;
     try { body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined; } catch { res.writeHead(400).end(); return; }
-    const server = new McpServer({ name: "tarsee", version: "1.0.0" });
+    const server = new McpServer({ name: "atlas", version: "1.0.0" });
     tools(server);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });

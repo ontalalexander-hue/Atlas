@@ -16,7 +16,7 @@ import { handleTerminalConnection } from "../websocket/terminal-handler.js";
 
 // See the note in telegram.js: finite by design — this build has no PTY
 // heartbeat to fall back on, so an unbounded idle window can wedge a turn.
-const IDLE_ABORT_MS = Number(process.env.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+const IDLE_ABORT_MS = Number(process.env.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
 import { getGatewayManager } from "../lib/gateway.js";
 import { redactSecrets, redactDeep } from "../lib/redact.js";
 
@@ -133,8 +133,8 @@ export function setupWebSocket(server, db, app) {
 
   wss.on("connection", (ws) => {
     // Attach context for console commands
-    ws._tarsee_db = db;
-    ws._tarsee_channelManager = app?.get?.("channelManager") || null;
+    ws._atlas_db = db;
+    ws._atlas_channelManager = app?.get?.("channelManager") || null;
 
     // Register this connection with the gateway so cross-device broadcasts
     // (chat sync, typing indicators) actually reach other open tabs/devices.
@@ -142,7 +142,7 @@ export function setupWebSocket(server, db, app) {
     // is silently a no-op.
     const gw = getGatewayManager();
     const clientId = crypto.randomUUID();
-    ws._tarsee_clientId = clientId;
+    ws._atlas_clientId = clientId;
     if (ws.isAuthenticated) {
       gw.addConnection(clientId, ws);
     }
@@ -170,8 +170,8 @@ export function setupWebSocket(server, db, app) {
           ws.isAuthenticated = true;
           clearTimeout(ws.authTimeout);
           // Late-auth path: register with gateway now that we trust them.
-          if (ws._tarsee_clientId) {
-            getGatewayManager().addConnection(ws._tarsee_clientId, ws);
+          if (ws._atlas_clientId) {
+            getGatewayManager().addConnection(ws._atlas_clientId, ws);
           }
           ws.send(JSON.stringify({ type: "auth_ok" }));
         } else {
@@ -329,8 +329,8 @@ export function setupWebSocket(server, db, app) {
     ws.on("close", () => {
       clearTimeout(ws.authTimeout);
       // Drop from gateway so broadcasts stop trying to send to a dead socket.
-      if (ws._tarsee_clientId) {
-        getGatewayManager().removeConnection(ws._tarsee_clientId);
+      if (ws._atlas_clientId) {
+        getGatewayManager().removeConnection(ws._atlas_clientId);
       }
     });
   });
@@ -455,8 +455,8 @@ async function handleChat(ws, msg, convStore, settingsStore) {
   // Build the system prompt (parity with the HTTP handler): the stable part, then this turn's own
   const promptParts = buildSystemPromptParts({
     settingsStore,
-    db: ws._tarsee_db,
-    channelManager: ws._tarsee_channelManager,
+    db: ws._atlas_db,
+    channelManager: ws._atlas_channelManager,
     conversationId: convId,
     messageCount: history.length,
     conversationPrompt: conv?.system_prompt,
@@ -465,7 +465,7 @@ async function handleChat(ws, msg, convStore, settingsStore) {
   const systemParts = { stable: promptParts.stable, volatile: promptParts.volatile };
 
   // dashboard: a file the agent hands over goes to this chat; messageId: the message answered (its pictures are kept with it)
-  const toolCtx = { db: ws._tarsee_db, settingsStore, conversationId: convId, channelManager: ws._tarsee_channelManager, dashboard: true, messageId: savedUser?.id || null };
+  const toolCtx = { db: ws._atlas_db, settingsStore, conversationId: convId, channelManager: ws._atlas_channelManager, dashboard: true, messageId: savedUser?.id || null };
 
   // Taken out of the queue (the Stop on its "Queued" line) before it began: this message is done, with no reply.
   let ended = false;
@@ -572,7 +572,7 @@ async function handleChat(ws, msg, convStore, settingsStore) {
       }
 
       if (fullResponse) {
-        fullResponse = extractAndSaveMemories(fullResponse, ws._tarsee_db, convId);
+        fullResponse = extractAndSaveMemories(fullResponse, ws._atlas_db, convId);
         convStore.addMessage(convId, {
           role: "assistant",
           content: fullResponse,
@@ -633,8 +633,8 @@ async function handleConsoleExec(ws, msg) {
 
     // Build context — channelManager comes from the app if available
     const ctx = {
-      db: ws._tarsee_db,
-      channelManager: ws._tarsee_channelManager,
+      db: ws._atlas_db,
+      channelManager: ws._atlas_channelManager,
     };
 
     const output = await cmd.run(args, ctx);

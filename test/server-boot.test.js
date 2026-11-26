@@ -14,10 +14,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-server-boot-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-server-boot-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "2".repeat(40);
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -155,7 +155,7 @@ describe("runBootFixups (lib/boot-fixups.js)", () => {
     const tmpDir = path.join(tmp, "system-temp-tidy");
     const oldVerify = folder(path.join(stateDir, "verify"), "deepseek-aaaaaa", 2 * HOUR);
     const newVerify = folder(path.join(stateDir, "verify"), "deepseek-bbbbbb", 60_000);
-    const oldPictures = folder(path.join(tmpDir, "tarsee-codex"), "tarsee-images-cccccc", 2 * HOUR);
+    const oldPictures = folder(path.join(tmpDir, "atlas-codex"), "atlas-images-cccccc", 2 * HOUR);
 
     const result = quiet(() => runBootFixups({ settingsStore: store, stateDir, tmpDir, now: NOW }));
 

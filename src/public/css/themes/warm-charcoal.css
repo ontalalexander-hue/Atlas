@@ -1,8 +1,6 @@
 /* ==========================================================================
-   Theme: Warm Charcoal (default)
-   Claude Desktop's original palette. Already declared in tokens.css under
-   :root, but re-declared here so the theme switcher can override on demand
-   after a different theme has been applied. Keep in sync with tokens.css.
+   Theme: Warm Charcoal
+   The original warm palette, selectable from Settings > Appearance.
    ========================================================================== */
 
 [data-theme="warm-charcoal"],

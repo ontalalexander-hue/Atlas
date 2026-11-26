@@ -19,7 +19,7 @@
  *  2. The catalog every CLI build carries, read from the installed `claude`
  *     (the image installs the version pinned in the Dockerfile,
  *     CLAUDE_CODE_VERSION: a model released after it arrives when it is
- *     bumped, or with TARSEE_AUTO_UPDATE_CLI=1). Read once per CLI file, in
+ *     bumped, or with ATLAS_AUTO_UPDATE_CLI=1). Read once per CLI file, in
  *     chunks, off the request path.
  *  3. Atlas's own model table (config/constants.js), as the floor.
  *
@@ -38,7 +38,7 @@ import { CLAUDE_MODELS, CLAUDE_MODELS_BY_ID, MODEL_TIERS, getRecommendedModel, r
 import config from "../config/env.js";
 import { claudeHomes } from "./claude-transcript.js";
 import {
-  buildPicker, catalogFromBuildText, CATALOG_MARKER, FAMILIES, TARSEE_DEFAULT_EFFORT, EFFORT_IDS,
+  buildPicker, catalogFromBuildText, CATALOG_MARKER, FAMILIES, ATLAS_DEFAULT_EFFORT, EFFORT_IDS,
   clampEffort, effortRows, contextLabel, priceHint, costTier, familyCostTier, familyOf, nameFromSlug,
   MESSAGE_AT_A_TIME, VERIFY_FIRST, FABLE_NOTE,
 } from "./model-picker.js";
@@ -171,7 +171,7 @@ export function getModelPicker({ defaultEffort } = {}) {
     aliases: {},
     source: chosen?.source || null,
     fetchedAt: chosen?.at || null,
-    defaultEffort: defaultEffort || TARSEE_DEFAULT_EFFORT,
+    defaultEffort: defaultEffort || ATLAS_DEFAULT_EFFORT,
   });
 }
 
@@ -264,7 +264,7 @@ export async function providerReadiness(idOrAlias, { store = null, env = process
  * Read the signed-in ChatGPT account's models again (ai/codex-models.js listAccountModels) into the registry's
  * "chatgpt-models" catalog. An empty catalog is filled now (asked again two minutes after a failed try); a full one
  * is refreshed in the background once an hour. `list` is a test's (or a caller's) own lister.
- * Never while "API keys only" is on (`store`'s ai.keysOnly, or TARSEE_KEYS_ONLY=1): the read starts Codex with the
+ * Never while "API keys only" is on (`store`'s ai.keysOnly, or ATLAS_KEYS_ONLY=1): the read starts Codex with the
  * plan's sign-in, which sends it to ChatGPT's backend, and keys-only promises no plan sign-in is ever used.
  */
 export async function refreshChatgptModels({ list = null, env = process.env, stateDir, force = false, store = null } = {}) {
@@ -302,12 +302,12 @@ async function readChatgptList(list, env, stateDir) {
 export function defaultPick(store, { env = process.env, isShipped = null } = {}) {
   const provider = activeProviderId(store, { env, isShipped: isShipped || registryShipped });
   const model = defaultModelFor(PROVIDERS[provider], store, env);
-  const effort = nonEmpty(readSetting(store, "ai.defaultEffort")) || TARSEE_DEFAULT_EFFORT;
+  const effort = nonEmpty(readSetting(store, "ai.defaultEffort")) || ATLAS_DEFAULT_EFFORT;
   return { provider, model: model || null, effort, ref: formatModelRef(provider, model || "") };
 }
 
 /**
- * A provider's default model: the owner's (ai.<storageId>.model), else for the default AI the TARSEE_AI_MODEL
+ * A provider's default model: the owner's (ai.<storageId>.model), else for the default AI the ATLAS_AI_MODEL
  * variable (a bare model, or a ref naming that AI: the Railway-only setup, as the turn layer reads it), else the
  * provider's own; through resolveModelFor, so it is one the provider offers. "" means the engine picks. `env` is
  * passed only for the default AI.
@@ -319,14 +319,14 @@ function defaultModelFor(p, store, env = null) {
 }
 
 function envModelFor(providerId, env) {
-  const raw = nonEmpty(env?.TARSEE_AI_MODEL);
+  const raw = nonEmpty(env?.ATLAS_AI_MODEL);
   if (!raw) return null;
   const ref = parseModelRef(raw);
   return ref.provider && ref.provider !== providerId ? null : ref.model;
 }
 
 /**
- * The model chosen on the Local AI card, which runs without being verified: ai.local.model, else TARSEE_AI_MODEL
+ * The model chosen on the Local AI card, which runs without being verified: ai.local.model, else ATLAS_AI_MODEL
  * while Local AI is the default AI (the turn layer's reading, ai/turn.js resolveTarget); null when none is.
  */
 export function localChosenModel(store, env = process.env) {
@@ -380,8 +380,8 @@ export function repliesWhole(providerId, model, store = null) {
  * Whether a model can be picked on a provider, and as which id: { ok, model, error?, verify? }. A tier word
  * ("haiku", "opus[1m]") maps through the provider's tiers; the Claude providers take what Claude Code's list and
  * Atlas's table take, as before; any other provider only a model its list offers and that can be picked (OpenRouter's
- * once verified). No model (null, "") is the provider's own default. opts.env: where TARSEE_AI_PROVIDER and
- * TARSEE_AI_MODEL are read (process.env by default).
+ * once verified). No model (null, "") is the provider's own default. opts.env: where ATLAS_AI_PROVIDER and
+ * ATLAS_AI_MODEL are read (process.env by default).
  */
 export function checkModel(providerId, raw, store = null, { env = null } = {}) {
   const p = getProvider(providerId);
@@ -459,7 +459,7 @@ export async function getModelGroups({ store = null, env = process.env, isShippe
 
 /** One provider's group: its models in sections, every model as a picker entry. */
 function buildGroup(p, { store = null, env = null, now = new Date(), defaultEffort, isDefault = false } = {}) {
-  const effort = defaultEffort || nonEmpty(readSetting(store, "ai.defaultEffort")) || TARSEE_DEFAULT_EFFORT;
+  const effort = defaultEffort || nonEmpty(readSetting(store, "ai.defaultEffort")) || ATLAS_DEFAULT_EFFORT;
   const sections = p.catalog === "claude" ? claudeSections(p, store, effort) : registrySections(p, store, now, effort, env);
   const visible = sections.filter((s) => !s.collapsed).flatMap((s) => s.entries);
   const hidden = sections.filter((s) => s.collapsed).flatMap((s) => s.entries);
@@ -518,7 +518,7 @@ function claudeSections(p, store, effort) {
 
 /**
  * Every other provider: its catalog, OpenRouter in three sections, Local AI's unverified models apart. env: where
- * TARSEE_AI_PROVIDER and TARSEE_AI_MODEL are read (process.env when none is given).
+ * ATLAS_AI_PROVIDER and ATLAS_AI_MODEL are read (process.env when none is given).
  */
 function registrySections(p, store, now, effort, env = null) {
   const list = modelsFor(p.id);
@@ -545,7 +545,7 @@ function registrySections(p, store, now, effort, env = null) {
   }
 
   if (p.id === "local") {
-    // One rule with the turn layer: the model chosen on the card runs at once (ai.local.model, else TARSEE_AI_MODEL
+    // One rule with the turn layer: the model chosen on the card runs at once (ai.local.model, else ATLAS_AI_MODEL
     // while Local AI is the default AI, as ai/turn.js reads it); any other must be verified first.
     const chosen = localChosenModel(store, env ?? process.env);
     const ids =unique([...(chosen ? [chosen] : []), ...Object.keys(verified), ...list.map((m) => m.id)]);

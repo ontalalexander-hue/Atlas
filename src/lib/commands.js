@@ -2,7 +2,7 @@ import { CLAUDE_MODELS, MODEL_TIERS } from "../config/constants.js";
 import { PROVIDERS, PROVIDER_IDS, getProvider, normalizeProviderId, isShipped as registryShipped, resolveModelFor } from "../ai/provider-registry.js";
 import { parseModelRef } from "../ai/model-ref.js";
 import { providerReadiness, defaultPick, readPick, levelsFor, describeModel, repliesWhole, modelChoices, checkModel, refreshChatgptModels } from "./model-catalog.js";
-import { EFFORT_NAMES, clampEffort, matchModels, MESSAGE_AT_A_TIME, TARSEE_DEFAULT_EFFORT } from "./model-picker.js";
+import { EFFORT_NAMES, clampEffort, matchModels, MESSAGE_AT_A_TIME, ATLAS_DEFAULT_EFFORT } from "./model-picker.js";
 import { addCronJob, removeCronJob, loadCronJobs, runCronJob, startCronScheduler } from "./cron.js";
 import { executeTool } from "./tools.js";
 import { getSkillContent, installSkill, scanSkills } from "./skills-engine.js";
@@ -276,7 +276,7 @@ async function thinkCommand(args, ctx) {
   const target = await chatTarget(ctx);
   const levels = levelsFor(target.provider, target.model, store);
   const modelName = describeModel(target.provider, target.model, store);
-  const defaultEffort = store.get("ai.defaultEffort") || TARSEE_DEFAULT_EFFORT;
+  const defaultEffort = store.get("ai.defaultEffort") || ATLAS_DEFAULT_EFFORT;
   const own = ctx.conversationId ? store.get(`session.${ctx.conversationId}.effort`) : null;
 
   if (!args) {
@@ -415,7 +415,7 @@ const COMMANDS = {
   },
 
   theme: {
-    description: "Switch the UI theme (warm-charcoal, noir, solarized-light, jarvis-blue)",
+    description: "Switch the UI theme (atlas, warm-charcoal, noir, solarized-light, jarvis-blue)",
     usage: "/theme [name]",
     handler: (args, ctx) => {
       const settingsStore = ctx.settingsStore;
@@ -424,12 +424,12 @@ const COMMANDS = {
       // Built-in themes. Plugin-shipped themes also land here via
       // plugin-loader — settings key "ui.themes.available" stores the
       // unified list.
-      const builtIn = ["warm-charcoal", "noir", "solarized-light", "jarvis-blue"];
+      const builtIn = ["atlas", "warm-charcoal", "noir", "solarized-light", "jarvis-blue"];
       const pluginThemes = settingsStore.get("ui.themes.plugin") || [];
       const all = [...builtIn, ...pluginThemes];
 
       if (!args || args.toLowerCase() === "list") {
-        const current = settingsStore.get("ui.theme") || "warm-charcoal";
+        const current = settingsStore.get("ui.theme") || "atlas";
         const lines = all.map((t) => (t === current ? `- **${t}** (current)` : `- ${t}`));
         return `**Available themes:**\n${lines.join("\n")}\n\nSwitch with \`/theme <name>\`.`;
       }
@@ -829,7 +829,7 @@ You're about to be restarted with a container wipe (Railway redeploy).
 Write a COMPREHENSIVE handoff document to \`${CHECKPOINT_FILE_PATH}\` so
 the next Atlas instance can pick up exactly where we left off.
 
-Use the \`tarsee_write_file\` tool with filename = "CHECKPOINT.md".
+Use the \`atlas_write_file\` tool with filename = "CHECKPOINT.md".
 
 The document MUST cover every section below. Be specific, concrete, and
 include code/commands/IDs where they exist. No vague summaries.
@@ -1190,7 +1190,7 @@ artifact. Just confirm.`;
       try {
         // package.json beside src/ (/app/package.json in the image), wherever Atlas is installed.
         const pkg = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "package.json"), "utf8"));
-        const commit = process.env.TARSEE_COMMIT_SHA?.slice(0, 7) || "unknown";
+        const commit = process.env.ATLAS_COMMIT_SHA?.slice(0, 7) || "unknown";
         const lines = [`**Atlas** v${pkg.version} (${commit})`];
         if (ctx?.settingsStore) {
           const def = defaultPick(ctx.settingsStore, aiDeps(ctx));

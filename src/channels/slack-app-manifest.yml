@@ -12,7 +12,7 @@
 display_information:
   name: Atlas
   description: Your self-hosted AI agent
-  background_color: "#c45a35"
+  background_color: "#1f7ae0"
 features:
   app_home:
     home_tab_enabled: false
@@ -29,7 +29,7 @@ features:
       - title: Plan my day
         message: What's on my plate today?
   slash_commands:
-    - command: /tarsee
+    - command: /atlas
       description: Ask Atlas something (it answers in a thread), or run a command (help, status, /model opus)
       usage_hint: "[a question | help | status | /command args]"
       should_escape: false

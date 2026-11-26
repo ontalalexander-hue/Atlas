@@ -395,12 +395,12 @@ const Usage = {
     const key = t.dataset.key;
     if (act === "rename") {
       const job = (this._jobs?.jobs || []).find((j) => j.key === key);
-      const name = await TarseeDialog.askText({ title: "Name this job", label: "Name", value: job?.name || job?.title || "", yes: "Save", no: "Cancel" });
+      const name = await AtlasDialog.askText({ title: "Name this job", label: "Name", value: job?.name || job?.title || "", yes: "Save", no: "Cancel" });
       if (name == null) return;
       return this._change(key, { name: String(name) }, "Named");
     }
     if (act === "merge") {
-      const ok = await TarseeDialog.ask({ title: "Merge with the job before?", text: "This job's turns join the job before it in the same chat, and their tokens are added up as one job. You can split them again.", yes: "Merge", no: "Cancel" });
+      const ok = await AtlasDialog.ask({ title: "Merge with the job before?", text: "This job's turns join the job before it in the same chat, and their tokens are added up as one job. You can split them again.", yes: "Merge", no: "Cancel" });
       if (ok) return this._change(key, { merge: "previous" }, "Merged");
     }
     if (act === "split") return this._change(key, { split: true }, "Split again");

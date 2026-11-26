@@ -17,11 +17,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-call-real-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY"]) {
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-call-real-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
@@ -82,7 +82,7 @@ const skip = browser ? false : "no Chromium, Chrome or Edge for Playwright";
 
 // --- The world outside Atlas ---------------------------------------------------------------------------------------
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 live.initLiveBus(db);
 const store = new SettingsStore(db);
 const convs = new ConversationStore(db);

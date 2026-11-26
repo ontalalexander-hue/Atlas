@@ -1,5 +1,5 @@
 /**
- * Days, hours and months in the owner's timezone (config.TIMEZONE, from TARSEE_TIMEZONE or the host's zone), for
+ * Days, hours and months in the owner's timezone (config.TIMEZONE, from ATLAS_TIMEZONE or the host's zone), for
  * the Usage page (lib/token-usage.js) and the monthly spending cap (ai/spend.js). Every function takes the zone, so
  * tests can pin one; an unknown zone counts as UTC.
  */

@@ -1,4 +1,4 @@
-// tarsee_push_notification under Tool Permissions. The MCP tool used to call lib/push.js itself, so it skipped
+// atlas_push_notification under Tool Permissions. The MCP tool used to call lib/push.js itself, so it skipped
 // executeTool and with it the policy gate and the audit log: setting push_notification to always_deny in
 // Settings > Tool Permissions changed a stored value and the agent kept pinging every device. These tests drive
 // the real MCP tool through an in-memory MCP client, the way Claude Code calls it. Nothing leaves the process:
@@ -9,10 +9,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-push-policy-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-push-policy-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
 const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
@@ -22,9 +22,9 @@ const { SettingsStore } = await import("../src/db/settings.js");
 const { initPush, saveSubscription } = await import("../src/lib/push.js");
 const { getSecurityManager } = await import("../src/lib/security-manager.js");
 const { executeTool } = await import("../src/lib/tools.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const ctx = { db, settingsStore: settings };
 
@@ -49,14 +49,14 @@ beforeEach(() => {
   getSecurityManager(settings).setToolPermission("push_notification", "always_allow");
 });
 
-/** Call the MCP tool tarsee_push_notification and return its text. */
+/** Call the MCP tool atlas_push_notification and return its text. */
 async function callPushTool(args) {
-  const server = createTarseeMcp(ctx);
+  const server = createAtlasMcp(ctx);
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "tarsee-test", version: "1.0.0" }, { capabilities: {} });
+  const client = new Client({ name: "atlas-test", version: "1.0.0" }, { capabilities: {} });
   await Promise.all([server.instance.connect(serverSide), client.connect(clientSide)]);
   try {
-    const res = await client.callTool({ name: "tarsee_push_notification", arguments: args });
+    const res = await client.callTool({ name: "atlas_push_notification", arguments: args });
     return res.content.map((c) => c.text).join("\n");
   } finally {
     await client.close();
@@ -66,7 +66,7 @@ async function callPushTool(args) {
 /** The tool.denied audit rows for push_notification. */
 const deniedRows = () => db.prepare("SELECT * FROM audit_log WHERE action = 'tool.denied' AND target = 'push_notification'").all();
 
-describe("tarsee_push_notification obeys Tool Permissions", () => {
+describe("atlas_push_notification obeys Tool Permissions", () => {
   it("is refused when the owner set push_notification to always_deny, and nothing is sent", async () => {
     getSecurityManager(settings).setToolPermission("push_notification", "always_deny");
     const out = await callPushTool({ title: "Backup done", body: "All files copied." });

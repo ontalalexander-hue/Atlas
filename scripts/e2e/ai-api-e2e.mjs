@@ -2,8 +2,8 @@
 /**
  * scripts/e2e/ai-api-e2e.mjs: the multi-provider work end to end, at the API level, through the REAL server.
  *
- * Boots `node src/server.js` on a free port with a fresh temp TARSEE_STATE_DIR, a SETUP_PASSWORD and ENCRYPTION_KEY
- * made at run time (never written to a file), NODE_ENV=test (engine-env's TARSEE_TEST_BASE_URL_<ID> seam), and a fake
+ * Boots `node src/server.js` on a free port with a fresh temp ATLAS_STATE_DIR, a SETUP_PASSWORD and ENCRYPTION_KEY
+ * made at run time (never written to a file), NODE_ENV=test (engine-env's ATLAS_TEST_BASE_URL_<ID> seam), and a fake
  * home folder (so this machine's own ~/.claude and ~/.codex sign-ins are never used). The engines are the real ones:
  * the Agent SDK's bundled Claude Code CLI against test/fixtures/fake-anthropic.js, and the pinned codex binary against
  * test/fixtures/fake-responses.js. OpenRouter runs on both engines through one seam, so a small loopback mux sends
@@ -21,7 +21,7 @@
  * What the fakes have to know about the pinned codex 0.167: its own newest models (gpt-6.1-*, the OpenAI key's default,
  * and OpenRouter's openai/gpt-6.1-*) get their tools as `additional_tools` input items in "code mode": only `exec`
  * (JavaScript in a V8 isolate) and a few others at the top, with Atlas's tools nested inside it as
- * tools.mcp__tarsee__<name>(); other models get them listed outright, or behind tool_search. And a ChatGPT sign-in
+ * tools.mcp__atlas__<name>(); other models get them listed outright, or behind tool_search. And a ChatGPT sign-in
  * first asks ChatGPT's backend which workspace the account routes to (GET /backend-api/wham/accounts/check), taking
  * only an HTTPS origin: the ChatGPT front is an HTTPS mux with a throwaway authority (test/fixtures/test-tls.js) that
  * answers that itself (fake-responses.js chatgptAccountsCheck) and the server's Codex trusts through SSL_CERT_FILE.
@@ -52,7 +52,7 @@ const { makeTestTls } = await import(fixture("test-tls.js"));
 
 const argv = process.argv.slice(2);
 const argOf = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
-const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "tarsee-e2e-out"));
+const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "atlas-e2e-out"));
 const ONLY = argOf("--only") ? new Set(argOf("--only").split(",")) : null;
 const KEEP = argv.includes("--keep");
 const SHOTS = argOf("--shots") ? path.resolve(argOf("--shots")) : null;
@@ -82,9 +82,9 @@ const WRONG_SLOT = {
 const ENV_CANARIES = {
   CODEX_API_KEY: `sk-test-canary-env-codex-api-key-${rand(8)}`,
   CODEX_ACCESS_TOKEN: `sk-test-canary-env-codex-access-${rand(8)}`,
-  TARSEE_PROVIDER_KEY: `sk-test-canary-env-provider-key-${rand(8)}`,
-  TARSEE_MCP_TOKEN: `sk-test-canary-env-mcp-token-${rand(8)}`,
-  TARSEE_CHATGPT_ACCESS_TOKEN: `sk-test-canary-env-chatgpt-${rand(8)}`,
+  ATLAS_PROVIDER_KEY: `sk-test-canary-env-provider-key-${rand(8)}`,
+  ATLAS_MCP_TOKEN: `sk-test-canary-env-mcp-token-${rand(8)}`,
+  ATLAS_CHATGPT_ACCESS_TOKEN: `sk-test-canary-env-chatgpt-${rand(8)}`,
   ANTHROPIC_AUTH_TOKEN: `sk-ant-test-canary-env-auth-token-${rand(8)}`,
   // The Claude plan's Railway sign-in: makes the plan "ready". Only a plan turn may send it, and only to Anthropic
   // itself (no seam exists for the plan), where a fake token is turned down.
@@ -190,7 +190,7 @@ function anthropicScript(entry) {
   entry.owner = prov;
   const mode = MODES[prov === "openrouter" ? "openrouter-cc" : prov] || { kind: "text" };
   const names = fa.toolNames(entry.body);
-  const main = names.some((n) => /tarsee/i.test(n));
+  const main = names.some((n) => /atlas/i.test(n));
   entry.main = main;
   const cost = prov === "openrouter" ? OPENROUTER_COST : undefined;
   if (mode.kind === "401") return { status: 401, error: { type: "authentication_error", message: "invalid x-api-key" } };
@@ -201,7 +201,7 @@ function anthropicScript(entry) {
       const res = toolResultText(entry.body);
       return { text: /= 42/.test(res) ? `The calculator says 42 [${mode.tag}].` : `The tool said something else: ${clip(res, 200)}`, cost };
     }
-    const calc = names.find((n) => /tarsee_calculator$/.test(n));
+    const calc = names.find((n) => /atlas_calculator$/.test(n));
     if (calc) return { toolUse: { name: calc, input: { expression: "6*7" } }, cost };
     return { text: `No calculator was offered (${names.join(",")}).`, cost };
   }
@@ -221,14 +221,14 @@ function responsesHandler(body, info) {
     const searched = fr.searchedTools(body);
     if (/=\s*42/.test(outs)) return { text: `The calculator says 42 [${mode.tag}].` };
     if (fr.functionOutputs(body).length) return { text: `The tool said something else: ${clip(outs, 300)}` };
-    if (names.includes("mcp__tarsee.tarsee_calculator") || searched.includes("mcp__tarsee.tarsee_calculator")) {
-      return { calls: [{ name: "tarsee_calculator", namespace: "mcp__tarsee", arguments: { expression: "6*7" } }] };
+    if (names.includes("mcp__atlas.atlas_calculator") || searched.includes("mcp__atlas.atlas_calculator")) {
+      return { calls: [{ name: "atlas_calculator", namespace: "mcp__atlas", arguments: { expression: "6*7" } }] };
     }
-    if (names.includes("tool_search") && !searched.length) return { calls: [{ type: "tool_search", query: "tarsee calculator math expression" }] };
+    if (names.includes("tool_search") && !searched.length) return { calls: [{ type: "tool_search", query: "atlas calculator math expression" }] };
     // Codex's code mode (its newest models): Atlas's tools are nested tools, reached only from inside `exec`.
     if (names.includes("functions.exec") || names.includes("exec")) {
       const js = [
-        "const r = await tools.mcp__tarsee__tarsee_calculator({ expression: \"6*7\" });",
+        "const r = await tools.mcp__atlas__atlas_calculator({ expression: \"6*7\" });",
         "text(typeof r === \"string\" ? r : JSON.stringify(r));",
       ].join("\n");
       return { calls: [{ type: "custom", name: "exec", input: js }] };
@@ -317,15 +317,15 @@ async function bootServer({ tmp, fakeA, fakeR, mux, trap, extraEnv = {} }) {
     ...hostEnv(),
     HOME: home, USERPROFILE: home, APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local"),
     PORT: String(port),
-    TARSEE_STATE_DIR: path.join(tmp, "state"),
+    ATLAS_STATE_DIR: path.join(tmp, "state"),
     SETUP_PASSWORD, ENCRYPTION_KEY,
     NODE_ENV: "test",
-    TARSEE_PHONON_AUTO_INSTALL: "0",
-    TARSEE_TEST_BASE_URL_ANTHROPIC: fakeA.url,
-    TARSEE_TEST_BASE_URL_DEEPSEEK: fakeA.url,
-    TARSEE_TEST_BASE_URL_OPENROUTER: mux.origin,
-    TARSEE_TEST_BASE_URL_OPENAI: fakeR.url,
-    TARSEE_TEST_BASE_URL_CHATGPT: chatgptMux.origin,
+    ATLAS_PHONON_AUTO_INSTALL: "0",
+    ATLAS_TEST_BASE_URL_ANTHROPIC: fakeA.url,
+    ATLAS_TEST_BASE_URL_DEEPSEEK: fakeA.url,
+    ATLAS_TEST_BASE_URL_OPENROUTER: mux.origin,
+    ATLAS_TEST_BASE_URL_OPENAI: fakeR.url,
+    ATLAS_TEST_BASE_URL_CHATGPT: chatgptMux.origin,
     // The HTTPS ChatGPT front's authority, with the public roots (Node itself never reads SSL_CERT_FILE).
     SSL_CERT_FILE: CA_FILE,
     // Where a stripped host variable would send a turn if it leaked through.
@@ -365,7 +365,7 @@ function takeCookies(res) {
   }
 }
 const cookieHeader = () => [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
-const csrf = () => decodeURIComponent(jar.get("tarsee_csrf") || "");
+const csrf = () => decodeURIComponent(jar.get("atlas_csrf") || "");
 
 async function api(method, p, body) {
   const res = await fetch(BASE + p, {
@@ -491,10 +491,10 @@ const AUTH_WORDS = {
 
 // --- Main ----------------------------------------------------------------------------------------------------------
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-e2e-api-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-e2e-api-"));
 let fakeA; let fakeR; let mux; let trap; let chatgptMux; let CA_FILE;
 /** The sign-in's OAuth issuer in auth.json: Codex renews a ChatGPT sign-in there, so the fake front, never auth.openai.com. */
-const chatgptIssuer = () => ({ issuer: chatgptMux.origin, client_id: "app_tarsee_e2e_test" });
+const chatgptIssuer = () => ({ issuer: chatgptMux.origin, client_id: "app_atlas_e2e_test" });
 let exitCode = 1;
 
 try {
@@ -538,9 +538,9 @@ try {
     takeCookies(r);
     const t = await r.text();
     answers.push(`POST /api/auth/login ${r.status} ${t}`);
-    expect(r.status === 200 && jar.has("tarsee_session"), `login answered ${r.status}`, t);
+    expect(r.status === 200 && jar.has("atlas_session"), `login answered ${r.status}`, t);
     const c = await api("GET", "/api/auth/csrf");
-    expect(c.status === 200 && jar.has("tarsee_csrf"), `csrf answered ${c.status}`, c.text);
+    expect(c.status === 200 && jar.has("atlas_csrf"), `csrf answered ${c.status}`, c.text);
   });
 
   const cards = async () => {
@@ -713,7 +713,7 @@ try {
       const errs = ofType(ev, "error");
       expect(errs.length === 0, `error events: ${errs.map((e) => e.data?.message).join(" | ")}`, brief(ev));
       const calls = ofType(ev, "tool_call");
-      expect(calls.some((c) => /tarsee_calculator/.test(c.data?.name)), `tool calls: ${calls.map((c) => c.data?.name)}`, brief(ev));
+      expect(calls.some((c) => /atlas_calculator/.test(c.data?.name)), `tool calls: ${calls.map((c) => c.data?.name)}`, brief(ev));
       const res = ofType(ev, "tool_result");
       expect(res.some((r) => /6\*7 = 42/.test(r.data?.result || "")), `tool results: ${res.map((r) => clip(r.data?.result, 100))}`, brief(ev));
       expect(textOf(ev).includes(`The calculator says 42 [${step.tag}]`), `reply text: ${clip(textOf(ev), 300)}`, brief(ev));

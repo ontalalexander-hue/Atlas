@@ -14,7 +14,7 @@ import { makeTarGz } from "./fakes/tar.js";
 const { OFFICIAL_HOSTS, guardedFetch, isOfficialUrl, downloadFile, acquireLock, gitBlobSha1 } = await import("../src/voice/install-common.js");
 const { extractTarGz } = await import("../src/voice/tar-extract.js");
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-installer-dl-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-installer-dl-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 let n = 0;
 const fresh = () => { const d = path.join(tmp, `t${++n}`); fs.mkdirSync(d, { recursive: true }); return d; };

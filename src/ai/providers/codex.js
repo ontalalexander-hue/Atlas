@@ -21,11 +21,11 @@
  *     codexConfigGuard() on <home>/config.toml, <home>/.env (refused whatever it holds: Codex loads it into its own
  *     environment) and <workspace>/.codex/config.toml, the only files Codex loads with the project root search off
  *     (project_root_markers=[]). Either refuses the turn; both are checked again right before codex starts.
- *   - the program: TARSEE_CODEX_BIN when set (a program that is there; on Windows not a .cmd launcher, which the SDK
+ *   - the program: ATLAS_CODEX_BIN when set (a program that is there; on Windows not a .cmd launcher, which the SDK
  *     can't start), else the SDK's own pinned binary. A wrong one refuses the turn in plain words.
  *   - resuming: the stored handle resumes only the same provider, home and maker (session-handle.js). A thread whose
  *     instructions changed (session.<conv>.instrHash: Codex keeps a resumed thread's first instructions, checked
- *     against the pinned binary) or whose rollout grew past TARSEE_SESSION_JSONL_MAX_MB is not resumed: the turn
+ *     against the pinned binary) or whose rollout grew past ATLAS_SESSION_JSONL_MAX_MB is not resumed: the turn
  *     reports a recoverable session failure before starting anything, and the turn layer starts it fresh with the
  *     chat handed over. The thread's usage total so far is read from its rollout (however far back its last one is),
  *     because Codex reports a resumed thread's running total (codex-events.js); when it can't be read, the turn's usage
@@ -44,7 +44,7 @@
  *
  * Stop: the signal stops codex (the SDK kills it). On Windows Codex's own job object takes everything it started with
  * it (checked against the pinned binary). Elsewhere a command Codex started in its own session can outlive it, so
- * every turn's environment carries TARSEE_CODEX_TURN=<random>, inherited by everything it starts, and Stop also kills
+ * every turn's environment carries ATLAS_CODEX_TURN=<random>, inherited by everything it starts, and Stop also kills
  * every process that carries this turn's mark (sweepTurnProcesses). Stop yields done{aborted}, once, and no error.
  *
  * Usage: Codex reports it only at turn.completed. A turn that ends any other way (Stop, the turn limit, a failure
@@ -82,10 +82,10 @@ const IMAGE_DIR = CODEX_IMAGE_DIR;
 const FAIL_FAST_STATUSES = new Set([401, 402, 403, 404]);
 /** How much of a rollout is read at a time, back from its end, for its usage total. */
 const ROLLOUT_CHUNK_BYTES = 512 * 1024;
-/** A rollout bigger than this many MB (TARSEE_SESSION_JSONL_MAX_MB) isn't resumed, and no read of one goes further back. */
+/** A rollout bigger than this many MB (ATLAS_SESSION_JSONL_MAX_MB) isn't resumed, and no read of one goes further back. */
 const ROLLOUT_CAP_MB = 8;
 const DEFAULT_MAX_TURNS = 50;
-const TURN_MARK = "TARSEE_CODEX_TURN";
+const TURN_MARK = "ATLAS_CODEX_TURN";
 /** How long a finished turn waits for codex to exit by itself before it is stopped. */
 const DRAIN_MS = 10_000;
 const DRAINED = Symbol("drained");
@@ -208,7 +208,7 @@ function threadToResume(opts, where) {
 }
 
 /**
- * The codex the SDK starts: TARSEE_CODEX_BIN when it is set (checked here, so a wrong one reads plainly), else
+ * The codex the SDK starts: ATLAS_CODEX_BIN when it is set (checked here, so a wrong one reads plainly), else
  * undefined for the SDK's own pinned binary (which also puts its helper programs, rg among them, on the turn's PATH).
  * On Windows it must be the program itself: the SDK starts it with no shell, and Node won't start a .cmd or .bat
  * file (an npm launcher) without one. Throws CredentialError needs-setup.
@@ -217,12 +217,12 @@ function codexOverride(chosen, platform, providerId) {
   const p = nonEmpty(chosen);
   if (!p) return undefined;
   if (platform === "win32" && /\.(cmd|bat)$/i.test(p)) {
-    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${path.basename(p)}, a launcher script. On Windows it must name the Codex program itself (codex.exe), or be left unset to use the one Atlas installs.`, providerId);
+    throw new CredentialError("needs-setup", `ATLAS_CODEX_BIN names ${path.basename(p)}, a launcher script. On Windows it must name the Codex program itself (codex.exe), or be left unset to use the one Atlas installs.`, providerId);
   }
   try {
     return resolveCodexBin({ codexBin: p });
   } catch {
-    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${p}, and there's no program there. Point it at the codex program, or leave it unset to use the one Atlas installs.`, providerId);
+    throw new CredentialError("needs-setup", `ATLAS_CODEX_BIN names ${p}, and there's no program there. Point it at the codex program, or leave it unset to use the one Atlas installs.`, providerId);
   }
 }
 
@@ -434,7 +434,7 @@ export async function acquireDeviceGate(home, { maxMs = DEVICE_GATE_MAX_MS, stal
 // --- Stop: everything the turn started -------------------------------------------------------------------------------
 
 /**
- * Kill every process that carries this turn's mark (TARSEE_CODEX_TURN=<mark> in its environment): codex and whatever
+ * Kill every process that carries this turn's mark (ATLAS_CODEX_TURN=<mark> in its environment): codex and whatever
  * it started, however far down and whatever session or process group it moved to. Linux reads /proc/<pid>/environ
  * (only this user's processes are readable); macOS asks ps for environments. Windows does nothing here: Codex's job
  * object already ends everything with it. Returns the pids it signalled.
@@ -529,7 +529,7 @@ export async function* run(opts = {}) {
   const stateDir = deps.stateDir || config.STATE_DIR;
   const turnId = nonEmpty(opts.turnId) || crypto.randomBytes(6).toString("hex");
   const mark = crypto.randomBytes(12).toString("hex");
-  const localUrl = providerId === "local" ? (nonEmpty(readSetting(store, "ai.local.baseUrl")) || nonEmpty(env.TARSEE_LOCAL_AI_URL)) : null;
+  const localUrl = providerId === "local" ? (nonEmpty(readSetting(store, "ai.local.baseUrl")) || nonEmpty(env.ATLAS_LOCAL_AI_URL)) : null;
 
   let grant = null;
   let ownGrant = false;
@@ -569,7 +569,7 @@ export async function* run(opts = {}) {
     let codexPath;
     try {
       // Local AI goes through the bridge (local-bridge.js): the owner's address and key are checked here and handed to
-      // it, and Codex gets only this turn's bridge address and token. The test seam (TARSEE_TEST_BASE_URL_LOCAL) is
+      // it, and Codex gets only this turn's bridge address and token. The test seam (ATLAS_TEST_BASE_URL_LOCAL) is
       // the bridge's upstream.
       if (providerId === "local") {
         const upstream = hostFor(entry, CODEX, { env, localUrl });
@@ -600,7 +600,7 @@ export async function* run(opts = {}) {
         turnMark: mark,
         platform: deps.platform,
       });
-      codexPath = codexOverride(deps.codexPath ?? env.TARSEE_CODEX_BIN, deps.platform || process.platform, providerId);
+      codexPath = codexOverride(deps.codexPath ?? env.ATLAS_CODEX_BIN, deps.platform || process.platform, providerId);
     } catch (err) {
       if (err instanceof CredentialError) { yield* refusal(providerId, err); return; }
       throw err;
@@ -617,7 +617,7 @@ export async function* run(opts = {}) {
     const raw = threadToResume(opts, where);
     const hash = instructionsHash(o.config.developer_instructions);
     const hashKey = conv ? `session.${conv}.instrHash` : null;
-    const capMb = Number(env.TARSEE_SESSION_JSONL_MAX_MB) || ROLLOUT_CAP_MB;
+    const capMb = Number(env.ATLAS_SESSION_JSONL_MAX_MB) || ROLLOUT_CAP_MB;
     const capBytes = capMb * 1024 * 1024;
     let baseline = null;
     // Whether the thread's total before this turn is known: a new thread's is nothing; a resumed one's is its rollout's

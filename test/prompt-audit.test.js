@@ -1,5 +1,5 @@
 // The system prompt's workspace files (src/lib/workspace-files.js, src/lib/skills-engine.js), ported from
-// TarseeMacOS: a file up to 12KB reaches the agent whole (an AGENTS.md of 16KB used to lose its middle, silently,
+// the macOS app: a file up to 12KB reaches the agent whole (an AGENTS.md of 16KB used to lose its middle, silently,
 // under the old 8KB cap), a longer one is cut and the cut is logged, MEMORY.md is a pointer to grep, never inlined,
 // and the skills list says where the skill folders really are.
 import { describe, it, after } from "node:test";
@@ -9,8 +9,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-prompt-audit-"));
-process.env.TARSEE_STATE_DIR = tmp;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-prompt-audit-"));
+process.env.ATLAS_STATE_DIR = tmp;
 const ws = path.join(tmp, "workspace");
 fs.mkdirSync(path.join(ws, "skills", "canvas-db"), { recursive: true });
 fs.writeFileSync(path.join(ws, "skills", "canvas-db", "SKILL.md"), "---\nname: canvas-db\ndescription: Every canvas has its own SQLite database. It survives redeploys.\n---\nbody\n");

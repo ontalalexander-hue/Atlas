@@ -13,8 +13,8 @@ import { PROVIDERS } from "../src/ai/provider-registry.js";
 import { buildPreamble } from "../src/ai/preamble.js";
 import { CredentialError, CODEX_SHELL_EXCLUDED, CODEX_CONFIG_ALLOWED, codexChatgptTestHosts, codexConfigGuard } from "../src/ai/engine-env.js";
 
-const STATE = path.join(os.tmpdir(), "tarsee-codex-options-state");
-const WS = path.join(os.tmpdir(), "tarsee-codex-options-ws");
+const STATE = path.join(os.tmpdir(), "atlas-codex-options-state");
+const WS = path.join(os.tmpdir(), "atlas-codex-options-ws");
 const MCP = { url: "http://127.0.0.1:45678/mcp", token: "mcp-test-token-0123456789abcdef" };
 const KEYS = {
   openai: "sk-test-canary-own-openai-key",
@@ -24,11 +24,11 @@ const KEYS = {
 };
 const CANARIES = {
   OPENAI_API_KEY: "sk-test-canary-railway-openai", OPENROUTER_API_KEY: "sk-or-v1-testcanaryrailway",
-  DEEPSEEK_API_KEY: "sk-testcanaryrailwaydeepseek", TARSEE_LOCAL_AI_KEY: "sk-test-canary-railway-local",
+  DEEPSEEK_API_KEY: "sk-testcanaryrailwaydeepseek", ATLAS_LOCAL_AI_KEY: "sk-test-canary-railway-local",
   CODEX_API_KEY: "sk-test-canary-codex-api-key", CODEX_HOME: "/canary/home", CODEX_ACCESS_TOKEN: "sk-test-canary-access",
   OPENAI_BASE_URL: "http://canary.invalid/v1", ANTHROPIC_API_KEY: "sk-ant-api03-testcanary", ENCRYPTION_KEY: "sk-test-canary-enc",
-  TARSEE_PROVIDER_KEY: "sk-test-canary-provider-key", TARSEE_MCP_TOKEN: "sk-test-canary-mcp",
-  TARSEE_CHATGPT_ACCESS_TOKEN: "sk-test-canary-chatgpt",
+  ATLAS_PROVIDER_KEY: "sk-test-canary-provider-key", ATLAS_MCP_TOKEN: "sk-test-canary-mcp",
+  ATLAS_CHATGPT_ACCESS_TOKEN: "sk-test-canary-chatgpt",
 };
 const SERVER = { PATH: "/usr/bin", HOME: "/home/node", LANG: "C.UTF-8", ...CANARIES };
 const VAULT = { SCRIPT_KEY: "script-key-from-the-vault" };
@@ -57,7 +57,7 @@ describe("buildCodexOptions: per provider", () => {
     const o = build("openai", { model: "gpt-6.1-sol" });
     assert.equal(o.apiKey, KEYS.openai);
     assert.equal(o.env.CODEX_HOME, path.join(STATE, ".codex-home-keys"));
-    assert.equal(o.env.TARSEE_MCP_TOKEN, MCP.token);
+    assert.equal(o.env.ATLAS_MCP_TOKEN, MCP.token);
     assert.equal(o.env.CODEX_API_KEY, undefined, "the SDK adds CODEX_API_KEY itself, from apiKey");
     assert.equal(o.config.forced_login_method, "api");
     assert.equal(o.config.openai_base_url, "https://api.openai.com/v1");
@@ -70,47 +70,47 @@ describe("buildCodexOptions: per provider", () => {
     const o = build("chatgpt", {}, { accountModels: [] });
     assert.equal(o.apiKey, undefined);
     assert.equal(o.env.CODEX_HOME, path.join(STATE, ".codex-home"));
-    assert.equal(o.env.TARSEE_PROVIDER_KEY, undefined);
+    assert.equal(o.env.ATLAS_PROVIDER_KEY, undefined);
     assert.equal(o.config.forced_login_method, "chatgpt");
     assert.equal(o.config.openai_base_url, undefined);
     assert.equal(o.config.chatgpt_base_url, undefined);
     assert.equal(o.config.model_provider, undefined);
   });
 
-  it("openrouter: a custom Responses provider on OpenRouter's host, the key as TARSEE_PROVIDER_KEY, the attribution header", () => {
+  it("openrouter: a custom Responses provider on OpenRouter's host, the key as ATLAS_PROVIDER_KEY, the attribution header", () => {
     const o = build("openrouter", { model: "openai/gpt-6.1-sol" }, { appTitle: "My Atlas", referer: "https://example.com" });
     assert.equal(o.apiKey, undefined);
-    assert.equal(o.env.TARSEE_PROVIDER_KEY, KEYS.openrouter);
+    assert.equal(o.env.ATLAS_PROVIDER_KEY, KEYS.openrouter);
     assert.equal(o.env.OPENROUTER_API_KEY, undefined);
-    assert.equal(o.config.model_provider, "tarsee_openrouter");
-    assert.deepEqual(o.config.model_providers.tarsee_openrouter, {
-      name: "OpenRouter", base_url: "https://openrouter.ai/api/v1", env_key: "TARSEE_PROVIDER_KEY", wire_api: "responses",
+    assert.equal(o.config.model_provider, "atlas_openrouter");
+    assert.deepEqual(o.config.model_providers.atlas_openrouter, {
+      name: "OpenRouter", base_url: "https://openrouter.ai/api/v1", env_key: "ATLAS_PROVIDER_KEY", wire_api: "responses",
       http_headers: { "X-OpenRouter-Title": "My Atlas", "HTTP-Referer": "https://example.com" },
     });
     assert.equal(o.config.forced_login_method, "api");
     assert.equal(o.threadOptions.model, "openai/gpt-6.1-sol");
     // The default title, and no referer unless the owner set one.
-    assert.deepEqual(build("openrouter", { model: "openai/x" }).config.model_providers.tarsee_openrouter.http_headers, { "X-OpenRouter-Title": "Atlas" });
+    assert.deepEqual(build("openrouter", { model: "openai/x" }).config.model_providers.atlas_openrouter.http_headers, { "X-OpenRouter-Title": "Atlas" });
   });
 
-  it("deepseek (the alternative engine): DeepSeek's Responses host, the key as TARSEE_PROVIDER_KEY", () => {
+  it("deepseek (the alternative engine): DeepSeek's Responses host, the key as ATLAS_PROVIDER_KEY", () => {
     const o = build("deepseek", { model: "deepseek-flash" });
-    assert.equal(o.env.TARSEE_PROVIDER_KEY, KEYS.deepseek);
-    assert.equal(o.config.model_provider, "tarsee_deepseek");
-    assert.equal(o.config.model_providers.tarsee_deepseek.base_url, "https://api.deepseek.com");
-    assert.equal(o.config.model_providers.tarsee_deepseek.wire_api, "responses");
-    assert.equal(o.config.model_providers.tarsee_deepseek.env_key, "TARSEE_PROVIDER_KEY");
+    assert.equal(o.env.ATLAS_PROVIDER_KEY, KEYS.deepseek);
+    assert.equal(o.config.model_provider, "atlas_deepseek");
+    assert.equal(o.config.model_providers.atlas_deepseek.base_url, "https://api.deepseek.com");
+    assert.equal(o.config.model_providers.atlas_deepseek.wire_api, "responses");
+    assert.equal(o.config.model_providers.atlas_deepseek.env_key, "ATLAS_PROVIDER_KEY");
     assert.equal(o.config.forced_login_method, "api");
     assert.equal(o.threadOptions.model, "deepseek-flash");
   });
 
   it("local: the turn's bridge address, the bridge's token as its key (never the owner's), and the model's context window", () => {
     const o = build("local", { model: "llama3.1:8b" }, { contextTokens: 32_000 });
-    const p = o.config.model_providers.tarsee_local;
-    assert.equal(o.config.model_provider, "tarsee_local");
+    const p = o.config.model_providers.atlas_local;
+    assert.equal(o.config.model_provider, "atlas_local");
     assert.equal(p.base_url, BRIDGE.url, "Codex talks to the bridge, which passes the requests on to the owner's server");
-    assert.equal(p.env_key, "TARSEE_PROVIDER_KEY");
-    assert.equal(o.env.TARSEE_PROVIDER_KEY, BRIDGE.token);
+    assert.equal(p.env_key, "ATLAS_PROVIDER_KEY");
+    assert.equal(o.env.ATLAS_PROVIDER_KEY, BRIDGE.token);
     // The owner's key and address appear nowhere in what the Codex process gets: its environment, its config, argv.
     const everything = [...strings(o.env), ...strings(o.config), ...configArgs(o.config)];
     assert.ok(!everything.some((s) => s.includes(KEYS.local)), "the owner's Local AI key never reaches the Codex process");
@@ -121,11 +121,11 @@ describe("buildCodexOptions: per provider", () => {
     // minutes per try, so one retry, not five, gives up in about 10 minutes and lets the backup model answer.
     assert.equal(p.stream_max_retries, 1);
     assert.equal(p.stream_idle_timeout_ms, undefined, "Codex's own 5 minutes: a slow local model still answers");
-    for (const id of ["openrouter", "deepseek"]) assert.equal(build(id, { model: id === "openrouter" ? "openai/x" : "deepseek-flash" }).config.model_providers[`tarsee_${id}`].stream_max_retries, undefined, id);
+    for (const id of ["openrouter", "deepseek"]) assert.equal(build(id, { model: id === "openrouter" ? "openai/x" : "deepseek-flash" }).config.model_providers[`atlas_${id}`].stream_max_retries, undefined, id);
     // A server with no key: Codex still carries the bridge's token, which the bridge checks and never passes on.
     const keyless = build("local", { model: "llama3.1:8b" }, { key: null });
-    assert.equal(keyless.config.model_providers.tarsee_local.env_key, "TARSEE_PROVIDER_KEY");
-    assert.equal(keyless.env.TARSEE_PROVIDER_KEY, BRIDGE.token);
+    assert.equal(keyless.config.model_providers.atlas_local.env_key, "ATLAS_PROVIDER_KEY");
+    assert.equal(keyless.env.ATLAS_PROVIDER_KEY, BRIDGE.token);
     // No bridge is a caller's mistake, never a quiet fall back to the owner's server with the owner's key.
     assert.throws(() => build("local", { model: "llama3.1:8b" }, { localBridge: undefined }), TypeError);
     assert.throws(() => build("local", { model: "llama3.1:8b" }, { localBridge: { url: BRIDGE.url } }), TypeError);
@@ -163,18 +163,18 @@ describe("buildCodexOptions: what every Codex turn gets", () => {
   it("Atlas's tools as a streamable-HTTP MCP server: the grant's url, the token by env name, tool calls approved", () => {
     for (const id of ALL) {
       const m = build(id).config.mcp_servers;
-      assert.deepEqual(Object.keys(m), ["tarsee"], id);
-      assert.equal(m.tarsee.url, MCP.url, id);
-      assert.equal(m.tarsee.bearer_token_env_var, "TARSEE_MCP_TOKEN", id);
-      assert.equal(m.tarsee.default_tools_approval_mode, "approve", id);
-      assert.equal(m.tarsee.required, true, id);
-      assert.ok(m.tarsee.tool_timeout_sec >= 180 && m.tarsee.tool_timeout_sec === MCP_TOOL_TIMEOUT_SEC, id);
-      assert.ok(m.tarsee.startup_timeout_sec > 0, id);
+      assert.deepEqual(Object.keys(m), ["atlas"], id);
+      assert.equal(m.atlas.url, MCP.url, id);
+      assert.equal(m.atlas.bearer_token_env_var, "ATLAS_MCP_TOKEN", id);
+      assert.equal(m.atlas.default_tools_approval_mode, "approve", id);
+      assert.equal(m.atlas.required, true, id);
+      assert.ok(m.atlas.tool_timeout_sec >= 180 && m.atlas.tool_timeout_sec === MCP_TOOL_TIMEOUT_SEC, id);
+      assert.ok(m.atlas.startup_timeout_sec > 0, id);
     }
   });
 
   it("the shell inherits everything (vault keys reach scripts) except the engine's own credentials (R7)", () => {
-    assert.deepEqual([...CODEX_SHELL_EXCLUDED].sort(), ["CODEX_ACCESS_TOKEN", "CODEX_API_KEY", "TARSEE_CHATGPT_ACCESS_TOKEN", "TARSEE_MCP_TOKEN", "TARSEE_PROVIDER_KEY"]);
+    assert.deepEqual([...CODEX_SHELL_EXCLUDED].sort(), ["ATLAS_CHATGPT_ACCESS_TOKEN", "ATLAS_MCP_TOKEN", "ATLAS_PROVIDER_KEY", "CODEX_ACCESS_TOKEN", "CODEX_API_KEY"]);
     for (const id of ALL) {
       const p = build(id).config.shell_environment_policy;
       assert.equal(p.inherit, "all", id);
@@ -214,14 +214,14 @@ describe("buildCodexOptions: what every Codex turn gets", () => {
     for (const id of ALL) {
       const o = build(id, {}, { turnMark: "turn-mark-1" });
       for (const [name, value] of Object.entries(CANARIES)) {
-        // Local AI's TARSEE_PROVIDER_KEY is its bridge's token; every other key provider's is its own key.
+        // Local AI's ATLAS_PROVIDER_KEY is its bridge's token; every other key provider's is its own key.
         const ownKey = id === "local" ? BRIDGE.token : KEYS[id];
-        const own = (name === "TARSEE_MCP_TOKEN" && o.env[name] === MCP.token) || (name === "TARSEE_PROVIDER_KEY" && o.env[name] === ownKey) || (name === "CODEX_HOME" && o.env[name] !== value);
+        const own = (name === "ATLAS_MCP_TOKEN" && o.env[name] === MCP.token) || (name === "ATLAS_PROVIDER_KEY" && o.env[name] === ownKey) || (name === "CODEX_HOME" && o.env[name] !== value);
         if (!own) assert.equal(o.env[name], undefined, `${id}: ${name}`);
         assert.ok(!Object.values(o.env).includes(value), `${id}: the value of ${name}`);
       }
       assert.equal(o.env.SCRIPT_KEY, "script-key-from-the-vault", id);
-      assert.equal(o.env.TARSEE_CODEX_TURN, "turn-mark-1", id);
+      assert.equal(o.env.ATLAS_CODEX_TURN, "turn-mark-1", id);
     }
   });
 
@@ -289,7 +289,7 @@ describe("developer instructions", () => {
   it("an oversized prompt loses its saved memories first, then its middle, never the preamble or the end, never a surrogate half", () => {
     // The instructions as a Codex turn builds them (codex.js): the preamble, the workspace CLAUDE.md, then the stable
     // part (workspace files, the database's quick memories, skills, the conversation's prompt, the channel hint).
-    const preamble = buildPreamble({ engine: "codex", cwd: "/data/tarsee/workspace", timezone: "UTC" });
+    const preamble = buildPreamble({ engine: "codex", cwd: "/data/atlas/workspace", timezone: "UTC" });
     const claudeMd = "## Workspace instructions (CLAUDE.md)\n\n" + "Keep the workspace tidy and log what you do.\n".repeat(150);
     const files = "<!-- SOUL.md -->\n" + "I am calm and precise, and I say so when I don't know.\n".repeat(150);
     const memories = "\n\nAdditional quick memories (shortened; search memory for the full note):\n"
@@ -336,12 +336,12 @@ describe("developer instructions", () => {
 
 describe("the test-only ChatGPT hosts and the config allowlist", () => {
   it("ChatGPT's hosts move only in tests, only to loopback", () => {
-    assert.equal(codexChatgptTestHosts({ TARSEE_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9" }), null, "not without NODE_ENV=test");
-    assert.equal(codexChatgptTestHosts({ NODE_ENV: "test", TARSEE_TEST_BASE_URL_CHATGPT: "http://canary.invalid" }), null);
-    assert.deepEqual(codexChatgptTestHosts({ NODE_ENV: "test", TARSEE_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9/" }), {
+    assert.equal(codexChatgptTestHosts({ ATLAS_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9" }), null, "not without NODE_ENV=test");
+    assert.equal(codexChatgptTestHosts({ NODE_ENV: "test", ATLAS_TEST_BASE_URL_CHATGPT: "http://canary.invalid" }), null);
+    assert.deepEqual(codexChatgptTestHosts({ NODE_ENV: "test", ATLAS_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9/" }), {
       chatgpt_base_url: "http://127.0.0.1:9/backend-api/", openai_base_url: "http://127.0.0.1:9/backend-api/codex",
     });
-    const o = build("chatgpt", {}, { env: { ...SERVER, NODE_ENV: "test", TARSEE_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9" } });
+    const o = build("chatgpt", {}, { env: { ...SERVER, NODE_ENV: "test", ATLAS_TEST_BASE_URL_CHATGPT: "http://127.0.0.1:9" } });
     assert.equal(o.config.chatgpt_base_url, "http://127.0.0.1:9/backend-api/");
     assert.equal(o.config.openai_base_url, "http://127.0.0.1:9/backend-api/codex");
   });

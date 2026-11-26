@@ -38,7 +38,7 @@ describe("Settings → AI: the page", () => {
     assert.ok(order(page, "/js/provider-guides-core.js", "/js/settings.js"));
     assert.ok(order(page, "/js/provider-guides-core.js", "/js/setup.js"));
     assert.ok(sw.includes('"/js/provider-guides-core.js"'));
-    assert.doesNotMatch(sw, /const CACHE_NAME = "tarsee-v12"/, "the cache version moves on so phones pick up the new page");
+    assert.doesNotMatch(sw, /const CACHE_NAME = "atlas-v12"/, "the cache version moves on so phones pick up the new page");
   });
 
   it("the header shows the active AI, and a banner when it needs attention", () => {

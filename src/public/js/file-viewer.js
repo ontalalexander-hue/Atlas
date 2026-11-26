@@ -5,7 +5,7 @@
  * CSV and JSON read as text or a table, and anything else shows its name and size. Download is always there.
  * Esc or the X closes it; the arrows, the buttons or a swipe go to the next and previous file in that chat.
  *
- * Ported from TarseeMacOS. The pure parts: file-viewer-core.js (test/chat-files.test.js).
+ * Ported from the macOS app. The pure parts: file-viewer-core.js (test/chat-files.test.js).
  */
 import { kindOf, textShape, parseCsv, prettyJson, peaksOf, clock, nextSpeed, seekAt, saveUrl, typeLabel } from "./file-viewer-core.js";
 
@@ -101,7 +101,7 @@ export function waveformPlayer(f, { compact = false, autoplay = false, onOpen = 
   } else root.append(play, bars, time, speed, audio);
 
   let peaks = null, raf = 0, dragging = false;
-  const accent = () => getComputedStyle(root).getPropertyValue("--accent").trim() || "#c45a35";
+  const accent = () => getComputedStyle(root).getPropertyValue("--accent").trim() || "#1f7ae0";
   function draw() {
     const w = bars.clientWidth, h = bars.clientHeight;
     if (!w || !h) return;

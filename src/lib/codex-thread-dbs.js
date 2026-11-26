@@ -96,7 +96,7 @@ function rebuild(db, name, pending) {
 }
 
 /** The databases in this home an earlier sweep couldn't rebuild (a small JSON list in the home). */
-const PENDING_FILE = ".tarsee-vacuum-pending";
+const PENDING_FILE = ".atlas-vacuum-pending";
 function readPending(home) {
   try {
     const list = JSON.parse(fs.readFileSync(path.join(home, PENDING_FILE), "utf8"));
@@ -178,21 +178,21 @@ function deleteRows(db, ids, { threads = false } = {}) {
   let gone = 0;
   let changed = 0;
   db.transaction(() => {
-    db.exec("CREATE TEMP TABLE IF NOT EXISTS tarsee_gone_threads (id TEXT PRIMARY KEY)");
-    db.exec("DELETE FROM temp.tarsee_gone_threads");
-    const add = db.prepare("INSERT OR IGNORE INTO temp.tarsee_gone_threads (id) VALUES (?)");
+    db.exec("CREATE TEMP TABLE IF NOT EXISTS atlas_gone_threads (id TEXT PRIMARY KEY)");
+    db.exec("DELETE FROM temp.atlas_gone_threads");
+    const add = db.prepare("INSERT OR IGNORE INTO temp.atlas_gone_threads (id) VALUES (?)");
     for (const id of ids) add.run(id);
     for (const t of tables) {
       const cols = columnsOf(db, t);
       for (const c of THREAD_COLUMNS) {
-        if (cols.has(c)) changed += db.prepare(`DELETE FROM main."${t.replace(/"/g, '""')}" WHERE "${c}" IN (SELECT id FROM temp.tarsee_gone_threads)`).run().changes;
+        if (cols.has(c)) changed += db.prepare(`DELETE FROM main."${t.replace(/"/g, '""')}" WHERE "${c}" IN (SELECT id FROM temp.atlas_gone_threads)`).run().changes;
       }
     }
     if (threads) {
-      gone = db.prepare("DELETE FROM main.threads WHERE id IN (SELECT id FROM temp.tarsee_gone_threads)").run().changes;
+      gone = db.prepare("DELETE FROM main.threads WHERE id IN (SELECT id FROM temp.atlas_gone_threads)").run().changes;
       changed += gone;
     }
-    db.exec("DELETE FROM temp.tarsee_gone_threads");
+    db.exec("DELETE FROM temp.atlas_gone_threads");
   })();
   return { gone, changed };
 }

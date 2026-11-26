@@ -1,7 +1,7 @@
 /**
  * discord-format.js — turn GitHub-flavored markdown tables and block quotes
  * into something Discord actually renders, plus a fence-aware message splitter.
- * Ported from TarseeMacOS.
+ * Ported from the macOS app.
  *
  * WHY this exists: Discord has never supported markdown tables (verified
  * 2026-07-28 against Markdown Text 101 and the full dev changelog). A raw

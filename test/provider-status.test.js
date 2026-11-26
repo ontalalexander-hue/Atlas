@@ -9,16 +9,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-provider-status-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-provider-status-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 
 // Nothing from the machine running the tests may decide a result: a developer's own keys and sign-ins are cleared.
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "CLAUDE_CODE_HOME",
   "CODEX_HOME",
 ];
@@ -259,9 +259,9 @@ describe("the Claude plan", () => {
     let s = await providerStatus("claude", deps(store, { claudeHomes: () => [signedInClaudeHome] }));
     assert.equal(s.state, "blocked-keys-only");
     assert.match(s.fix, /Settings > AI/);
-    s = await providerStatus("claude", deps(freshStore(), { env: { TARSEE_KEYS_ONLY: "1" }, claudeHomes: () => [signedInClaudeHome] }));
+    s = await providerStatus("claude", deps(freshStore(), { env: { ATLAS_KEYS_ONLY: "1" }, claudeHomes: () => [signedInClaudeHome] }));
     assert.equal(s.state, "blocked-keys-only");
-    assert.match(s.fix, /TARSEE_KEYS_ONLY/);
+    assert.match(s.fix, /ATLAS_KEYS_ONLY/);
   });
 });
 
@@ -335,7 +335,7 @@ describe("Local AI", () => {
     const store = freshStore();
     let s = await providerStatus("local", deps(store));
     assert.equal(s.state, "needs-setup");
-    assert.match(s.fix, /TARSEE_LOCAL_AI_URL/);
+    assert.match(s.fix, /ATLAS_LOCAL_AI_URL/);
     store.set("ai.local.baseUrl", "ftp://192.168.1.20/v1");
     s = await providerStatus("local", deps(store));
     assert.equal(s.state, "needs-setup");
@@ -356,8 +356,8 @@ describe("Local AI", () => {
     assert.match(s.detail, /192\.168\.1\.20/);
   });
 
-  it("TARSEE_LOCAL_AI_URL and TARSEE_AI_MODEL set it up from Railway alone", async () => {
-    const s = await providerStatus("local", deps(freshStore(), { env: { TARSEE_LOCAL_AI_URL: "http://ollama.railway.internal:11434/v1", TARSEE_AI_PROVIDER: "local", TARSEE_AI_MODEL: "llama3.3" } }));
+  it("ATLAS_LOCAL_AI_URL and ATLAS_AI_MODEL set it up from Railway alone", async () => {
+    const s = await providerStatus("local", deps(freshStore(), { env: { ATLAS_LOCAL_AI_URL: "http://ollama.railway.internal:11434/v1", ATLAS_AI_PROVIDER: "local", ATLAS_AI_MODEL: "llama3.3" } }));
     assert.equal(s.state, "ready", s.detail);
   });
 
@@ -400,8 +400,8 @@ describe("activeTarget and the boot line", () => {
     });
   });
 
-  it("TARSEE_AI_PROVIDER and TARSEE_AI_MODEL pick the default when Settings has none", () => {
-    const t = activeTarget(freshStore(), { env: { TARSEE_AI_PROVIDER: "deepseek", TARSEE_AI_MODEL: "deepseek-v4-pro" }, isShipped: allShipped });
+  it("ATLAS_AI_PROVIDER and ATLAS_AI_MODEL pick the default when Settings has none", () => {
+    const t = activeTarget(freshStore(), { env: { ATLAS_AI_PROVIDER: "deepseek", ATLAS_AI_MODEL: "deepseek-v4-pro" }, isShipped: allShipped });
     assert.deepEqual({ provider: t.provider, model: t.model, engine: t.engine, chosenBy: t.chosenBy },
       { provider: "deepseek", model: "deepseek-v4-pro", engine: "claude-code", chosenBy: "env" });
   });

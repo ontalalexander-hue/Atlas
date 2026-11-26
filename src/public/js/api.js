@@ -9,7 +9,7 @@ const API = {
    * Get CSRF token from cookie.
    */
   getCsrfToken() {
-    const match = document.cookie.match(/(?:^|;\s*)tarsee_csrf=([^;]+)/);
+    const match = document.cookie.match(/(?:^|;\s*)atlas_csrf=([^;]+)/);
     return match ? match[1] : null;
   },
 
@@ -79,7 +79,7 @@ const API = {
       // page, and every reload fired 15 more (measured ~1,500 requests in 30s).
       if (!this._authRequiredFired) {
         this._authRequiredFired = true;
-        window.dispatchEvent(new CustomEvent("tarsee:auth-required"));
+        window.dispatchEvent(new CustomEvent("atlas:auth-required"));
       }
       throw new Error("Session expired");
     }
@@ -120,7 +120,7 @@ const API = {
         const { apiToken } = await res.json();
         this.token = apiToken || null;
         if (this.token) {
-          try { localStorage.setItem("tarsee_api_token", this.token); } catch {}
+          try { localStorage.setItem("atlas_api_token", this.token); } catch {}
         }
       }
     } catch {}
@@ -141,7 +141,7 @@ const API = {
    * the API token, which can't do those. App.showLogin (js/app.js) shows the screen; signing in reloads the page.
    */
   signInAgain(message) {
-    window.dispatchEvent(new CustomEvent("tarsee:auth-required"));
+    window.dispatchEvent(new CustomEvent("atlas:auth-required"));
     if (!message) return;
     const form = document.getElementById("loginError");   // the desktop form's line, hidden until it has something
     if (form) {
@@ -279,7 +279,7 @@ const API = {
           const [, themeName, humanMsg] = themeMatch;
           try {
             document.documentElement.setAttribute("data-theme", themeName);
-            localStorage.setItem("tarsee_theme", themeName);
+            localStorage.setItem("atlas_theme", themeName);
           } catch { /* localStorage blocked */ }
           response = humanMsg;
         }

@@ -6,9 +6,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-claude-engine-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-claude-engine-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 
 const { buildQueryOptions, run, apiKeySourceRefusal, approveKeyInHome, API_KEY_SOURCES, AUTH_EXPIRED_MESSAGE, BUNDLED_SKILLS_DIR, isAuthFailure } = await import("../src/ai/providers/claude-code.js");
 const { PROVIDERS } = await import("../src/ai/provider-registry.js");
@@ -74,13 +74,13 @@ describe("buildQueryOptions: the Claude plan", () => {
 
   it("the same tools, permissions and MCP rules on every provider", () => {
     for (const id of ["claude", "anthropic", "deepseek", "openrouter"]) {
-      const b = build(id, { key: KEYS[id], mcpServer: { name: "tarsee-stub" } });
-      assert.deepEqual(b.options.tools, ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "mcp__tarsee__*"], id);
+      const b = build(id, { key: KEYS[id], mcpServer: { name: "atlas-stub" } });
+      assert.deepEqual(b.options.tools, ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "mcp__atlas__*"], id);
       assert.deepEqual(b.options.allowedTools, b.options.tools, id);
       assert.equal(b.options.permissionMode, "bypassPermissions", id);
       assert.equal(b.options.allowDangerouslySkipPermissions, true, id);
       assert.equal(b.options.strictMcpConfig, id !== "claude", id === "claude" ? "the plan keeps the owner's own MCP servers (.mcp.json, plugins), as before" : `${id}: only Atlas's own MCP servers`);
-      assert.deepEqual(b.options.mcpServers, { tarsee: { name: "tarsee-stub" } }, id);
+      assert.deepEqual(b.options.mcpServers, { atlas: { name: "atlas-stub" } }, id);
       assert.deepEqual(b.options.additionalDirectories, [BUNDLED_SKILLS_DIR], id);
       assert.equal(b.options.includePartialMessages, true, id);
       assert.equal(b.options.maxTurns, 50, id);
@@ -275,7 +275,7 @@ function fakeQuery(script) {
   return q;
 }
 
-const init = (apiKeySource = "none", extra = {}) => ({ type: "system", subtype: "init", apiKeySource, session_id: "sess-1", mcp_servers: [{ name: "tarsee", status: "connected" }], ...extra });
+const init = (apiKeySource = "none", extra = {}) => ({ type: "system", subtype: "init", apiKeySource, session_id: "sess-1", mcp_servers: [{ name: "atlas", status: "connected" }], ...extra });
 const delta = (text) => ({ type: "stream_event", parent_tool_use_id: null, event: { type: "content_block_delta", index: 0, delta: { type: "text_delta", text } } });
 const assistant = (content, extra = {}) => ({ type: "assistant", parent_tool_use_id: null, message: { content }, ...extra });
 const userResult = (id, text, isError = false) => ({ type: "user", parent_tool_use_id: null, message: { content: [{ type: "tool_result", tool_use_id: id, content: text, is_error: isError }] } });
@@ -335,14 +335,14 @@ describe("run(): the event flow", () => {
   it("a tool round: tool_use, its live steps, the tool_result, and never stopReason tool_use", async () => {
     const q = fakeQuery([
       init(),
-      assistant([{ type: "tool_use", id: "tu1", name: "mcp__tarsee__tarsee_datetime", input: {} }]),
+      assistant([{ type: "tool_use", id: "tu1", name: "mcp__atlas__atlas_datetime", input: {} }]),
       userResult("tu1", "2026-11-09 10:00"),
       delta("It is ten."),
       result(),
     ]);
     const events = await collect(runOpts("deepseek", q));
     const tu = events.find((e) => e.type === "tool_use");
-    assert.deepEqual(tu, { type: "tool_use", id: "tu1", name: "mcp__tarsee__tarsee_datetime", input: {} });
+    assert.deepEqual(tu, { type: "tool_use", id: "tu1", name: "mcp__atlas__atlas_datetime", input: {} });
     assert.deepEqual(events.find((e) => e.type === "tool_result"), { type: "tool_result", id: "tu1", ok: true, result: "2026-11-09 10:00" });
     const steps = events.filter((e) => e.type === "step").map((e) => e.kind);
     assert.ok(steps.includes("tool_start") && steps.includes("tool_end"), steps.join(","));

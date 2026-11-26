@@ -10,17 +10,17 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-tool-status-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-tool-status-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 fs.mkdirSync(path.join(tmp, "workspace"), { recursive: true });
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { createTelegramBot } = await import("../src/channels/telegram.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 new SettingsStore(db).set("ai.activeProvider", "claude-code");
 
 let streamCalls = 0;

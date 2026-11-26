@@ -8,10 +8,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-media-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-media-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { adaptMedia, writeLocalImages, PDF_INLINE_CHARS } = await import("../src/ai/media.js");
 const { capsFor } = await import("../src/ai/provider-registry.js");
@@ -61,12 +61,12 @@ describe("adaptMedia: PDFs", () => {
     assert.equal(typeof r.content, "string", "with nothing kept, the message is plain text");
   });
 
-  it("a long PDF is cut at about 30,000 characters and points at tarsee_pdf_read for the rest", async () => {
+  it("a long PDF is cut at about 30,000 characters and points at atlas_pdf_read for the rest", async () => {
     const pages = Array.from({ length: 40 }, (_, i) => `Page ${i + 1}. ${"Long words keep going on this page. ".repeat(40)}`);
     const r = await adaptMedia([pdfBlock(makePdf({ pages, compress: true }))], capsFor("deepseek", "deepseek-flash"), { label: "DeepSeek Flash", uploadsDir: freshUploads() });
     assert.ok(r.text.length < PDF_INLINE_CHARS + 2_000, `inlined ${r.text.length} characters`);
     assert.ok(r.text.length > PDF_INLINE_CHARS * 0.8, `inlined only ${r.text.length} characters`);
-    assert.match(r.text, /tarsee_pdf_read/);
+    assert.match(r.text, /atlas_pdf_read/);
     const last = Number(/pages 1-(\d+) of 40/.exec(r.text)?.[1]);
     assert.ok(last > 1 && last < 40, "it does not say how far the text goes");
     assert.ok(r.text.includes(`pages "${last + 1}-40"`), "it does not say which pages are left");
@@ -304,6 +304,6 @@ describe("adaptMedia: plain messages", () => {
 
   it("saves into the workspace's uploads folder by default", async () => {
     const r = await adaptMedia([image()], capsFor("deepseek", "deepseek-v4-pro"), { label: "DeepSeek Pro" });
-    assert.ok(inside(path.join(process.env.TARSEE_WORKSPACE_DIR, "uploads"), r.saved[0].path), r.saved[0].path);
+    assert.ok(inside(path.join(process.env.ATLAS_WORKSPACE_DIR, "uploads"), r.saved[0].path), r.saved[0].path);
   });
 });

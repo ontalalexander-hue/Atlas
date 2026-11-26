@@ -242,7 +242,7 @@ export class SettingsStore {
    * A provider's API key and where it came from. Encrypted Settings first
    * (`ai.<id>.apiKey`), then the environment (Railway): `envName` when given
    * (null: Settings only), else the provider's own variable (`<ID>_API_KEY`;
-   * Local AI's is TARSEE_LOCAL_AI_KEY). Sign-in plans (claude, claude-code,
+   * Local AI's is ATLAS_LOCAL_AI_KEY). Sign-in plans (claude, claude-code,
    * chatgpt) have no key at all. Quotes and whitespace Railway sometimes adds
    * are trimmed.
    *

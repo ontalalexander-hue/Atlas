@@ -19,14 +19,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-ai-ui-real-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-ai-ui-real-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "CLAUDE_CODE_HOME",
   "CODEX_HOME",
 ];
@@ -126,7 +126,7 @@ async function logout() {
 
 // --- Atlas: the real /api/ai, the dashboard's files, and a stand-in for the rest of /api -------------------------
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db, new AuditLog(db));
 const raw = (key) => db.prepare("SELECT value FROM settings WHERE key = ?").get(key)?.value ?? null;
 const emptyClaudeHome = fs.mkdtempSync(path.join(tmp, "claude-empty-"));

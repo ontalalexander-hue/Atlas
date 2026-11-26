@@ -4,8 +4,8 @@
   "description": "Headless Claude Code Agent — 24/7 AI that remembers everything",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a1a1a",
-  "theme_color": "#1a1a1a",
+  "background_color": "#070b14",
+  "theme_color": "#070b14",
   "orientation": "any",
   "categories": ["productivity", "utilities"],
   "icons": [

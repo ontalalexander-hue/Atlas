@@ -58,7 +58,7 @@ function card(id, label, kind, over = {}) {
   return { id, storageId: id === "claude" ? "claude-code" : id, label, kind, shipped: true, active: false, state: "needs-key", ready: false, detail: `No ${label} key yet.`, fix: "Paste one in Settings > AI.", keySource: null, keyHint: null, keySourceText: null, account: null, balance: null, envKey: null, model: null, notes: [], settings: null, ...over };
 }
 
-const GUARD_FILE = "/data/tarsee/workspace/.claude/settings.json";
+const GUARD_FILE = "/data/atlas/workspace/.claude/settings.json";
 
 /**
  * ready: provider ids that start Ready. env: provider id → the Railway variable its key comes from (Ready too).
@@ -187,7 +187,7 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
     if (state.stt && p.startsWith("/api/voice/stt/models/") && method === "DELETE") {
       const name = decodeURIComponent(p.split("/")[5]);
       state.stt.models = state.stt.models.map((m) => (m.name === name ? { ...m, state: "missing", downloaded: false, deletable: false, where: null } : m));
-      return json(200, { removed: [`/data/tarsee/data/whisper-models/${name}`], kept: null });
+      return json(200, { removed: [`/data/atlas/data/whisper-models/${name}`], kept: null });
     }
     if (p === "/api/voice/stt-model" && method === "POST") return json(200, { ok: true, model: body?.model, downloading: false });
     if (p === "/api/ai/providers") return json(200, providers());
@@ -277,8 +277,8 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
     if (p === "/api/admin/audit") return json(200, { entries: state.audit });
     if (p === "/api/admin/tool-registry") {
       return json(200, [
-        { name: "web_fetch", label: "Open a web address", description: "Fetches a page.", group: "Web", policyCovered: true, mcpName: "tarsee_web_fetch", mode: "check_ssrf" },
-        { name: "pdf_read", label: "Read a PDF", description: "Reads a PDF.", group: "Documents and visuals", policyCovered: true, mcpName: "tarsee_pdf_read", mode: "always_allow" },
+        { name: "web_fetch", label: "Open a web address", description: "Fetches a page.", group: "Web", policyCovered: true, mcpName: "atlas_web_fetch", mode: "check_ssrf" },
+        { name: "pdf_read", label: "Read a PDF", description: "Reads a PDF.", group: "Documents and visuals", policyCovered: true, mcpName: "atlas_pdf_read", mode: "always_allow" },
         { name: "Bash", label: "Run commands in a shell", description: "Built into the AI itself.", group: "Built into the AI", policyCovered: false, mcpName: null, mode: null },
       ]);
     }
@@ -1189,17 +1189,17 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
         runtime: {
           state: "not-installed", ready: false, fasterWhisper: null, python: null, source: null, where: null,
           summary: "Not installed, and there is no Python on this computer. Install downloads Atlas's own copy of Python (about 47 MB) and faster-whisper (about 120 MB) into Atlas's folder.",
-          installFolder: "C:\\Users\\someone\\.tarsee\\python", needsPythonDownload: true, canInstall: true, downloadMB: 167, error: null,
+          installFolder: "C:\\Users\\someone\\.atlas\\python", needsPythonDownload: true, canInstall: true, downloadMB: 167, error: null,
         },
         models: [
           model("tiny.en", "78 MB"),
           model("base.en", "148 MB", { current: true }),
-          model("small.en", "486 MB", { state: "downloaded", downloaded: true, deletable: true, where: "C:\\Users\\someone\\.tarsee\\data\\whisper-models\\small.en" }),
+          model("small.en", "486 MB", { state: "downloaded", downloaded: true, deletable: true, where: "C:\\Users\\someone\\.atlas\\data\\whisper-models\\small.en" }),
           model("tiny", "78 MB", { state: "failed", error: "model.bin does not match its published sha256" }),
           model("base", "148 MB"),
           model("small", "486 MB"),
         ],
-        modelsDir: "C:\\Users\\someone\\.tarsee\\data\\whisper-models",
+        modelsDir: "C:\\Users\\someone\\.atlas\\data\\whisper-models",
         job: null,
       };
       await page.locator("#aiHeaderChip:not([hidden])").waitFor();
@@ -1235,7 +1235,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
       assert.equal(await rows.first().getByRole("button", { name: /Download/ }).isDisabled(), true, "one job at a time");
       await shot(page, "voice-stt-installing");
       api.state.stt.job = null;
-      api.state.stt.runtime = { ...api.state.stt.runtime, state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.12.16 (Atlas's own copy, in C:\\Users\\someone\\.tarsee\\python\\stt-venv)." };
+      api.state.stt.runtime = { ...api.state.stt.runtime, state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.12.16 (Atlas's own copy, in C:\\Users\\someone\\.atlas\\python\\stt-venv)." };
       api.state.stt.models = api.state.stt.models.map((m) => (m.name === "base.en" ? { ...m, state: "downloaded", downloaded: true, deletable: true, where: "C:\\x\\base.en" } : m));
       await page.locator("#sttRuntimeStatus", { hasText: "Ready: faster-whisper 1.2.1" }).waitFor({ timeout: 5000 });
       await page.getByText("Speech-to-text is ready.").waitFor();
@@ -1267,11 +1267,11 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
     const { page, api, errors, context } = await openPage({ needsSetup: false, width: 375, height: 800 });
     try {
       api.state.stt = {
-        provider: "local", current: "base.en", job: null, modelsDir: "/data/tarsee/data/whisper-models",
-        runtime: { state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.11.2 (/usr/bin/python3).", installFolder: "/data/tarsee/python", downloadMB: 120 },
+        provider: "local", current: "base.en", job: null, modelsDir: "/data/atlas/data/whisper-models",
+        runtime: { state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.11.2 (/usr/bin/python3).", installFolder: "/data/atlas/python", downloadMB: 120 },
         models: ["tiny.en", "base.en", "small.en", "tiny", "base", "small"].map((name) => ({
           name, description: "A model.", size: "148 MB", state: name === "base.en" ? "image" : "missing", downloaded: name === "base.en",
-          where: name === "base.en" ? "/opt/tarsee/whisper-models/base.en" : null, deletable: false, current: name === "base.en",
+          where: name === "base.en" ? "/opt/atlas/whisper-models/base.en" : null, deletable: false, current: name === "base.en",
         })),
       };
       await page.locator("#aiHeaderChip:not([hidden])").waitFor();

@@ -1,7 +1,7 @@
 /**
  * turn-leftovers.js: what a turn leaves behind when the server stops in the middle of it.
  *
- * A Codex turn copies the person's pictures to <system temp>/tarsee-codex/tarsee-images-* (ai/media.js
+ * A Codex turn copies the person's pictures to <system temp>/atlas-codex/atlas-images-* (ai/media.js
  * writeLocalImages), and a Verify works in <state>/verify/<provider>-* (ai/verify-model.js). Each turn removes its own
  * when it ends, but a redeploy, Ctrl+C, a crash or `node --watch` restarting can end the server first, and then
  * nothing would ever remove them (the pictures sit outside Atlas's data folder, where deleting the chat can't reach).
@@ -12,9 +12,9 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-/** Where the Codex engine writes a turn's pictures (each turn in a tarsee-images-* folder of its own). */
-export const CODEX_IMAGE_DIR = path.join(os.tmpdir(), "tarsee-codex");
-const IMAGE_FOLDER_RE = /^tarsee-images-/;
+/** Where the Codex engine writes a turn's pictures (each turn in a atlas-images-* folder of its own). */
+export const CODEX_IMAGE_DIR = path.join(os.tmpdir(), "atlas-codex");
+const IMAGE_FOLDER_RE = /^atlas-images-/;
 const MAX_AGE_MS = 3_600_000;
 
 /**

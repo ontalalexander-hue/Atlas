@@ -4,7 +4,7 @@
 //
 //   node scripts/e2e/ai-ui-railway.e2e.mjs [--shots <dir>] [--out <results.json>]
 //
-// The server boots fresh (temp TARSEE_STATE_DIR and HOME, a SETUP_PASSWORD and ENCRYPTION_KEY made up now) with
+// The server boots fresh (temp ATLAS_STATE_DIR and HOME, a SETUP_PASSWORD and ENCRYPTION_KEY made up now) with
 // made-up OPENROUTER_API_KEY and DEEPSEEK_API_KEY in its environment, the way an owner sets them in Railway. The real
 // openrouter.ai and api.deepseek.com refuse those keys. What the wizard and Settings say about them is checked:
 //   - the wizard says Railway variables connect them, and shows where each key comes from, masked
@@ -29,7 +29,7 @@ const { chromium } = require("playwright");
 
 const argv = process.argv.slice(2);
 const arg = (name, dflt) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : dflt; };
-const SHOTS = path.resolve(arg("--shots", path.join(os.tmpdir(), "tarsee-e2e-shots", "ai")));
+const SHOTS = path.resolve(arg("--shots", path.join(os.tmpdir(), "atlas-e2e-shots", "ai")));
 const OUT = arg("--out", null);
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -122,16 +122,16 @@ const localAi = http.createServer((req, res) => {
 await new Promise((r) => localAi.listen(0, "127.0.0.1", r));
 const LOCAL_URL = `http://127.0.0.1:${localAi.address().port}/v1`;
 
-const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-e2e-state-"));
-const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-e2e-home-"));
+const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-e2e-state-"));
+const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-e2e-home-"));
 const port = await freePort();
 const ORIGIN = `http://127.0.0.1:${port}`;
-const CRED_NAME_RE = /^(ANTHROPIC_|OPENAI_|OPENROUTER_|DEEPSEEK_|CLAUDE|CODEX_|TARSEE_|AWS_BEARER|SETUP_PASSWORD$|ENCRYPTION_KEY$|NODE_ENV$|PORT$)/i;
+const CRED_NAME_RE = /^(ANTHROPIC_|OPENAI_|OPENROUTER_|DEEPSEEK_|CLAUDE|CODEX_|ATLAS_|AWS_BEARER|SETUP_PASSWORD$|ENCRYPTION_KEY$|NODE_ENV$|PORT$)/i;
 const serverEnv = {};
 for (const [k, v] of Object.entries(process.env)) if (!CRED_NAME_RE.test(k)) serverEnv[k] = v;
 Object.assign(serverEnv, {
-  PORT: String(port), TARSEE_STATE_DIR: stateDir, SETUP_PASSWORD, ENCRYPTION_KEY, HOME: homeDir, USERPROFILE: homeDir,
-  TARSEE_PHONON_AUTO_INSTALL: "0", OPENROUTER_API_KEY: ENV_KEYS.openrouter, DEEPSEEK_API_KEY: ENV_KEYS.deepseek,
+  PORT: String(port), ATLAS_STATE_DIR: stateDir, SETUP_PASSWORD, ENCRYPTION_KEY, HOME: homeDir, USERPROFILE: homeDir,
+  ATLAS_PHONON_AUTO_INSTALL: "0", OPENROUTER_API_KEY: ENV_KEYS.openrouter, DEEPSEEK_API_KEY: ENV_KEYS.deepseek,
 });
 let serverOut = "";
 const server = spawn(process.execPath, ["src/server.js"], { cwd: ROOT, env: serverEnv, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });

@@ -8,7 +8,7 @@ export const healthRouter = Router();
 healthRouter.get("/healthz", (_req, res) => {
   res.json({
     ok: true,
-    service: "tarsee",
+    service: "atlas",
     version: "1.0.0",
     uptime: Math.floor(process.uptime()),
     memory: {
@@ -46,7 +46,7 @@ healthRouter.get("/healthz/deep", async (req, res) => {
       ? { provider: aiCheck.provider ?? null, state: aiCheck.state ?? null, ready: aiCheck.status === "ok" }
       : null;
     const status = hasErrors ? 503 : 200;
-    const head = { ok: !hasErrors, service: "tarsee", uptime: Math.floor(process.uptime()) };
+    const head = { ok: !hasErrors, service: "atlas", uptime: Math.floor(process.uptime()) };
 
     if (!signedIn) return res.status(status).json({ ...head, ai });
     res.status(status).json({

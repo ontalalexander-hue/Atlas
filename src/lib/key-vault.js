@@ -5,7 +5,7 @@
  * can access at runtime. Keys are encrypted at rest using the same 
  * ENCRYPTION_KEY as the settings database.
  *
- * Storage: /data/tarsee/data/vault.json (encrypted values)
+ * Storage: /data/atlas/data/vault.json (encrypted values)
  * 
  * Usage: User tells the bot "save my Google Places key as GOOGLE_PLACES"
  * and the bot calls set_key. Later, any tool or subagent can call get_key

@@ -31,7 +31,7 @@ function requireOwnerSession(req, res, next) {
 
 /**
  * GET /api/admin/tool-registry
- * Every tool the agent can run, for Settings > Security: Atlas's own (lib/tools.js and the tarsee MCP server's
+ * Every tool the agent can run, for Settings > Security: Atlas's own (lib/tools.js and the atlas MCP server's
  * live list, push_notification and pdf_read among them) and the engines' built-in ones, as
  * [{ name, label, description, group, policyCovered, mcpName, engines, mode }] (lib/tool-registry.js). mode is the
  * current Tool Permissions setting of a tool it covers, null for one it can't (the engines' own).
@@ -56,7 +56,7 @@ adminRouter.get("/status", (req, res) => {
   const memUsage = process.memoryUsage();
 
   res.json({
-    service: "tarsee",
+    service: "atlas",
     version: "1.0.0",
     uptime: Math.floor(process.uptime()),
     nodeVersion: process.version,
@@ -176,14 +176,14 @@ adminRouter.get("/backup", async (req, res) => {
 
   const auditLog = req.app.get("auditLog");
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const tmpFile = path.join(os.tmpdir(), `tarsee-backup-${stamp}-${crypto.randomBytes(6).toString("hex")}.db`);
+  const tmpFile = path.join(os.tmpdir(), `atlas-backup-${stamp}-${crypto.randomBytes(6).toString("hex")}.db`);
 
   try {
     await db.backup(tmpFile);
     const stat = fs.statSync(tmpFile);
     res.setHeader("Content-Type", "application/octet-stream");
     res.setHeader("Content-Length", String(stat.size));
-    res.setHeader("Content-Disposition", `attachment; filename="tarsee-backup-${stamp}.db"`);
+    res.setHeader("Content-Disposition", `attachment; filename="atlas-backup-${stamp}.db"`);
     res.setHeader("Cache-Control", "no-store");
 
     const stream = fs.createReadStream(tmpFile);
@@ -304,13 +304,13 @@ adminRouter.post("/restore", (req, res) => {
 
 
 /**
- * The window Token Health measures a chat against: TARSEE_MODEL_CONTEXT_TOKENS,
+ * The window Token Health measures a chat against: ATLAS_MODEL_CONTEXT_TOKENS,
  * else the model's own (the provider's, from the registry), capped by the
  * auto-compact window on Claude Code (ai/context-limits.js: where Claude Code
  * summarizes the older part). Codex keeps the model's own window.
  */
 function contextWindowTokens(modelId, provider = "claude", engine = "claude-code") {
-  const override = Number(process.env.TARSEE_MODEL_CONTEXT_TOKENS);
+  const override = Number(process.env.ATLAS_MODEL_CONTEXT_TOKENS);
   if (override > 0) return override;
   const own = getProvider(provider)?.catalog === "claude"
     ? modelWindowTokens(modelId)

@@ -133,7 +133,7 @@ async function checkGoogleSafeBrowsing(url, apiKey) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      client: { clientId: "tarsee", clientVersion: "1.0" },
+      client: { clientId: "atlas", clientVersion: "1.0" },
       threatInfo: {
         threatTypes: ["MALWARE", "SOCIAL_ENGINEERING", "UNWANTED_SOFTWARE", "POTENTIALLY_HARMFUL_APPLICATION"],
         platformTypes: ["ANY_PLATFORM"],

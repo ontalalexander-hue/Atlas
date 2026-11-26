@@ -32,7 +32,7 @@ Signing in with a Claude or ChatGPT plan is for your own personal use, under [An
 What Atlas guarantees about keys:
 
 - Each key is only ever sent to its own provider's address. The only address you can type in is Local AI's, and it only ever receives Local AI's own key.
-- A key set as a variable never changes which AI answers or how you are billed by itself: only your choice in Settings > AI (or `TARSEE_AI_PROVIDER`) does. For example, `ANTHROPIC_API_KEY` is ignored while the Claude plan is the default.
+- A key set as a variable never changes which AI answers or how you are billed by itself: only your choice in Settings > AI (or `ATLAS_AI_PROVIDER`) does. For example, `ANTHROPIC_API_KEY` is ignored while the Claude plan is the default.
 - Each AI's sign-in and key lives in its own folder and reaches only its own turns, so the Claude plan's sign-in can never be used for another AI, and the other way round.
 
 ## The seven AIs
@@ -165,7 +165,7 @@ DeepSeek runs inside Claude Code through DeepSeek's own Claude-compatible addres
 
 **What it costs:** free: it runs on your own hardware. Small models use tools poorly, so pick a capable one.
 
-**You need:** a machine you run with Ollama, LM Studio or llama.cpp (or any server that speaks OpenAI's Responses API), that Atlas can reach. Railway variables: `TARSEE_LOCAL_AI_URL`, and `TARSEE_LOCAL_AI_KEY` only if your server asks for a key.
+**You need:** a machine you run with Ollama, LM Studio or llama.cpp (or any server that speaks OpenAI's Responses API), that Atlas can reach. Railway variables: `ATLAS_LOCAL_AI_URL`, and `ATLAS_LOCAL_AI_KEY` only if your server asks for a key.
 
 1. Install [Ollama](https://ollama.com/download), [LM Studio](https://lmstudio.ai/) or [llama.cpp](https://github.com/ggml-org/llama.cpp/releases) on the machine that will run the AI: Ollama 0.13.3 or newer, LM Studio 0.3.29 or newer, or llama.cpp build b11768 (v0.8.0) or newer (older ones don't speak the Responses API that Atlas uses, or can mix up tool calls).
    - llama.cpp on Windows: `winget install ggml.llamacpp` (the Vulkan build, for any graphics card). For an NVIDIA card, the [releases page](https://github.com/ggml-org/llama.cpp/releases) also has a *win-cuda* zip: unzip its *cudart* zip into the same folder.
@@ -192,7 +192,7 @@ Optional, with Docker: llama.cpp's own image runs the same server on the CPU onl
 - If Test says the model is still loading, click Test again in a minute. If Atlas can't reach a llama-server you just started with `-hf`, it may still be downloading the model.
 - If your server asks for a key, paste it in the key box. Atlas sends it only to this address.
 - Replies appear a message at a time, not word by word.
-- Instead of setting it in Settings, you can use the Railway variables `TARSEE_LOCAL_AI_URL` and, if needed, `TARSEE_LOCAL_AI_KEY`.
+- Instead of setting it in Settings, you can use the Railway variables `ATLAS_LOCAL_AI_URL` and, if needed, `ATLAS_LOCAL_AI_KEY`.
 
 The card also asks how much the model can read at once, in tokens. Leave it empty and Atlas uses what your server says it gives the model (llama.cpp's `-c`, the context LM Studio or Ollama loaded it with), shown in the box as "read from your server"; with no word from the server, 128K. A number you type there is used when it is smaller than the server's. Embedding models (like `text-embedding-nomic-embed-text-v1.5`) can't chat, so they aren't listed. Local AI is counted as free on the Usage page.
 
@@ -229,7 +229,7 @@ Every AI's turns, tokens and cost: the exact cost where the provider reports it 
 
 **Settings > AI → Only use API keys** turns off the Claude and ChatGPT plan sign-ins, so every message is billed to an API key. Switch it on when other people talk to this Atlas. With it on, a chat set to a plan says so instead of answering, and the plan cards show *Off*.
 
-To lock it on so it can't be switched off from the dashboard, set the Railway variable `TARSEE_KEYS_ONLY=1`.
+To lock it on so it can't be switched off from the dashboard, set the Railway variable `ATLAS_KEYS_ONLY=1`.
 
 ## Verify
 
@@ -241,29 +241,29 @@ Settings > AI has an optional **Backup if the default AI can't answer**. When th
 
 ## Local AI on Railway
 
-Local AI is meant for Atlas on your own hardware (Docker on your own machine, or `npm start`). Railway has no GPUs, so a Atlas on Railway doesn't offer Local AI: the setup wizard and Settings > AI leave it out. To use a model server you run yourself, give Atlas its address in the Railway variable `TARSEE_LOCAL_AI_URL`, and Local AI appears:
+Local AI is meant for Atlas on your own hardware (Docker on your own machine, or `npm start`). Railway has no GPUs, so a Atlas on Railway doesn't offer Local AI: the setup wizard and Settings > AI leave it out. To use a model server you run yourself, give Atlas its address in the Railway variable `ATLAS_LOCAL_AI_URL`, and Local AI appears:
 
 1. Run your AI server somewhere Atlas can reach. In the same Railway project, that is a service that runs it (for example from the `ollama/ollama` image), with a volume for its models, listening on all addresses (for Ollama, the variable `OLLAMA_HOST=0.0.0.0`), with a model pulled into it. Or a server on your own machine, reached through a public address protected by a key.
-2. Set `TARSEE_LOCAL_AI_URL` on Atlas's service: the private address `http://<service-name>.railway.internal:<port>/v1`, for example `http://ollama.railway.internal:11434/v1` (private networking stays inside your project, so it needs no public address and no key), or your public address, with its key in `TARSEE_LOCAL_AI_KEY`.
+2. Set `ATLAS_LOCAL_AI_URL` on Atlas's service: the private address `http://<service-name>.railway.internal:<port>/v1`, for example `http://ollama.railway.internal:11434/v1` (private networking stays inside your project, so it needs no public address and no key), or your public address, with its key in `ATLAS_LOCAL_AI_KEY`.
 3. Redeploy, open Settings > AI, click **Test** on Local AI, then **Verify** the model you want.
 
 A model that needs a GPU will be slow on Railway's CPUs. An address saved in Settings before this rule came in keeps working.
 
 ## Set up with Railway variables only
 
-To deploy without clicking through the wizard, set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`, and that AI's key variable (or `TARSEE_LOCAL_AI_URL`, or `CLAUDE_CODE_OAUTH_TOKEN` for the Claude plan). `TARSEE_AI_MODEL` picks its model; empty means that AI's default (for Local AI, the first model its server lists; set it to pin one). When that AI is ready, the setup wizard is skipped. Anything chosen later in Settings > AI wins over these variables.
+To deploy without clicking through the wizard, set `ATLAS_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`, and that AI's key variable (or `ATLAS_LOCAL_AI_URL`, or `CLAUDE_CODE_OAUTH_TOKEN` for the Claude plan). `ATLAS_AI_MODEL` picks its model; empty means that AI's default (for Local AI, the first model its server lists; set it to pin one). When that AI is ready, the setup wizard is skipped. Anything chosen later in Settings > AI wins over these variables.
 
 | Variable | What it does |
 |---|---|
-| `TARSEE_AI_PROVIDER` | The default AI when Settings hasn't chosen one |
-| `TARSEE_AI_MODEL` | Its model when Settings hasn't chosen one; empty means that AI's default (for Local AI, the first model its server lists) |
-| `TARSEE_KEYS_ONLY` | `1` locks **Only use API keys** on |
+| `ATLAS_AI_PROVIDER` | The default AI when Settings hasn't chosen one |
+| `ATLAS_AI_MODEL` | Its model when Settings hasn't chosen one; empty means that AI's default (for Local AI, the first model its server lists) |
+| `ATLAS_KEYS_ONLY` | `1` locks **Only use API keys** on |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |
 | `OPENROUTER_API_KEY` | OpenRouter key |
 | `DEEPSEEK_API_KEY` | DeepSeek API key |
-| `TARSEE_LOCAL_AI_URL` | Local AI's server address |
-| `TARSEE_LOCAL_AI_KEY` | Local AI's key, only if it asks for one |
+| `ATLAS_LOCAL_AI_URL` | Local AI's server address |
+| `ATLAS_LOCAL_AI_KEY` | Local AI's key, only if it asks for one |
 | `CLAUDE_CODE_OAUTH_TOKEN` | The Claude plan's token from `claude setup-token` |
 | `ENCRYPTION_KEY` | Encrypts what Atlas stores; set it before saving any key in Settings |
 

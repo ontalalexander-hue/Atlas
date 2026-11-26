@@ -58,7 +58,7 @@ describe("channel guides", () => {
   });
 
   it("says a channel's status in words", () => {
-    assert.deepEqual(G.statusLine({ status: "running", identity: "@my_tarsee_bot" }), { text: "Connected as @my_tarsee_bot", tone: "ok" });
+    assert.deepEqual(G.statusLine({ status: "running", identity: "@my_atlas_bot" }), { text: "Connected as @my_atlas_bot", tone: "ok" });
     assert.deepEqual(G.statusLine({ status: "running" }), { text: "Connected", tone: "ok" });
     assert.deepEqual(G.statusLine({ status: "starting" }), { text: "Connecting…", tone: "wait" });
     assert.deepEqual(G.statusLine({ status: "error", error: "Telegram refused the bot token." }), { text: "Telegram refused the bot token.", tone: "bad" });

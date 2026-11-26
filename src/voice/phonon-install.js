@@ -8,7 +8,7 @@
  *                                 speech-to-text uses (python-runtime.js), Windows included
  *   <root>/install.json           written last: the install finished
  *
- * <root> is DATA_DIR/tts/phonon, or TARSEE_PHONON_DIR.
+ * <root> is DATA_DIR/tts/phonon, or ATLAS_PHONON_DIR.
  *
  * Only the official sources are used: the gradium organisation on Hugging Face
  * at pinned revisions, and the ptts package on PyPI at a pinned version. Every
@@ -323,8 +323,8 @@ async function run(python, args, { timeout = 120_000, env, lines = 3 } = {}) {
 async function ensureRuntime(log, opts = {}) {
   let p = phononPaths();
   if (await canImportPtts(p.python)) return;
-  if (process.env.TARSEE_PHONON_PYTHON?.trim()) {
-    throw new Error(`TARSEE_PHONON_PYTHON (${p.python}) cannot import ptts. Install it there: ${p.python} -m pip install ptts==${PTTS_VERSION}`);
+  if (process.env.ATLAS_PHONON_PYTHON?.trim()) {
+    throw new Error(`ATLAS_PHONON_PYTHON (${p.python}) cannot import ptts. Install it there: ${p.python} -m pip install ptts==${PTTS_VERSION}`);
   }
 
   // A venv left half made (no pip) by an earlier failed attempt is rebuilt.
@@ -399,16 +399,16 @@ let _autoAttempted = false;
  * Called once at server start. When the voice engine is Phonon (the default)
  * and the model is not on the volume yet, download it in the background; Edge
  * TTS speaks meanwhile. One attempt per boot; a failure is shown in Settings ->
- * Voice with a retry button. TARSEE_PHONON_AUTO_INSTALL=0 turns it off.
+ * Voice with a retry button. ATLAS_PHONON_AUTO_INSTALL=0 turns it off.
  * Returns whether an install was scheduled. opts.install replaces installPhonon (tests).
  */
 export function autoInstallPhonon(settingsStore, opts = {}) {
   if (_autoAttempted) return false;
-  if (/^(0|false|off|no)$/i.test(String(process.env.TARSEE_PHONON_AUTO_INSTALL ?? "").trim())) return false;
+  if (/^(0|false|off|no)$/i.test(String(process.env.ATLAS_PHONON_AUTO_INSTALL ?? "").trim())) return false;
   if (enginePreference(settingsStore) !== "phonon") return false;
   if (phononInstalled()) return false;
   _autoAttempted = true;
-  console.log("[phonon] Phonon is the voice engine but is not installed yet: downloading it in the background (Edge TTS speaks until it is ready; TARSEE_PHONON_AUTO_INSTALL=0 turns this off)");
+  console.log("[phonon] Phonon is the voice engine but is not installed yet: downloading it in the background (Edge TTS speaks until it is ready; ATLAS_PHONON_AUTO_INSTALL=0 turns this off)");
   const install = opts.install || installPhonon;
   const start = () => install({ onInstalled: opts.onInstalled }).catch((err) => {
     console.warn(`[phonon] background install failed: ${err.message} (retry from Settings -> Voice)`);

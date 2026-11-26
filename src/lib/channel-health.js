@@ -23,7 +23,7 @@
 
 import { SettingsStore } from "../db/settings.js";
 
-const CHECK_MS = Number(process.env.TARSEE_CHANNEL_HEALTH_MS) || 60_000;
+const CHECK_MS = Number(process.env.ATLAS_CHANNEL_HEALTH_MS) || 60_000;
 const STUCK_CHECKS = 2;
 
 let _timer = null;
@@ -47,7 +47,7 @@ async function check() {
 }
 
 /** How long a Slack connection may stay down (Bolt reconnecting) before the channel is restarted. */
-export const SLACK_DOWN_MS = Number(process.env.TARSEE_SLACK_DOWN_MS) || 3 * 60_000;
+export const SLACK_DOWN_MS = Number(process.env.ATLAS_SLACK_DOWN_MS) || 3 * 60_000;
 let _slackLastRetry = 0;
 
 /**

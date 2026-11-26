@@ -9,11 +9,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-vault-env-cache-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-delete process.env.TARSEE_AGENT_ENV_KEYS;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-vault-env-cache-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+delete process.env.ATLAS_AGENT_ENV_KEYS;
 delete process.env.TEST_SCRIPT_KEY;
 delete process.env.TEST_SHARED_KEY;
 

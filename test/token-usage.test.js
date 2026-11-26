@@ -7,8 +7,8 @@ import os from "node:os";
 import path from "node:path";
 
 // Keep the modules under test away from the real state directory.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-usage-"));
-process.env.TARSEE_STATE_DIR = tmp;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-usage-"));
+process.env.ATLAS_STATE_DIR = tmp;
 const {
   parseTranscriptLines, newReadState, figures, callSums, addSums, EMPTY, groupJobs, matchSession, pickTurn,
   promptTitle, modelLabel, channelOf, cronOfPrompt, UsageIndex, projectDirs, zoneOffsetMs, localMidnight, localDay, dayStarts,

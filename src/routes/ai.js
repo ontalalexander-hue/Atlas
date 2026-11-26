@@ -13,7 +13,7 @@
  *   DELETE /keys/:id             the saved key (a Railway variable then applies again)
  *   POST   /test/:id             {apiKey?}: a cheap live check (provider-probes.js); 6 a minute
  *   POST   /verify/:id           {model}: the 4-step check (verify-model.js), recorded on a pass; 3 a minute
- *   PUT    /keys-only            {on}: "API keys only" (locked on by TARSEE_KEYS_ONLY=1)
+ *   PUT    /keys-only            {on}: "API keys only" (locked on by ATLAS_KEYS_ONLY=1)
  *   POST   /chatgpt/login        start Codex's device-code sign-in: {state, url, code, expiresAt}; 5 a minute
  *   GET    /chatgpt/login        poll it: idle | waiting | done | failed | expired
  *   DELETE /chatgpt/login        cancel it
@@ -96,7 +96,7 @@ const nonEmpty = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
 /** A line break or other control character: it would let a value become a second HTTP header. */
 const hasControlChar = (s) => [...String(s)].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127);
 
-/** An address to show: any user name and password in it removed (a Railway TARSEE_LOCAL_AI_URL may carry them). */
+/** An address to show: any user name and password in it removed (a Railway ATLAS_LOCAL_AI_URL may carry them). */
 function displayUrl(raw) {
   if (!raw) return null;
   try {
@@ -773,7 +773,7 @@ export function createAiRouter(deps = {}) {
     if (typeof on !== "boolean") return res.status(400).json({ error: "Send {\"on\": true} or {\"on\": false}." });
     if (keysOnlyLocked(env) && !on) {
       return res.status(423).json({
-        error: "The Railway variable TARSEE_KEYS_ONLY=1 keeps \"API keys only\" on. Remove that variable to change it here.",
+        error: "The Railway variable ATLAS_KEYS_ONLY=1 keeps \"API keys only\" on. Remove that variable to change it here.",
         keysOnly: { on: true, locked: true },
       });
     }

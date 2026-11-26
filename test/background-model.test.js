@@ -9,11 +9,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-bg-model-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY"]) {
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-bg-model-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
@@ -37,7 +37,7 @@ const { isAutomationFile, approveText, isApprovalKey } = await import("../src/li
 // HEARTBEAT.md and BOOT.md run only text the owner OK'd (test/heartbeat-approval.test.js); here each is the owner's.
 const writeWorkspaceFile = (name, content) => { writeFile(name, content); if (isAutomationFile(name)) approveText(settings, name, content, "editor"); };
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 initLiveBus(db);
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);

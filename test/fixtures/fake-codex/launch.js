@@ -2,7 +2,7 @@
  * launch.js: how a test starts the fake codex (fake-codex.mjs) through the real @openai/codex-sdk, per platform.
  *
  *   const fake = fakeCodexLauncher(dir, { fixture: "text-reply.jsonl" });
- *   fake.codexPath   what TARSEE_CODEX_BIN (the SDK's codexPathOverride) names
+ *   fake.codexPath   what ATLAS_CODEX_BIN (the SDK's codexPathOverride) names
  *   fake.env         what the server's environment needs for it (the plan's file, and on Windows the preload)
  *   fake.record()    what the fake was started with: {argv, env, stdin, cwd}, or null if it never ran
  *   fake.plan(p)     replace the plan for the next start

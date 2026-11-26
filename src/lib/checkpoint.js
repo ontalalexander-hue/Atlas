@@ -9,7 +9,7 @@
  * Flow:
  *   1. User runs /checkpoint during an active session.
  *   2. Claude writes a detailed handoff to workspace/CHECKPOINT.md
- *      (using its existing tarsee_write_file / Write tool).
+ *      (using its existing atlas_write_file / Write tool).
  *   3. User restarts Atlas (Railway redeploy wipes container).
  *   4. On the next session's first message, buildSystemPrompt injects
  *      CHECKPOINT.md content as "Handoff from previous instance" and

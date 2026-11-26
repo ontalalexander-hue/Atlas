@@ -3,19 +3,19 @@
  * scripts/e2e/live-smoke-fakes.mjs: proves scripts/e2e/live-smoke.mjs against a REAL Atlas whose AIs are fakes, so
  * the owner's morning live test is known to work before any real key goes in.
  *
- * It boots `node src/server.js` the way scripts/e2e/ai-api-e2e.mjs does (a free port, a fresh temp TARSEE_STATE_DIR,
+ * It boots `node src/server.js` the way scripts/e2e/ai-api-e2e.mjs does (a free port, a fresh temp ATLAS_STATE_DIR,
  * a fake home folder, SETUP_PASSWORD and ENCRYPTION_KEY made at run time and never written to a file, NODE_ENV=test
- * for engine-env's TARSEE_TEST_BASE_URL_<ID> seam, env canaries), with the same fakes (test/fixtures/fake-anthropic.js
+ * for engine-env's ATLAS_TEST_BASE_URL_<ID> seam, env canaries), with the same fakes (test/fixtures/fake-anthropic.js
  * for Claude Code, fake-responses.js for Codex, test-tls.js for ChatGPT's HTTPS backend) behind small fronts that also
  * answer what live-smoke's Test reads: DeepSeek's GET /user/balance, OpenRouter's GET /api/v1/key and Local AI's
  * GET /v1/models. The engines are the real ones. The fake models do what they are asked: live-smoke's "work out
- * A * B" gets a call to Atlas's tarsee_calculator (on Codex directly, behind tool_search, or from code mode's exec,
+ * A * B" gets a call to Atlas's atlas_calculator (on Codex directly, behind tool_search, or from code mode's exec,
  * as each model is offered it) and the tool's own result as the reply; Verify's four checks get a code word, a
- * tarsee_datetime call, a real shell echo and a recall from the session's own history.
+ * atlas_datetime call, a real shell echo and a recall from the session's own history.
  *
  * Set up as the owner would in Settings > AI (obvious fake keys for Anthropic, DeepSeek, OpenRouter, OpenAI and Local
  * AI, Local AI's address and model, DeepSeek as the default AI, and a fake ChatGPT sign-in file), it runs
- * live-smoke.mjs as a child with only TARSEE_URL and TARSEE_PASSWORD in its environment, in these scenarios:
+ * live-smoke.mjs as a child with only ATLAS_URL and ATLAS_PASSWORD in its environment, in these scenarios:
  *   wrong-password   exit 1, says the password was turned down, never prints it
  *   all-ready        no options: every ready AI (OpenRouter twice, one chat per engine) passes; exit 0
  *   verify-local     --only local --verify local=qwen3:4b: Verify passes, and that model gets a chat of its own
@@ -65,7 +65,7 @@ const smoke = await import(pathToFileURL(SCRIPT).href);
 
 const argv = process.argv.slice(2);
 const argOf = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
-const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "tarsee-live-smoke-fakes"));
+const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "atlas-live-smoke-fakes"));
 const KEEP = argv.includes("--keep");
 const SKIP_VERIFY = argv.includes("--skip-verify");
 fs.mkdirSync(OUT, { recursive: true });
@@ -85,8 +85,8 @@ const KEYS = {
 const ENV_CANARIES = {
   CODEX_API_KEY: `sk-test-canary-env-codex-api-key-${rand(8)}`,
   CODEX_ACCESS_TOKEN: `sk-test-canary-env-codex-access-${rand(8)}`,
-  TARSEE_PROVIDER_KEY: `sk-test-canary-env-provider-key-${rand(8)}`,
-  TARSEE_MCP_TOKEN: `sk-test-canary-env-mcp-token-${rand(8)}`,
+  ATLAS_PROVIDER_KEY: `sk-test-canary-env-provider-key-${rand(8)}`,
+  ATLAS_MCP_TOKEN: `sk-test-canary-env-mcp-token-${rand(8)}`,
   ANTHROPIC_AUTH_TOKEN: `sk-ant-test-canary-env-auth-token-${rand(8)}`,
 };
 const SETUP_PASSWORD = `pw-test-canary-${crypto.randomBytes(12).toString("base64url")}`;
@@ -167,8 +167,8 @@ function ownerOf(headers) {
 /** The exact asks the fakes answer: live-smoke's sum and Verify's four checks (src/ai/verify-model.js promptFor). */
 const ASKS = [
   { kind: "calc", re: /work out (\d+) \* (\d+), then reply with just the number/ },
-  { kind: "date", re: /Call the tarsee_datetime tool \(it is on the tarsee MCP server\)/ },
-  { kind: "echo", re: /Run this exact shell command and reply with its output: echo (TARSEE-OK-[0-9A-F]+)/ },
+  { kind: "date", re: /Call the atlas_datetime tool \(it is on the atlas MCP server\)/ },
+  { kind: "echo", re: /Run this exact shell command and reply with its output: echo (ATLAS-OK-[0-9A-F]+)/ },
   { kind: "recall", re: /What was the code word I gave you at the start/ },
   { kind: "word", re: /code word[^:]*:\s*(CODE-[0-9A-F]{6})/ },
 ];
@@ -183,7 +183,7 @@ const recalled = (texts) => /code word for later:\s*(CODE-[0-9A-F]{6})/.exec(tex
 
 /** A reply from a tool's own output: the calculator's number, the shell's marker, or the date's year. */
 function fromToolOutput(text) {
-  const marker = /TARSEE-OK-[0-9A-F]+/i.exec(text);
+  const marker = /ATLAS-OK-[0-9A-F]+/i.exec(text);
   if (marker) return marker[0];
   const calc = /=\s*(-?\d+(?:\.\d+)?)/.exec(text);
   if (calc) return `The answer is ${calc[1]}.`;
@@ -216,7 +216,7 @@ function anthropicScript(entry) {
     return { status: 401, error: { type: "authentication_error", message: `invalid x-api-key: ${entry.headers?.authorization || entry.headers?.["x-api-key"] || ""}` } };
   }
   const names = fa.toolNames(entry.body);
-  if (!names.some((n) => /tarsee/i.test(n))) return { text: "ok", cost }; // the CLI's own side calls
+  if (!names.some((n) => /atlas/i.test(n))) return { text: "ok", cost }; // the CLI's own side calls
   if (fa.hasToolResult(entry.body)) return { text: fromToolOutput(toolResultText(entry.body)), cost };
   const ask = latestAsk(anthropicUserTexts(entry.body));
   if (MODES[prov] === "hang" && ask?.kind === "calc") {
@@ -225,8 +225,8 @@ function anthropicScript(entry) {
   }
   const tool = (suffix) => names.find((n) => n.endsWith(suffix));
   switch (ask?.kind) {
-    case "calc": return tool("tarsee_calculator") ? { toolUse: { name: tool("tarsee_calculator"), input: { expression: `${ask.m[1]} * ${ask.m[2]}` } }, cost } : { text: `No calculator was offered (${names.join(",")}).`, cost };
-    case "date": return tool("tarsee_datetime") ? { toolUse: { name: tool("tarsee_datetime"), input: { format: "date" } }, cost } : { text: "No datetime tool was offered.", cost };
+    case "calc": return tool("atlas_calculator") ? { toolUse: { name: tool("atlas_calculator"), input: { expression: `${ask.m[1]} * ${ask.m[2]}` } }, cost } : { text: `No calculator was offered (${names.join(",")}).`, cost };
+    case "date": return tool("atlas_datetime") ? { toolUse: { name: tool("atlas_datetime"), input: { format: "date" } }, cost } : { text: "No datetime tool was offered.", cost };
     case "echo": return { toolUse: { name: "Bash", input: { command: `echo ${ask.m[1]}`, description: "Print the marker" } }, cost };
     case "recall": return { text: recalled(ask.texts), cost };
     case "word": return { text: ask.m[1], cost };
@@ -248,19 +248,19 @@ function additionalToolNames(body) {
 }
 
 /**
- * A call to one of Atlas's tools, however this request offers it: outright (in Codex's mcp__tarsee namespace, or as
+ * A call to one of Atlas's tools, however this request offers it: outright (in Codex's mcp__atlas namespace, or as
  * the plain function the Local AI bridge makes of it, which a Local AI model calls by that flat name), behind
  * tool_search, or inside exec.
  */
 function codexToolCall(body, tool, args) {
   const names = [...fr.toolNames(body), ...additionalToolNames(body)];
   const searched = fr.searchedTools(body);
-  const full = `mcp__tarsee.${tool}`;
-  if (names.includes(full) || searched.includes(full)) return { calls: [{ name: tool, namespace: "mcp__tarsee", arguments: args }] };
-  if (names.includes(`mcp__tarsee__${tool}`)) return { calls: [{ name: `mcp__tarsee__${tool}`, arguments: args }] };
-  if (names.includes("tool_search") && !searched.length) return { calls: [{ type: "tool_search", query: `tarsee ${tool.replace(/^tarsee_/, "")}` }] };
+  const full = `mcp__atlas.${tool}`;
+  if (names.includes(full) || searched.includes(full)) return { calls: [{ name: tool, namespace: "mcp__atlas", arguments: args }] };
+  if (names.includes(`mcp__atlas__${tool}`)) return { calls: [{ name: `mcp__atlas__${tool}`, arguments: args }] };
+  if (names.includes("tool_search") && !searched.length) return { calls: [{ type: "tool_search", query: `atlas ${tool.replace(/^atlas_/, "")}` }] };
   if (names.includes("functions.exec") || names.includes("exec")) {
-    const js = [`const r = await tools.mcp__tarsee__${tool}(${JSON.stringify(args)});`, "text(typeof r === \"string\" ? r : JSON.stringify(r));"].join("\n");
+    const js = [`const r = await tools.mcp__atlas__${tool}(${JSON.stringify(args)});`, "text(typeof r === \"string\" ? r : JSON.stringify(r));"].join("\n");
     return { calls: [{ type: "custom", name: "exec", input: js }] };
   }
   return { text: `No ${tool} was offered (${names.join(",")}; searched ${searched.join(",")}).` };
@@ -276,8 +276,8 @@ function responsesHandler(body, info) {
   if (last && (last.type === "function_call_output" || last.type === "custom_tool_call_output")) return { text: fromToolOutput(fr.outputText(last)) };
   const ask = latestAsk(fr.messageTexts(body, "user"));
   switch (ask?.kind) {
-    case "calc": return codexToolCall(body, "tarsee_calculator", { expression: `${ask.m[1]} * ${ask.m[2]}` });
-    case "date": return codexToolCall(body, "tarsee_datetime", { format: "date" });
+    case "calc": return codexToolCall(body, "atlas_calculator", { expression: `${ask.m[1]} * ${ask.m[2]}` });
+    case "date": return codexToolCall(body, "atlas_datetime", { format: "date" });
     case "echo": {
       const names = fr.toolNames(body);
       if (names.includes("exec_command")) return { calls: [{ name: "exec_command", arguments: { cmd: `echo ${ask.m[1]}` } }] };
@@ -388,7 +388,7 @@ function llamaFront(req, p) {
  * that gives up does. beforeDelete(conversationId) runs before a chat's DELETE is passed on, and what it returns is
  * kept on that request's note.
  */
-async function startTarseeFront(target, { cut = null, ready = () => true, beforeDelete = null } = {}) {
+async function startAtlasFront(target, { cut = null, ready = () => true, beforeDelete = null } = {}) {
   const to = new URL(target);
   const requests = [];
   const server = http.createServer((req, res) => {
@@ -469,15 +469,15 @@ async function bootServer({ tmp, fakeA, dsMux, orMux, fakeR, chatgptMux, caFile,
     ...hostEnv(),
     HOME: home, USERPROFILE: home, APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local"),
     PORT: String(port),
-    TARSEE_STATE_DIR: path.join(tmp, "state"),
+    ATLAS_STATE_DIR: path.join(tmp, "state"),
     SETUP_PASSWORD: password, ENCRYPTION_KEY,
     NODE_ENV: "test",
-    TARSEE_PHONON_AUTO_INSTALL: "0",
-    TARSEE_TEST_BASE_URL_ANTHROPIC: fakeA.url,
-    TARSEE_TEST_BASE_URL_DEEPSEEK: dsMux.origin,
-    TARSEE_TEST_BASE_URL_OPENROUTER: orMux.origin,
-    TARSEE_TEST_BASE_URL_OPENAI: fakeR.url,
-    TARSEE_TEST_BASE_URL_CHATGPT: chatgptMux.origin,
+    ATLAS_PHONON_AUTO_INSTALL: "0",
+    ATLAS_TEST_BASE_URL_ANTHROPIC: fakeA.url,
+    ATLAS_TEST_BASE_URL_DEEPSEEK: dsMux.origin,
+    ATLAS_TEST_BASE_URL_OPENROUTER: orMux.origin,
+    ATLAS_TEST_BASE_URL_OPENAI: fakeR.url,
+    ATLAS_TEST_BASE_URL_CHATGPT: chatgptMux.origin,
     SSL_CERT_FILE: caFile,
     OPENAI_BASE_URL: `${trap.url}/v1`,
     ANTHROPIC_BASE_URL: trap.url,
@@ -516,7 +516,7 @@ function takeCookies(res) {
 async function api(method, p, body) {
   const res = await fetch(BASE + p, {
     method,
-    headers: { "content-type": "application/json", cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; "), "x-csrf-token": decodeURIComponent(jar.get("tarsee_csrf") || "") },
+    headers: { "content-type": "application/json", cookie: [...jar].map(([k, v]) => `${k}=${v}`).join("; "), "x-csrf-token": decodeURIComponent(jar.get("atlas_csrf") || "") },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   takeCookies(res);
@@ -538,13 +538,13 @@ async function signIn(password) {
 const runs = {};
 
 /**
- * live-smoke.mjs in a child process with only TARSEE_URL and TARSEE_PASSWORD (and the shell's basics) set. url: an
+ * live-smoke.mjs in a child process with only ATLAS_URL and ATLAS_PASSWORD (and the shell's basics) set. url: an
  * address other than the server's own (a proxy in front of it). factors: the numbers live-smoke's crypto.randomInt
  * gives, in turn (each chat's "work out A * B" takes two), set by a module node loads before the script.
  */
 async function runSmoke(name, args, { password = SETUP_PASSWORD, url = BASE, factors = null, timeoutMs = 25 * 60_000 } = {}) {
   log(`--- live-smoke ${name}: ${args.join(" ") || "(no options)"} ---`);
-  const env = { ...hostEnv(), TARSEE_URL: url, TARSEE_PASSWORD: password };
+  const env = { ...hostEnv(), ATLAS_URL: url, ATLAS_PASSWORD: password };
   const preload = [];
   if (factors) {
     const file = path.join(tmp, `live-smoke-factors-${name}.mjs`);
@@ -611,7 +611,7 @@ function leaksIn(text) {
   for (const [label, re] of [
     ["an sk- key", /\bsk-(?!\[redacted\])[A-Za-z0-9_-]{8,}/],
     ["a JWT", /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\./],
-    ["a Atlas cookie value", /\btarsee_(?:session|csrf)=(?!\[redacted\])[^;\s]+/],
+    ["a Atlas cookie value", /\batlas_(?:session|csrf)=(?!\[redacted\])[^;\s]+/],
     ["a Bearer value", /\bBearer\s+(?!\[redacted\])[A-Za-z0-9._~+/=-]{6,}/i],
     ["a 32+ hex run (a session id or key)", /\b[a-f0-9]{32,}\b/i],
   ]) {
@@ -623,7 +623,7 @@ function leaksIn(text) {
 
 // --- Main ----------------------------------------------------------------------------------------------------------
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-live-smoke-fakes-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-live-smoke-fakes-"));
 let fakeA; let fakeR; let fakeL; let dsMux; let orMux; let localMux; let llamaMux; let chatgptMux; let trap;
 let exitCode = 1;
 /** --scenario a,b: only these scenarios (the setup and the scans always run). */
@@ -677,7 +677,7 @@ try {
     fs.mkdirSync(home, { recursive: true });
     fs.writeFileSync(path.join(home, "auth.json"), JSON.stringify({
       auth_mode: "chatgpt", OPENAI_API_KEY: null, last_refresh: new Date().toISOString(),
-      tokens: { access_token: CHATGPT_ACCESS, refresh_token: CHATGPT_REFRESH, account_id: "acct-live-smoke-test", id_token: CHATGPT_ID, oauth_provenance: { issuer: chatgptMux.origin, client_id: "app_tarsee_live_smoke_test" } },
+      tokens: { access_token: CHATGPT_ACCESS, refresh_token: CHATGPT_REFRESH, account_id: "acct-live-smoke-test", id_token: CHATGPT_ID, oauth_provenance: { issuer: chatgptMux.origin, client_id: "app_atlas_live_smoke_test" } },
     }));
     const a = await api("PUT", "/api/ai/active", { provider: "deepseek" });
     expect(a.status === 200, `PUT /api/ai/active answered ${a.status}`, a.text);
@@ -699,7 +699,7 @@ try {
     const bad = [
       ...[...Object.values(KEYS), CHATGPT_ACCESS, CHATGPT_REFRESH, ENCRYPTION_KEY, SETUP_PASSWORD].map((k) => [k, k]),
       [`Authorization: Bearer ${opaque.bearer}`, opaque.bearer], [`x-api-key: ${opaque.xkey}`, opaque.xkey],
-      [`tarsee_session=${session}; tarsee_csrf=${csrfValue}`, session], [`tarsee_session=${session}; tarsee_csrf=${csrfValue}`, csrfValue],
+      [`atlas_session=${session}; atlas_csrf=${csrfValue}`, session], [`atlas_session=${session}; atlas_csrf=${csrfValue}`, csrfValue],
       [`"refresh_token": "${opaque.refresh}"`, opaque.refresh], [`password=${opaque.pw}`, opaque.pw],
     ];
     const kept = bad.filter(([text, secret]) => smoke.redact(`before ${text} after`).includes(secret));
@@ -714,7 +714,7 @@ try {
     const pin = String(new Date().getUTCFullYear());
     smoke.addSecret(pin);
     const a = Number(`${pin}7`);
-    const text = `[   0.0s] INFO tarsee: http://127.0.0.1:3000 (live test, ${pin}-11-10 08:00 UTC) · worked out ${a} * ${pin} = ${a * Number(pin)} · claude-haiku-4-5-${pin}1001 · $0.${pin}`;
+    const text = `[   0.0s] INFO atlas: http://127.0.0.1:3000 (live test, ${pin}-11-10 08:00 UTC) · worked out ${a} * ${pin} = ${a * Number(pin)} · claude-haiku-4-5-${pin}1001 · $0.${pin}`;
     expect(smoke.redact(text) === text, "redact() changed the text around a short secret", smoke.redact(text));
   });
 
@@ -722,7 +722,7 @@ try {
   if (want("wrong-password")) await check("wrong-password: exit 1, the password turned down in words, and never printed", async () => {
     const run = await runSmoke("wrong-password", ["--only", "deepseek"], { password: WRONG_PASSWORD });
     expect(run.code === 1, `exit ${run.code}`, run.stdout);
-    expect(/TARSEE_PASSWORD was turned down/.test(run.stdout), "no plain words about the password", run.stdout);
+    expect(/ATLAS_PASSWORD was turned down/.test(run.stdout), "no plain words about the password", run.stdout);
   });
 
   const before1 = await chats();
@@ -732,7 +732,7 @@ try {
     expect(run.code === 0, `exit ${run.code}`, run.stdout.split(/\r?\n/).filter((l) => /FAIL|WARN/.test(l)));
     expect(run.rows.length >= 7, `${run.rows.length} rows`, tableOf(run));
     for (const r of run.rows) {
-      expect(r.test === "ok" && r.turn === "ok" && r.tool === "tarsee_calculator" && !/^FAIL|^-$/.test(r.cost), `row ${r.provider}`, r);
+      expect(r.test === "ok" && r.turn === "ok" && r.tool === "atlas_calculator" && !/^FAIL|^-$/.test(r.cost), `row ${r.provider}`, r);
     }
     expect(by(/^deepseek /).length === 1 && /est\.$/.test(by(/^deepseek /)[0].cost) && /Balance \$4\.20/.test(by(/^deepseek /)[0].notes), "DeepSeek's row: an estimate and the balance", by(/^deepseek /));
     const or = by(/^openrouter /);
@@ -763,7 +763,7 @@ try {
       expect(new RegExp(`PASS local · ${LOCAL_MODELS[1].replace(/[.]/g, "\\.")} · verify: passed on codex`).test(run.stdout), "no PASS line for Verify", run.stdout);
       const models = run.rows.map((r) => r.provider);
       expect(models.length === 2 && models.some((m) => m.includes(LOCAL_MODELS[0])) && models.some((m) => m.includes(LOCAL_MODELS[1])), `rows ${models}`, tableOf(run));
-      expect(run.rows.every((r) => r.turn === "ok" && r.tool === "tarsee_calculator" && r.cost === "Free"), "a row didn't pass", run.rows);
+      expect(run.rows.every((r) => r.turn === "ok" && r.tool === "atlas_calculator" && r.cost === "Free"), "a row didn't pass", run.rows);
       return { secs: run.secs };
     });
 
@@ -776,7 +776,7 @@ try {
         const run = await runSmoke("verify-openrouter", ["--only", "openrouter", "--model", `openrouter=${orOther}`, "--verify"]);
         expect(run.code === 0, `exit ${run.code}`, run.stdout.split(/\r?\n/).filter((l) => /FAIL|WARN/.test(l)));
         expect(/· verify: passed on (claude-code|codex)/.test(run.stdout), "no PASS line for Verify", run.stdout);
-        expect(run.rows.length === 1 && run.rows[0].provider.includes(orOther) && run.rows[0].turn === "ok" && run.rows[0].tool === "tarsee_calculator", "the row didn't pass", tableOf(run));
+        expect(run.rows.length === 1 && run.rows[0].provider.includes(orOther) && run.rows[0].turn === "ok" && run.rows[0].tool === "atlas_calculator", "the row didn't pass", tableOf(run));
         return { model: orOther, secs: run.secs };
       });
     } else if (want("verify-openrouter")) {
@@ -801,13 +801,13 @@ try {
       expect(run.code === 0, `exit ${run.code}`, run.stdout.split(/\r?\n/).filter((l) => /FAIL|WARN/.test(l)));
       expect(/PASS local · test: Reached your Local AI · llama\.cpp b12238 · 1 model · 64K context/.test(run.stdout), "Test doesn't name llama.cpp's build and context", run.stdout);
       expect(new RegExp(`PASS local · ${LLAMA_MODEL.replace(/[.]/g, "\\.")} · verify: passed on codex`).test(run.stdout), "no PASS line for Verify", run.stdout);
-      expect(run.rows.length === 1 && run.rows[0].turn === "ok" && run.rows[0].tool === "tarsee_calculator" && run.rows[0].cost === "Free", "the chat didn't use the calculator", tableOf(run));
+      expect(run.rows.length === 1 && run.rows[0].turn === "ok" && run.rows[0].tool === "atlas_calculator" && run.rows[0].cost === "Free", "the chat didn't use the calculator", tableOf(run));
       // What the bridge sent llama-server: plain function tools (nothing for it to drop), no namespace in the history.
       // (Test's own POST /v1/responses with no input isn't a model request.)
       const model = fakeL.responses().filter((r) => r.body && typeof r.body === "object" && r.body.input !== undefined);
       expect(model.length >= 4, `${model.length} model requests`);
       expect(model.every((r) => Array.isArray(r.dropped) && r.dropped.length === 0), "llama-server had a tool to drop", model.map((r) => r.dropped));
-      expect(model.every((r) => fr.toolNames(r.body).includes("mcp__tarsee__tarsee_calculator")), "Atlas's calculator wasn't offered as a plain function", fr.toolNames(model[0].body));
+      expect(model.every((r) => fr.toolNames(r.body).includes("mcp__atlas__atlas_calculator")), "Atlas's calculator wasn't offered as a plain function", fr.toolNames(model[0].body));
       expect(model.every((r) => !(r.body.input || []).some((i) => i?.namespace)), "a namespace reached llama-server in the history");
       expect(model.every((r) => r.headers.authorization === `Bearer ${KEYS.local}`), "the owner's key didn't reach llama-server (or something else did)", model.map((r) => r.headers.authorization?.slice(0, 12)));
       // And without the bridge: Codex's own request (Atlas's tools in their namespace) straight to llama-server, as
@@ -817,13 +817,13 @@ try {
         headers: { "content-type": "application/json", authorization: `Bearer ${KEYS.local}` },
         body: JSON.stringify({
           model: LLAMA_MODEL, stream: true,
-          tools: [{ type: "function", name: "exec_command", parameters: { type: "object", properties: {} } }, { type: "namespace", name: "mcp__tarsee", tools: [{ type: "function", name: "tarsee_calculator", parameters: { type: "object", properties: {} } }] }],
+          tools: [{ type: "function", name: "exec_command", parameters: { type: "object", properties: {} } }, { type: "namespace", name: "mcp__atlas", tools: [{ type: "function", name: "atlas_calculator", parameters: { type: "object", properties: {} } }] }],
           input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "Use Atlas's calculator tool to work out 12 * 34, then reply with just the number." }] }],
         }),
       });
       const words = await direct.text();
       const last = fakeL.responses().at(-1);
-      expect(last.dropped.includes("namespace") && /No tarsee_calculator was offered/.test(words), "straight to llama-server, the calculator was still offered", { dropped: last.dropped, words: clip(words, 300) });
+      expect(last.dropped.includes("namespace") && /No atlas_calculator was offered/.test(words), "straight to llama-server, the calculator was still offered", { dropped: last.dropped, words: clip(words, 300) });
       return { secs: run.secs, modelRequests: model.length, withoutTheBridge: "namespace dropped, no calculator offered" };
     });
     const back = await api("PUT", "/api/ai/providers/local", { baseUrl: `${localMux.origin}/v1`, model: LOCAL_MODELS[0] });
@@ -881,7 +881,7 @@ try {
     const before = await chats();
     const hangsBefore = HANGS.length;
     const callsBefore = dsMux.requests.length;
-    const front = await startTarseeFront(BASE, {
+    const front = await startAtlasFront(BASE, {
       cut: how,
       ready: () => HANGS.length > hangsBefore,
       beforeDelete: async (conv) => ({ activeTurn: (await api("GET", `/api/chat/conversations/${encodeURIComponent(conv)}`)).json?.activeTurn || null }),

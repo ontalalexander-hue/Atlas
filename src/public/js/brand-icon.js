@@ -9,20 +9,20 @@
  *
  * On the window, from the moment this script runs (before Settings is ever opened):
  *
- *   TarseeBrand.version        the icon's version now (null until it is known)
- *   TarseeBrand.src(path)      an icon address with the version on it: src("/icon-32.png") is "/icon-32.png?v=..."
+ *   AtlasBrand.version        the icon's version now (null until it is known)
+ *   AtlasBrand.src(path)      an icon address with the version on it: src("/icon-32.png") is "/icon-32.png?v=..."
  *                              (anything that is not an icon address comes back as it was)
- *   "tarsee:icon-changed"      a window event, { detail: { version, initial } }, when the icon changes (initial: true
+ *   "atlas:icon-changed"      a window event, { detail: { version, initial } }, when the icon changes (initial: true
  *                              when it is only the version learned after the page loaded)
  *
  * The version comes from GET /api/settings/brand-icon, which needs a session: it is asked for when app.js says the
- * page is signed in ("tarsee:signed-in"), and again whenever the section comes into view. Until then the page's icon
+ * page is signed in ("atlas:signed-in"), and again whenever the section comes into view. Until then the page's icon
  * links carry no version, which is fine: the server sends every icon with Cache-Control: no-cache, so the browser
- * checks it anyway. No browser dialogs (TarseeDialog asks the one question there is, before a reset).
+ * checks it anyway. No browser dialogs (AtlasDialog asks the one question there is, before a reset).
  */
 (function () {
   "use strict";
-  if (window.TarseeBrand) return;
+  if (window.AtlasBrand) return;
 
   const ICON_PATHS = ["/favicon.ico", "/icon-16.png", "/icon-32.png", "/apple-touch-icon.png", "/icon-192.png", "/icon-512.png", "/icon-maskable-512.png"];
   const VERSIONED = new Set([...ICON_PATHS, "/manifest.json"]);
@@ -80,14 +80,14 @@
   }
 
   let channel = null;
-  try { channel = new BroadcastChannel("tarsee-brand-icon"); } catch { /* an old browser: other tabs find out on their next load */ }
+  try { channel = new BroadcastChannel("atlas-brand-icon"); } catch { /* an old browser: other tabs find out on their next load */ }
 
   /** A version for the icon: the page is brought up to it, and whoever listens is told. */
   function setVersion(v, { initial = false, fromOtherTab = false } = {}) {
     if (!v || v === version) return;
     version = v;
     refreshPage();
-    try { window.dispatchEvent(new CustomEvent("tarsee:icon-changed", { detail: { version: v, initial } })); } catch { /* nobody listening */ }
+    try { window.dispatchEvent(new CustomEvent("atlas:icon-changed", { detail: { version: v, initial } })); } catch { /* nobody listening */ }
     if (!initial && !fromOtherTab && channel) { try { channel.postMessage({ version: v }); } catch { /* closed */ } }
   }
   if (channel) channel.addEventListener("message", (e) => { if (e.data && typeof e.data.version === "string") { setVersion(e.data.version, { fromOtherTab: true }); loadStatus(true); } });
@@ -124,7 +124,7 @@
   }
 
   // app.js fires this once the session is good (on load with a live session, or after the password or PIN).
-  window.addEventListener("tarsee:signed-in", () => loadStatus(true));
+  window.addEventListener("atlas:signed-in", () => loadStatus(true));
 
   // ---------------------------------------------------------------- the Settings section
 
@@ -177,8 +177,8 @@
 
   async function onReset() {
     const reset = $("brandIconResetBtn");
-    const yes = window.TarseeDialog
-      ? await TarseeDialog.ask({
+    const yes = window.AtlasDialog
+      ? await AtlasDialog.ask({
         title: "Go back to the default icon?",
         text: "Your uploaded icon is removed, and Atlas's own icon comes back on the browser tab, the installed app and in chat.",
         yes: "Reset",
@@ -589,7 +589,7 @@
 
   // ---------------------------------------------------------------- start
 
-  window.TarseeBrand = Object.freeze({
+  window.AtlasBrand = Object.freeze({
     get version() { return version; },
     src,
     paths: Object.freeze([...ICON_PATHS]),

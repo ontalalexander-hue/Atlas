@@ -3,7 +3,7 @@
  * scripts/e2e/upgrade-e2e.mjs: the owner's real upgrade path, from main (what runs on Railway today) to this branch.
  *
  * 1. A git worktree of main (7e5563d) with its own `npm ci`.
- * 2. main's server on a fresh temp TARSEE_STATE_DIR (the Railway volume), NODE_ENV=production, a SETUP_PASSWORD and
+ * 2. main's server on a fresh temp ATLAS_STATE_DIR (the Railway volume), NODE_ENV=production, a SETUP_PASSWORD and
  *    ENCRYPTION_KEY made at run time (never written to a file), and a temp home whose .claude links to
  *    <state>/.claude-code-home, the way main's entrypoint.sh links /home/node/.claude to the volume. Through main's own
  *    HTTP routes it is set up the way an owner did it: the old wizard (the Claude plan, apiKey "subscription"), skills,
@@ -47,8 +47,8 @@ const Database = require("better-sqlite3");
 
 const argv = process.argv.slice(2);
 const argOf = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
-const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "tarsee-upgrade-e2e-out"));
-const WT = path.resolve(argOf("--worktree") || path.join(os.tmpdir(), "tarsee-upgrade-main-wt"));
+const OUT = path.resolve(argOf("--out") || path.join(os.tmpdir(), "atlas-upgrade-e2e-out"));
+const WT = path.resolve(argOf("--worktree") || path.join(os.tmpdir(), "atlas-upgrade-main-wt"));
 const KEEP = argv.includes("--keep");
 const KEEP_WT = argv.includes("--keep-worktree");
 const NO_WSL = argv.includes("--no-wsl");
@@ -183,10 +183,10 @@ class Server {
       ...hostEnv(),
       HOME: home, USERPROFILE: home, APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local"),
       PORT: String(this.port),
-      TARSEE_STATE_DIR: state,
+      ATLAS_STATE_DIR: state,
       SETUP_PASSWORD, ENCRYPTION_KEY,
       NODE_ENV: "production",
-      TARSEE_PHONON_AUTO_INSTALL: "0",
+      ATLAS_PHONON_AUTO_INSTALL: "0",
       ...extraEnv,
     };
     log(`${this.label}: booting on port ${this.port} (cwd ${cwd})`);
@@ -231,7 +231,7 @@ function takeCookies(res) {
   }
 }
 const cookieHeader = () => [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
-const csrf = () => decodeURIComponent(jar.get("tarsee_csrf") || "");
+const csrf = () => decodeURIComponent(jar.get("atlas_csrf") || "");
 let CUR = null; // the server the helpers talk to
 
 async function api(method, p, body, { headers = {}, auth = true } = {}) {
@@ -301,7 +301,7 @@ const errorsOf = (r) => r.events.filter((e) => e.event === "error").map((e) => e
 // --- The state folder, read directly (only while no server has it open) -------------------------------------------
 
 function readDb(state) {
-  const db = new Database(path.join(state, "data", "tarsee.db"), { readonly: true, fileMustExist: true });
+  const db = new Database(path.join(state, "data", "atlas.db"), { readonly: true, fileMustExist: true });
   try {
     const all = (sql, ...a) => db.prepare(sql).all(...a);
     const one = (sql, ...a) => db.prepare(sql).get(...a);
@@ -340,7 +340,7 @@ function treeOf(state) {
       const p = path.join(dir, e.name);
       const rel = path.relative(state, p).split(path.sep).join("/");
       if (e.isDirectory()) { walk(p); continue; }
-      if (/^data\/tarsee\.db(-wal|-shm)?$/.test(rel) || /\.pid$/.test(rel)) continue;
+      if (/^data\/atlas\.db(-wal|-shm)?$/.test(rel) || /\.pid$/.test(rel)) continue;
       try { out[rel] = crypto.createHash("sha256").update(fs.readFileSync(p)).digest("hex").slice(0, 16); } catch { out[rel] = "unreadable"; }
     }
   };
@@ -359,7 +359,7 @@ function problemLines(text) {
 
 // --- The run -------------------------------------------------------------------------------------------------------
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-upgrade-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-upgrade-"));
 const STATE = path.join(tmp, "state");
 fs.mkdirSync(STATE, { recursive: true });
 let fake = null;
@@ -412,10 +412,10 @@ try {
 
   await check("main: sign in with SETUP_PASSWORD", async () => {
     const r = await api("POST", "/api/auth/login", { password: SETUP_PASSWORD });
-    expect(r.status === 200 && jar.has("tarsee_session"), `login answered ${r.status}, cookie ${jar.has("tarsee_session")}`, r.text);
+    expect(r.status === 200 && jar.has("atlas_session"), `login answered ${r.status}, cookie ${jar.has("atlas_session")}`, r.text);
     await api("GET", "/api/auth/csrf");
-    expect(jar.has("tarsee_csrf"), "no tarsee_csrf cookie");
-    M.sessionCookie = jar.get("tarsee_session");
+    expect(jar.has("atlas_csrf"), "no atlas_csrf cookie");
+    M.sessionCookie = jar.get("atlas_session");
   });
 
   await check("main: a fresh install needs the wizard", async () => {
@@ -648,7 +648,7 @@ try {
   // when the model, permissions or thinking are changed there) and the workspace's local permission list. Ordinary
   // entries, no credential: the branch's settings guard (R5) must not refuse the plan's turns over them.
   M.terminalSettings = {
-    user: { model: "opus", alwaysThinkingEnabled: true, permissions: { allow: ["Bash(git status:*)", "Bash(npm test:*)"] }, env: { DISABLE_AUTOUPDATER: "1", BASH_DEFAULT_TIMEOUT_MS: "300000" }, statusLine: { type: "command", command: "echo tarsee" } },
+    user: { model: "opus", alwaysThinkingEnabled: true, permissions: { allow: ["Bash(git status:*)", "Bash(npm test:*)"] }, env: { DISABLE_AUTOUPDATER: "1", BASH_DEFAULT_TIMEOUT_MS: "300000" }, statusLine: { type: "command", command: "echo atlas" } },
     local: { permissions: { allow: ["WebFetch(domain:example.com)"], deny: [] }, enableAllProjectMcpServers: false },
   };
   fs.writeFileSync(path.join(STATE, ".claude-code-home", "settings.json"), JSON.stringify(M.terminalSettings.user, null, 2));
@@ -680,7 +680,7 @@ try {
     expect(s.status === 200, `setup-status answered ${s.status} with main's session cookie: the owner would have to sign in again`, { status: r.json, setup: s.text });
     return r.json;
   });
-  if (!jar.has("tarsee_session") || (await api("GET", "/api/settings/setup-status")).status !== 200) {
+  if (!jar.has("atlas_session") || (await api("GET", "/api/settings/setup-status")).status !== 200) {
     await api("POST", "/api/auth/login", { password: SETUP_PASSWORD });
     await api("GET", "/api/auth/csrf");
   }
@@ -1024,11 +1024,11 @@ try {
     return { changed, added: added.slice(0, 60), oddChanges: odd };
   });
 
-  // The second boot runs with NODE_ENV=test so the branch's own test seam (engine-env.js TARSEE_TEST_BASE_URL_<ID>,
+  // The second boot runs with NODE_ENV=test so the branch's own test seam (engine-env.js ATLAS_TEST_BASE_URL_<ID>,
   // honoured only then and only on loopback) can send an Anthropic key's turns to the fake: the owner's morning, when
   // a real key goes in and an old chat carries on. Nothing else about the boot differs.
   const homeBranch2 = makeHome(path.join(tmp, "home-branch-2"), STATE, { codex: true });
-  branchSrv2 = await new Server("branch-2").boot({ cwd: ROOT, home: homeBranch2, state: STATE, extraEnv: { NODE_ENV: "test", TARSEE_TEST_BASE_URL_ANTHROPIC: fake.url } });
+  branchSrv2 = await new Server("branch-2").boot({ cwd: ROOT, home: homeBranch2, state: STATE, extraEnv: { NODE_ENV: "test", ATLAS_TEST_BASE_URL_ANTHROPIC: fake.url } });
   CUR = branchSrv2;
   await until(() => /\[ai\] /.test(branchSrv2.out), { timeoutMs: 20_000 });
   await sleep(2000);
@@ -1235,9 +1235,9 @@ async function registryProbe(models) {
     }
     process.stdout.write(JSON.stringify(out));
   `;
-  const probeState = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-upgrade-probe-"));
+  const probeState = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-upgrade-probe-"));
   try {
-    const r = await run(process.execPath, ["--input-type=module", "-e", code], { cwd: ROOT, env: { ...hostEnv(), TARSEE_STATE_DIR: probeState, HOME: probeState, USERPROFILE: probeState } });
+    const r = await run(process.execPath, ["--input-type=module", "-e", code], { cwd: ROOT, env: { ...hostEnv(), ATLAS_STATE_DIR: probeState, HOME: probeState, USERPROFILE: probeState } });
     if (r.code !== 0) throw new Fail("the registry probe failed", r.stderr);
     return JSON.parse(r.stdout);
   } finally { fs.rmSync(probeState, { recursive: true, force: true }); }
@@ -1256,9 +1256,9 @@ function summarizeUsage(u) {
   return pick;
 }
 
-/** main's Railway volume layout (/data/tarsee/.claude-code-home with a sign-in and transcripts, /home/node/.claude
+/** main's Railway volume layout (/data/atlas/.claude-code-home with a sign-in and transcripts, /home/node/.claude
  *  linked to it) through this branch's entrypoint.sh carry_plan_home, setup_provider_homes and report_sign_ins (in
- *  main()'s order), on Linux (WSL); and the same sign-in with TARSEE_STATE_DIR set to another folder on the volume. */
+ *  main()'s order), on Linux (WSL); and the same sign-in with ATLAS_STATE_DIR set to another folder on the volume. */
 async function entrypointCheck() {
   if (process.platform !== "win32") return;
   const probe = await run("wsl.exe", ["-e", "bash", "-lc", "command -v sh >/dev/null && echo ok"]);
@@ -1267,12 +1267,12 @@ async function entrypointCheck() {
   const script = `
 set -u
 T=$(mktemp -d)
-S="$T/data/tarsee"; H="$T/home/node"
-mkdir -p "$S/.claude-code-home/projects/-data-tarsee-workspace" "$H"
+S="$T/data/atlas"; H="$T/home/node"
+mkdir -p "$S/.claude-code-home/projects/-data-atlas-workspace" "$H"
 # main's entrypoint: the plan's home on the volume, ~/.claude linked to it, a sign-in and a transcript in it
 ln -sf "$S/.claude-code-home" "$H/.claude"
 printf '{"claudeAiOauth":{"accessToken":"sk-ant-oat01-test-canary-wsl"}}' > "$S/.claude-code-home/.credentials.json"
-echo '{"type":"user"}' > "$S/.claude-code-home/projects/-data-tarsee-workspace/abc.jsonl"
+echo '{"type":"user"}' > "$S/.claude-code-home/projects/-data-atlas-workspace/abc.jsonl"
 tr -d '\\r' < '${wslPath}' > "$T/entrypoint.sh"
 . "$T/entrypoint.sh"
 carry_plan_home "$T/data" "$S" || echo "CARRY_FAILED"
@@ -1281,7 +1281,7 @@ report_sign_ins "$S"
 echo "LINK=$(readlink "$H/.claude")"
 echo "CODEXLINK=$(readlink "$H/.codex")"
 [ -f "$S/.claude-code-home/.credentials.json" ] && echo CRED_KEPT
-[ -f "$S/.claude-code-home/projects/-data-tarsee-workspace/abc.jsonl" ] && echo TRANSCRIPT_KEPT
+[ -f "$S/.claude-code-home/projects/-data-atlas-workspace/abc.jsonl" ] && echo TRANSCRIPT_KEPT
 for d in .claude-code-home .claude-home-anthropic .claude-home-deepseek .claude-home-openrouter .codex-home .codex-home-keys; do echo "MODE $d $(stat -c %a "$S/$d")"; done
 grep -l 'sk-' "$S/.codex-home/config.toml" "$S/.codex-home-keys/config.toml" 2>/dev/null && echo SECRET_IN_CONFIG
 rm -rf "$T"
@@ -1295,7 +1295,7 @@ rm -rf "$T"
     if (/SETUP_FAILED/.test(o)) bad.push("setup_provider_homes failed");
     if (!/CRED_KEPT/.test(o)) bad.push("the .credentials.json is gone");
     if (!/TRANSCRIPT_KEPT/.test(o)) bad.push("the transcripts are gone");
-    if (!/LINK=.*\/data\/tarsee\/\.claude-code-home$/m.test(o)) bad.push("~/.claude doesn't link to the volume's .claude-code-home");
+    if (!/LINK=.*\/data\/atlas\/\.claude-code-home$/m.test(o)) bad.push("~/.claude doesn't link to the volume's .claude-code-home");
     if (!/Claude plan signed in \(on the volume\)/.test(o)) bad.push("report_sign_ins doesn't say the Claude plan is signed in");
     if (/SECRET_IN_CONFIG/.test(o)) bad.push("a config.toml holds an sk- string");
     for (const m of o.matchAll(/MODE (\S+) (\d+)/g)) if (m[2] !== "700") bad.push(`${m[1]} is mode ${m[2]}`);
@@ -1306,11 +1306,11 @@ rm -rf "$T"
   const custom = `
 set -u
 T=$(mktemp -d)
-OLD="$T/data/tarsee/.claude-code-home"; S="$T/data/tarsee/state"; H="$T/home/node"
-mkdir -p "$OLD/projects/-data-tarsee-workspace" "$S" "$H"
+OLD="$T/data/atlas/.claude-code-home"; S="$T/data/atlas/state"; H="$T/home/node"
+mkdir -p "$OLD/projects/-data-atlas-workspace" "$S" "$H"
 ln -sf "$OLD" "$H/.claude"
 printf '{"claudeAiOauth":{"accessToken":"sk-ant-oat01-test-canary-wsl"}}' > "$OLD/.credentials.json"
-echo '{"type":"user"}' > "$OLD/projects/-data-tarsee-workspace/abc.jsonl"
+echo '{"type":"user"}' > "$OLD/projects/-data-atlas-workspace/abc.jsonl"
 tr -d '\\r' < '${wslPath}' > "$T/entrypoint.sh"
 . "$T/entrypoint.sh"
 carry_plan_home "$T/data" "$S" || echo "CARRY_FAILED"
@@ -1318,13 +1318,13 @@ setup_provider_homes "$S" "$H" "" || echo "SETUP_FAILED"
 report_sign_ins "$S"
 echo "LINK=$(readlink "$H/.claude")"
 [ -f "$S/.claude-code-home/.credentials.json" ] && echo CRED_MOVED
-[ -f "$S/.claude-code-home/projects/-data-tarsee-workspace/abc.jsonl" ] && echo TRANSCRIPT_MOVED
+[ -f "$S/.claude-code-home/projects/-data-atlas-workspace/abc.jsonl" ] && echo TRANSCRIPT_MOVED
 [ -e "$OLD" ] && echo OLD_LEFT
 echo "--- again"
 carry_plan_home "$T/data" "$S" || echo "CARRY_FAILED"
 rm -rf "$T"
 `;
-  await check("Linux (WSL): with TARSEE_STATE_DIR set to another folder on the volume, main's Claude sign-in and transcripts move there, once", async () => {
+  await check("Linux (WSL): with ATLAS_STATE_DIR set to another folder on the volume, main's Claude sign-in and transcripts move there, once", async () => {
     const r = await run("wsl.exe", ["-e", "bash", "-c", custom]);
     const o = r.stdout;
     const [first, again = ""] = o.split("--- again");
@@ -1334,7 +1334,7 @@ rm -rf "$T"
     if (!/CRED_MOVED/.test(first)) bad.push("the .credentials.json didn't move");
     if (!/TRANSCRIPT_MOVED/.test(first)) bad.push("the transcripts didn't move");
     if (/OLD_LEFT/.test(first)) bad.push("the old folder is still there");
-    if (!/LINK=.*\/data\/tarsee\/state\/\.claude-code-home$/m.test(first)) bad.push("~/.claude doesn't link to the state folder's .claude-code-home");
+    if (!/LINK=.*\/data\/atlas\/state\/\.claude-code-home$/m.test(first)) bad.push("~/.claude doesn't link to the state folder's .claude-code-home");
     if (!/Claude plan signed in/.test(first)) bad.push("report_sign_ins doesn't say the Claude plan is signed in");
     if (/\[entrypoint\]/.test(again)) bad.push("a second boot did something");
     expect(bad.length === 0, bad.join("; "), o + r.stderr);

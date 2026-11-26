@@ -9,13 +9,13 @@ It only talks to Atlas over the web address, like your browser does. It never re
 Use a separate test Atlas on your own computer, so nothing on Railway is touched. Open PowerShell in the Atlas folder and run:
 
 ```powershell
-$env:TARSEE_STATE_DIR = "$env:USERPROFILE\.tarsee-live-test"
+$env:ATLAS_STATE_DIR = "$env:USERPROFILE\.atlas-live-test"
 $env:SETUP_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host -AsSecureString "Choose a password for the test Atlas")).Password
 $env:ENCRYPTION_KEY = node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))"
 npm start
 ```
 
-- `TARSEE_STATE_DIR` keeps everything for this test (its database, the saved keys, the ChatGPT sign-in) in its own folder, away from any other Atlas.
+- `ATLAS_STATE_DIR` keeps everything for this test (its database, the saved keys, the ChatGPT sign-in) in its own folder, away from any other Atlas.
 - The password and the encryption key live only in this PowerShell window. Nothing is written to a file, and the password isn't saved in PowerShell's history.
 - Leave this window open: it is the running Atlas. When it says it is listening on port 3000, go on.
 
@@ -35,16 +35,16 @@ Every card that says *Ready* is tested. You don't have to connect all of them.
 Open a **second** PowerShell window in the Atlas folder (the first one is busy running Atlas) and run:
 
 ```powershell
-$env:TARSEE_URL = "http://localhost:3000"
-$env:TARSEE_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host -AsSecureString "Atlas password")).Password
+$env:ATLAS_URL = "http://localhost:3000"
+$env:ATLAS_PASSWORD = [System.Net.NetworkCredential]::new("", (Read-Host -AsSecureString "Atlas password")).Password
 node scripts/e2e/live-smoke.mjs
 ```
 
 In Git Bash or WSL the same is:
 
 ```bash
-export TARSEE_URL=http://localhost:3000
-read -rsp "Atlas password: " TARSEE_PASSWORD; echo; export TARSEE_PASSWORD
+export ATLAS_URL=http://localhost:3000
+read -rsp "Atlas password: " ATLAS_PASSWORD; echo; export ATLAS_PASSWORD
 node scripts/e2e/live-smoke.mjs
 ```
 
@@ -71,7 +71,7 @@ While it runs, it prints one line per step:
 
 ```
 [  3.2s] PASS deepseek · test: Key works · Balance $4.20
-[ 14.8s] PASS deepseek · deepseek-flash · tool: mcp__tarsee__tarsee_calculator worked out 48271 * 3917 = 189077507
+[ 14.8s] PASS deepseek · deepseek-flash · tool: mcp__atlas__atlas_calculator worked out 48271 * 3917 = 189077507
 [ 15.0s] PASS deepseek · deepseek-flash · turn: DeepSeek Flash · deepseek-flash answered "189077507" in 11.2 s
 [ 17.5s] PASS deepseek · deepseek-flash · usage: DeepSeek · DeepSeek Flash (deepseek-flash) · claude-code · 18,342 tokens · $0.0028 est.
 [ 17.6s] PASS deepseek · deepseek-flash · cleanup: the test chat is deleted
@@ -87,8 +87,8 @@ At the end comes the table:
 ```
 provider                              | test | turn | tool              | cost             | notes
 ------------------------------------- | ---- | ---- | ----------------- | ---------------- | -----
-deepseek · deepseek-flash             | ok   | ok   | tarsee_calculator | $0.0028 est.     | 18,342 tokens (in 18,100, out 242); claude-code; Balance $4.20
-chatgpt · (your account's default)    | ok   | ok   | tarsee_calculator | Included in plan | 9,876 tokens (in 9,800, out 76); codex
+deepseek · deepseek-flash             | ok   | ok   | atlas_calculator | $0.0028 est.     | 18,342 tokens (in 18,100, out 242); claude-code; Balance $4.20
+chatgpt · (your account's default)    | ok   | ok   | atlas_calculator | Included in plan | 9,876 tokens (in 9,800, out 76); codex
 ```
 
 (The numbers here are only an example.)
@@ -98,7 +98,7 @@ chatgpt · (your account's default)    | ok   | ok   | tarsee_calculator | Inclu
 | **provider** | The AI, then the model that actually answered (from the Usage page). |
 | **test** | The **Test** button on the AI's card: `ok`, or `FAIL` (a rejected key, an empty balance, a sign-in that has run out, an address that can't be reached). |
 | **turn** | The chat: `ok` when a reply came back with no error and with the right answer in it. `FAIL` says what went wrong in the notes. `skipped` means Atlas wouldn't start the chat (the AI isn't ready, or the model must be verified first). |
-| **tool** | `tarsee_calculator` when Atlas's calculator tool really ran and gave the right number. `none` means the AI answered without using it; `wrong answer` means it ran but the number didn't match. |
+| **tool** | `atlas_calculator` when Atlas's calculator tool really ran and gave the right number. `none` means the AI answered without using it; `wrong answer` means it ran but the number didn't match. |
 | **cost** | What this one reply cost, in the Usage page's words: an amount the provider reported (`$0.0021`), an estimate from the price list (`$0.0028 est.`), `Included in plan` for the Claude and ChatGPT plans, `Free` for Local AI. `FAIL` means the Usage page had no row for the chat, or the row looked wrong (for example a plan reply with a price). |
 | **notes** | The tokens the reply used, which engine ran it (`claude-code` or `codex`), the balance or spending limit the card reports, and the reason for anything that failed. |
 
@@ -120,7 +120,7 @@ If a reply doesn't finish (it runs out of time, or the connection breaks), the t
 - To remove the keys: in Settings > AI, click **Remove key** on each card, and **Sign out** on the ChatGPT plan card. Or stop Atlas (Ctrl+C in its window) and delete the whole test folder, which removes every key and sign-in it held:
 
   ```powershell
-  Remove-Item -Recurse -Force "$env:USERPROFILE\.tarsee-live-test"
+  Remove-Item -Recurse -Force "$env:USERPROFILE\.atlas-live-test"
   ```
 
 - Close both PowerShell windows. The password, the encryption key and the address go with them.
@@ -128,13 +128,13 @@ If a reply doesn't finish (it runs out of time, or the connection breaks), the t
 
 ## Testing a Atlas on Railway
 
-The same script works against your Railway Atlas: set `TARSEE_URL` to its address (`https://...`) and `TARSEE_PASSWORD` to its `SETUP_PASSWORD`. It then uses the keys and sign-ins saved there, creates and deletes its test chats there, and its cost counts toward that Atlas's month. Try the local test first.
+The same script works against your Railway Atlas: set `ATLAS_URL` to its address (`https://...`) and `ATLAS_PASSWORD` to its `SETUP_PASSWORD`. It then uses the keys and sign-ins saved there, creates and deletes its test chats there, and its cost counts toward that Atlas's month. Try the local test first.
 
 ## If something fails
 
 | What it says | What to do |
 |---|---|
-| `TARSEE_PASSWORD was turned down` | The password isn't this Atlas's `SETUP_PASSWORD`. Set the variable again. |
+| `ATLAS_PASSWORD was turned down` | The password isn't this Atlas's `SETUP_PASSWORD`. Set the variable again. |
 | `Atlas didn't answer at ...` | Atlas isn't running at that address, or it is still starting. Check the first window. |
 | `no AI is ready` | No card says *Ready*. Connect one in Settings > AI, or name one with `--only` to see why it isn't. |
 | `test: ... key was rejected` | The key is wrong or was revoked. Paste it again in Settings > AI. |

@@ -119,8 +119,8 @@ export function renderInventoryPromptSection(inv) {
   lines.push("\n\n## Available Credentials");
   lines.push(
     "(Inventory auto-loaded so you don't have to call a tool to check. " +
-    "Values live in the vault — fetch with `tarsee_get_key` when you need them. " +
-    "`tarsee_list_keys` re-queries live if something changes this session.)"
+    "Values live in the vault — fetch with `atlas_get_key` when you need them. " +
+    "`atlas_list_keys` re-queries live if something changes this session.)"
   );
 
   const readyProviders = inv.providers.filter((p) => p.configured);

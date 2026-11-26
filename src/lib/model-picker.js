@@ -22,7 +22,7 @@ export const FAMILIES = ["opus", "fable", "sonnet", "haiku"];
 export const EFFORT_NAMES = { low: "Low", medium: "Medium", high: "High", xhigh: "Extra", max: "Max" };
 export const EFFORT_IDS = ["low", "medium", "high", "xhigh", "max"];
 /** What every effort is set to when a chat has none of its own (the ai.defaultEffort setting overrides it). */
-export const TARSEE_DEFAULT_EFFORT = "medium";
+export const ATLAS_DEFAULT_EFFORT = "medium";
 
 const EFFORT_NOTE = "Higher effort means more thorough responses, but takes longer and uses your limits faster.";
 const MAX_TIP = "May use a great many tokens, take long and hit token limits. Use it sparingly, for the hardest tasks.";
@@ -128,7 +128,7 @@ function entryFromId(id, template, defaultEffort) {
  *             word, so a chat stays on the newest when a new version comes out (Claude Code does the same)
  * Returns { main: [...], more: [...], effortNote, source, fetchedAt, defaultEffort }.
  */
-export function buildPicker({ catalog = null, knownIds = [], aliases = {}, source = null, fetchedAt = null, defaultEffort = TARSEE_DEFAULT_EFFORT } = {}) {
+export function buildPicker({ catalog = null, knownIds = [], aliases = {}, source = null, fetchedAt = null, defaultEffort = ATLAS_DEFAULT_EFFORT } = {}) {
   const byId = new Map();
   const models = Array.isArray(catalog?.models) ? catalog.models : [];
   for (const m of models) {
@@ -290,19 +290,19 @@ export const VERIFY_FIRST = "Verify it in Settings > AI first";
  * one it has below (as Claude Code does), else its lowest. Nothing asked for is the default (Medium). null when the
  * model takes no level at all.
  */
-export function clampEffort(levels, want, fallback = TARSEE_DEFAULT_EFFORT) {
+export function clampEffort(levels, want, fallback = ATLAS_DEFAULT_EFFORT) {
   const have = [...new Set((levels || []).map((l) => (typeof l === "string" ? l : l?.id)).filter(Boolean).map((l) => String(l).toLowerCase()))];
   if (!have.length) return null;
   const rank = (id) => { const i = EFFORT_IDS.indexOf(id); return i === -1 ? EFFORT_IDS.length : i; };
   have.sort((a, b) => rank(a) - rank(b));
-  const w = String(want || fallback || TARSEE_DEFAULT_EFFORT).toLowerCase();
+  const w = String(want || fallback || ATLAS_DEFAULT_EFFORT).toLowerCase();
   if (have.includes(w)) return w;
   for (let i = EFFORT_IDS.indexOf(w); i >= 0; i--) if (have.includes(EFFORT_IDS[i])) return EFFORT_IDS[i];
   return have[0];
 }
 
 /** The effort rows a picker shows for a model's levels: names, the one it runs at by default marked Recommended. */
-export function effortRows(levels, defaultEffort = TARSEE_DEFAULT_EFFORT) {
+export function effortRows(levels, defaultEffort = ATLAS_DEFAULT_EFFORT) {
   const ids = (levels || []).map((l) => String(typeof l === "string" ? l : l?.id || "").toLowerCase()).filter(Boolean);
   const rec = clampEffort(ids, defaultEffort);
   return ids.map((id) => ({ id, name: EFFORT_NAMES[id] || cap(id), recommended: id === rec, badge: null, tip: id === "max" ? MAX_TIP : null }));

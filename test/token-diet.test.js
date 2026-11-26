@@ -1,4 +1,4 @@
-// Context cost savers ported from TarseeMacOS: the auto-compact window, the Bash output and tool result caps
+// Context cost savers ported from the macOS app: the auto-compact window, the Bash output and tool result caps
 // (src/ai/context-limits.js, all three Claude Code's own settings), one-line quick memories (src/db/memory.js), short
 // skill descriptions (src/lib/skills-engine.js), and the note on a prompt that waited in its chat's queue.
 import { describe, it } from "node:test";
@@ -29,21 +29,21 @@ describe("compactWindowEnv: when the CLI summarizes the agent's context", () => 
 });
 
 describe("Bash output cap: past it the CLI saves the output to a file and shows a preview", () => {
-  it("8000 characters by default, TARSEE_BASH_OUTPUT_MAX_CHARS to change it", () => {
+  it("8000 characters by default, ATLAS_BASH_OUTPUT_MAX_CHARS to change it", () => {
     assert.deepEqual(bashOutputEnv({}), { BASH_MAX_OUTPUT_LENGTH: "8000" });
-    assert.deepEqual(bashOutputEnv({ TARSEE_BASH_OUTPUT_MAX_CHARS: "20000" }), { BASH_MAX_OUTPUT_LENGTH: "20000" });
+    assert.deepEqual(bashOutputEnv({ ATLAS_BASH_OUTPUT_MAX_CHARS: "20000" }), { BASH_MAX_OUTPUT_LENGTH: "20000" });
   });
   it("a BASH_MAX_OUTPUT_LENGTH the operator already set is kept", () => {
     assert.deepEqual(bashOutputEnv({ BASH_MAX_OUTPUT_LENGTH: "15000" }), {});
-    assert.deepEqual(bashOutputEnv({ BASH_MAX_OUTPUT_LENGTH: "15000", TARSEE_BASH_OUTPUT_MAX_CHARS: "9000" }), { BASH_MAX_OUTPUT_LENGTH: "9000" });
+    assert.deepEqual(bashOutputEnv({ BASH_MAX_OUTPUT_LENGTH: "15000", ATLAS_BASH_OUTPUT_MAX_CHARS: "9000" }), { BASH_MAX_OUTPUT_LENGTH: "9000" });
   });
 });
 
 describe("tool result cap: past it Claude Code saves the result to a file and tells the agent how to read it", () => {
   it("about 12000 characters by default, passed as MAX_MCP_OUTPUT_TOKENS (a token is about 4 characters)", () => {
     assert.deepEqual(mcpOutputEnv({}), { MAX_MCP_OUTPUT_TOKENS: "3000" });
-    assert.deepEqual(mcpOutputEnv({ TARSEE_TOOL_RESULT_MAX_CHARS: "30000" }), { MAX_MCP_OUTPUT_TOKENS: "7500" });
-    assert.deepEqual(mcpOutputEnv({ TARSEE_TOOL_RESULT_MAX_CHARS: "12" }), { MAX_MCP_OUTPUT_TOKENS: "3000" }, "too small to be meant");
+    assert.deepEqual(mcpOutputEnv({ ATLAS_TOOL_RESULT_MAX_CHARS: "30000" }), { MAX_MCP_OUTPUT_TOKENS: "7500" });
+    assert.deepEqual(mcpOutputEnv({ ATLAS_TOOL_RESULT_MAX_CHARS: "12" }), { MAX_MCP_OUTPUT_TOKENS: "3000" }, "too small to be meant");
   });
   it("a MAX_MCP_OUTPUT_TOKENS the operator already set is kept", () => {
     assert.deepEqual(mcpOutputEnv({ MAX_MCP_OUTPUT_TOKENS: "10000" }), {});
@@ -53,11 +53,11 @@ describe("tool result cap: past it Claude Code saves the result to a file and te
 describe("what every Claude Code process gets", () => {
   it("all three caps", () => {
     assert.deepEqual(costSaverEnv({}), { CLAUDE_CODE_AUTO_COMPACT_WINDOW: "180000", BASH_MAX_OUTPUT_LENGTH: "8000", MAX_MCP_OUTPUT_TOKENS: "3000" });
-    assert.deepEqual(costSaverEnv({ TARSEE_COMPACT_WINDOW: "off" }), { BASH_MAX_OUTPUT_LENGTH: "8000", MAX_MCP_OUTPUT_TOKENS: "3000" });
+    assert.deepEqual(costSaverEnv({ ATLAS_COMPACT_WINDOW: "off" }), { BASH_MAX_OUTPUT_LENGTH: "8000", MAX_MCP_OUTPUT_TOKENS: "3000" });
   });
-  it("an operator's own CLAUDE_CODE_AUTO_COMPACT_WINDOW stands unless TARSEE_COMPACT_WINDOW is set", () => {
+  it("an operator's own CLAUDE_CODE_AUTO_COMPACT_WINDOW stands unless ATLAS_COMPACT_WINDOW is set", () => {
     assert.equal(costSaverEnv({ CLAUDE_CODE_AUTO_COMPACT_WINDOW: "400000" }).CLAUDE_CODE_AUTO_COMPACT_WINDOW, undefined, "not overridden: process.env carries it");
-    assert.equal(costSaverEnv({ CLAUDE_CODE_AUTO_COMPACT_WINDOW: "400000", TARSEE_COMPACT_WINDOW: "200k" }).CLAUDE_CODE_AUTO_COMPACT_WINDOW, "200000");
+    assert.equal(costSaverEnv({ CLAUDE_CODE_AUTO_COMPACT_WINDOW: "400000", ATLAS_COMPACT_WINDOW: "200k" }).CLAUDE_CODE_AUTO_COMPACT_WINDOW, "200000");
   });
 });
 
@@ -65,9 +65,9 @@ describe("the window the context meter and Token Health measure against", () => 
   it("the compact window when it is smaller than the model's, else the model's", () => {
     assert.equal(effectiveContextWindow(1_000_000, {}), 180_000, "Sonnet/Opus 1M: summarized near 180k");
     assert.equal(effectiveContextWindow(200_000, {}), 180_000);
-    assert.equal(effectiveContextWindow(1_000_000, { TARSEE_COMPACT_WINDOW: "off" }), 1_000_000);
-    assert.equal(effectiveContextWindow(1_000_000, { TARSEE_COMPACT_WINDOW: "300k" }), 300_000);
-    assert.equal(effectiveContextWindow(200_000, { TARSEE_COMPACT_WINDOW: "300k" }), 200_000);
+    assert.equal(effectiveContextWindow(1_000_000, { ATLAS_COMPACT_WINDOW: "off" }), 1_000_000);
+    assert.equal(effectiveContextWindow(1_000_000, { ATLAS_COMPACT_WINDOW: "300k" }), 300_000);
+    assert.equal(effectiveContextWindow(200_000, { ATLAS_COMPACT_WINDOW: "300k" }), 200_000);
     assert.equal(effectiveContextWindow(1_000_000, { CLAUDE_CODE_AUTO_COMPACT_WINDOW: "400000" }), 400_000, "the operator's own");
   });
 });

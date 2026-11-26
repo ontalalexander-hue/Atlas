@@ -74,7 +74,7 @@ describe("smoke-backends: what it runs", () => {
   it("names a provider it was asked for but has no credential for, instead of running it", () => {
     const runs = planRuns({ targets: [{ provider: "openai", model: null }, { provider: "local", model: "llama3.1:8b" }], env: {} });
     assert.match(runs[0].skip, /OPENAI_API_KEY/);
-    assert.match(runs[1].skip, /TARSEE_LOCAL_AI_URL/);
+    assert.match(runs[1].skip, /ATLAS_LOCAL_AI_URL/);
   });
 
   it("runs the Claude plan when its sign-in variable is set, or when asked", () => {

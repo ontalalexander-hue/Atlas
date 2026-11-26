@@ -46,7 +46,7 @@
  *   - replies never carry a namespace, start with output_item.added for every item, send every output_item.done at the
  *     end, and have no sequence_number
  *
- * Standing in for ChatGPT's backend (the ChatGPT plan, through TARSEE_TEST_BASE_URL_CHATGPT): before any model request
+ * Standing in for ChatGPT's backend (the ChatGPT plan, through ATLAS_TEST_BASE_URL_CHATGPT): before any model request
  * Codex asks which workspace the signed-in account routes to (GET .../wham/accounts/check) and accepts only an HTTPS
  * origin, so this needs both
  *   tls: { key, cert }       serve HTTPS (fixtures/test-tls.js makes them; Codex trusts its authority through

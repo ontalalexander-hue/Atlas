@@ -19,11 +19,11 @@ import config from "../config/env.js";
  * @param {{quiet?: boolean}} [opts] - quiet: no "Creating" log line (the Codex endpoint builds one per turn)
  * @returns {McpSdkServerConfigWithInstance}
  */
-export function createTarseeMcp(ctx, opts = {}) {
+export function createAtlasMcp(ctx, opts = {}) {
   const allTools = [
       tool(
-        "tarsee_send_message",
-        "Send a message to a channel (Telegram, Discord, WhatsApp, Slack, email, or web chat). Use this to proactively notify the user. For email, channel_id MUST be the target address; for threaded email replies with In-Reply-To headers, use tarsee_send_email_thread instead.",
+        "atlas_send_message",
+        "Send a message to a channel (Telegram, Discord, WhatsApp, Slack, email, or web chat). Use this to proactively notify the user. For email, channel_id MUST be the target address; for threaded email replies with In-Reply-To headers, use atlas_send_email_thread instead.",
         { channel: z.enum(["telegram", "discord", "whatsapp", "slack", "email", "web"]).describe("Channel to send to"), message: z.string().describe("Message text"), channel_id: z.string().optional().describe("Specific chat/channel ID (auto-resolved if omitted — required for email)") },
         async (args) => {
           const result = await executeTool("send_message", args, ctx);
@@ -32,8 +32,8 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_send_file",
-        "Send a file as a real attachment (PDF, HTML report, image, audio, video, zip, spreadsheet, anything) to a Telegram, Discord, WhatsApp or Slack chat, or to one of the dashboard's own chats (web: a card there that opens in the viewer). Use it whenever someone asks for a file or you made one for them: never answer with a folder path or a download link instead, and never say a channel can't take attachments. With no channel_id it goes to the chat you are talking in (on Slack, the same thread; else that channel's most recent chat). The file must already exist; a relative path is read from the workspace. Size caps: Telegram 50 MB, Discord 25 MB, WhatsApp 16 MB, Slack 100 MB, web 50 MB. For email, use tarsee_send_email_thread with attachments.",
+        "atlas_send_file",
+        "Send a file as a real attachment (PDF, HTML report, image, audio, video, zip, spreadsheet, anything) to a Telegram, Discord, WhatsApp or Slack chat, or to one of the dashboard's own chats (web: a card there that opens in the viewer). Use it whenever someone asks for a file or you made one for them: never answer with a folder path or a download link instead, and never say a channel can't take attachments. With no channel_id it goes to the chat you are talking in (on Slack, the same thread; else that channel's most recent chat). The file must already exist; a relative path is read from the workspace. Size caps: Telegram 50 MB, Discord 25 MB, WhatsApp 16 MB, Slack 100 MB, web 50 MB. For email, use atlas_send_email_thread with attachments.",
         {
           channel: z.enum(["telegram", "discord", "whatsapp", "slack", "web"]).describe("Channel to send to: the one you are talking in, unless asked otherwise (web: one of the dashboard's own chats; channel_id is its conversation id, the one you are in by default)"),
           file_path: z.string().describe("Absolute path, or a path relative to the workspace"),
@@ -47,10 +47,10 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_configure_email_channel",
+        "atlas_configure_email_channel",
         "Configure the email channel when the user tells you their IMAP/SMTP credentials in chat. Partial-update — only the fields you pass get written; existing values stay. Passwords are stored encrypted. Call this instead of asking the user to open Settings. Infer common provider hosts (Gmail: imap.gmail.com:993 / smtp.gmail.com:465; iCloud: imap.mail.me.com:993 / smtp.mail.me.com:587; Zoho: imap.zoho.com:993 / smtp.zoho.com:465; FastMail: imap.fastmail.com:993 / smtp.fastmail.com:465) from the user's email domain when they don't specify. Outlook.com, Hotmail and Microsoft 365 mailboxes cannot connect this way: Microsoft refuses app passwords for IMAP and requires its own sign-in, so tell the user to use a mailbox from another provider instead of saving one.",
         {
-          tarseeEmailAddress: z.string().optional().describe("The mailbox Atlas answers at, e.g. 'tarsee@yourcompany.com'"),
+          atlasEmailAddress: z.string().optional().describe("The mailbox Atlas answers at, e.g. 'atlas@yourcompany.com'"),
           imap: z.object({
             host: z.string().optional(),
             port: z.number().optional().describe("Default 993"),
@@ -66,7 +66,7 @@ export function createTarseeMcp(ctx, opts = {}) {
             secure: z.boolean().optional(),
           }).optional(),
           allowlistFromAddresses: z.array(z.string()).optional().describe("Only reply to emails from these addresses. Empty = accept from anyone (dev mode — warn the user)."),
-          mentionKeyword: z.string().optional().describe("Without leading @. Default 'tarsee'. Atlas only replies when the body contains this mention."),
+          mentionKeyword: z.string().optional().describe("Without leading @. Default 'atlas'. Atlas only replies when the body contains this mention."),
           replyAllMarker: z.string().optional().describe("Subject marker that opts into reply-all. Default '[reply-all]'."),
           fromName: z.string().optional().describe("Display name on outbound mail. Default 'Atlas'."),
           enabled: z.boolean().optional().describe("Toggle the channel on/off. Leave undefined to preserve current state."),
@@ -78,7 +78,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_send_email_thread",
+        "atlas_send_email_thread",
         "Start a new email thread or reply to an existing one with proper threading headers (In-Reply-To + References). Use this for proactive outbound email — you don't need to wait for the recipient to email first. Body is plain text; no markdown formatting survives email well. For replies, pass inReplyTo with the Message-ID from the inbound email. Attach files with attachments (paths on disk).",
         {
           to: z.union([z.string(), z.array(z.string())]).describe("Primary recipient(s). Single address string or array."),
@@ -95,8 +95,8 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_schedule_task",
-        `Schedule a task using cron syntax. Supports one-time and recurring. For simple notifications, use action (direct, instant). For complex tasks, use prompt (AI session).\n\nOnly schedule a task when the owner asks for one, or has said yes when you offered: every run of a prompt task is a paid turn on the AI. A task you schedule starts paused, and won't run until the owner switches it on, in Settings > Automation > Scheduled tasks or by sending /cron on <id>. Say so when you save one, with its id. You can't schedule tasks while running a scheduled task, the heartbeat or BOOT.md.\n\nEXAMPLES:\n- One-time reminder: schedule='30 12 7 4 *', once=true, action={tool:'send_message', args:{channel:'telegram', message:'Meeting now!'}}\n- Daily recurring: schedule='0 8 * * *', action={tool:'send_message', args:{channel:'telegram', message:'Good morning!'}}\n- Complex: schedule='0 8 * * 1', prompt='Check calendar and summarize the week'\n\nALWAYS prefer action over prompt for send_message tasks. Set once=true for one-time reminders (auto-deletes after firing). A prompt task runs at most once every 15 minutes (5-part schedules, no seconds). Cron expressions are interpreted in ${config.TIMEZONE} — call tarsee_datetime to confirm the current local time before scheduling.`,
+        "atlas_schedule_task",
+        `Schedule a task using cron syntax. Supports one-time and recurring. For simple notifications, use action (direct, instant). For complex tasks, use prompt (AI session).\n\nOnly schedule a task when the owner asks for one, or has said yes when you offered: every run of a prompt task is a paid turn on the AI. A task you schedule starts paused, and won't run until the owner switches it on, in Settings > Automation > Scheduled tasks or by sending /cron on <id>. Say so when you save one, with its id. You can't schedule tasks while running a scheduled task, the heartbeat or BOOT.md.\n\nEXAMPLES:\n- One-time reminder: schedule='30 12 7 4 *', once=true, action={tool:'send_message', args:{channel:'telegram', message:'Meeting now!'}}\n- Daily recurring: schedule='0 8 * * *', action={tool:'send_message', args:{channel:'telegram', message:'Good morning!'}}\n- Complex: schedule='0 8 * * 1', prompt='Check calendar and summarize the week'\n\nALWAYS prefer action over prompt for send_message tasks. Set once=true for one-time reminders (auto-deletes after firing). A prompt task runs at most once every 15 minutes (5-part schedules, no seconds). Cron expressions are interpreted in ${config.TIMEZONE} — call atlas_datetime to confirm the current local time before scheduling.`,
         {
           schedule: z.string().describe(`Cron expression. Format: 'min hour day month weekday'. Interpreted in ${config.TIMEZONE}.`),
           name: z.string().optional().describe("Human-friendly name"),
@@ -108,10 +108,10 @@ export function createTarseeMcp(ctx, opts = {}) {
             // `z.record(z.any())` builds an object whose keyType is undefined,
             // and converting it to JSON Schema throws inside the MCP server's
             // tools/list handler. That failure is not isolated to this tool —
-            // it fails the whole list call, so EVERY mcp__tarsee__* tool went
+            // it fails the whole list call, so EVERY mcp__atlas__* tool went
             // invisible to Claude while the system prompt kept advertising
             // them. That is the real cause of the agent shelling out to curl
-            // instead of calling tarsee_send_message. See test/mcp-tools.test.js.
+            // instead of calling atlas_send_message. See test/mcp-tools.test.js.
             args: z.record(z.string(), z.any()).describe("Tool arguments (e.g. {channel:'telegram', message:'Hello!'})"),
           }).optional().describe("Direct tool action — instant, no AI needed. Use for simple notifications."),
         },
@@ -132,7 +132,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_remember",
+        "atlas_remember",
         "Save an important fact or note to long-term memory. This persists across conversations and restarts.",
         {
           content: z.string().describe("The fact or note to remember"),
@@ -147,7 +147,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_daily_log",
+        "atlas_daily_log",
         "Append an entry to today's daily memory log (memory/YYYY-MM-DD.md).",
         { content: z.string().describe("Log entry to append") },
         async (args) => {
@@ -158,7 +158,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_read_file",
+        "atlas_read_file",
         "Read a Atlas workspace file (SOUL.md, IDENTITY.md, MEMORY.md, USER.md, etc.) or a daily memory log.",
         { filename: z.string().describe("Filename to read, e.g. 'MEMORY.md' or 'memory/2026-04-05.md'") },
         async (args) => {
@@ -168,7 +168,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_write_file",
+        "atlas_write_file",
         "Write or overwrite a Atlas workspace file. Use for updating personality, identity, memory, or user notes. HEARTBEAT.md (the heartbeat's checks) and BOOT.md (what runs when Atlas restarts) can be written too, but what you write there doesn't run until the owner OKs it in Settings > Automation (Let it run; for BOOT.md, Run at each restart): tell the owner so, and never say it is set up or running before then. The same goes for a change made with your own file or shell tools.",
         { filename: z.string().describe("Workspace filename"), content: z.string().describe("Full content to write") },
         async (args) => {
@@ -178,7 +178,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_search_memories",
+        "atlas_search_memories",
         "Search through all memory files for a keyword or phrase.",
         { query: z.string().describe("Search term") },
         async (args) => {
@@ -188,7 +188,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_search_memories_deep",
+        "atlas_search_memories_deep",
         "Deep semantic search — reads ALL memories, MEMORY.md, and last 30 daily logs so you can reason about what's relevant. Use when keyword search returns nothing or the query is vague/conceptual.",
         { query: z.string().describe("What you're looking for — natural language description") },
         async (args) => {
@@ -198,7 +198,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_create_canvas",
+        "atlas_create_canvas",
         "Create an interactive HTML/CSS/JS canvas — renders as a live iframe in chat. Use for dashboards, charts, visualizations, mini-apps, calculators, or any interactive UI the user requests.",
         {
           title: z.string().describe("Canvas title/ID (used in URL, lowercase, hyphens ok)"),
@@ -213,7 +213,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_create_diagram",
+        "atlas_create_diagram",
         "Render a clickable flowchart/diagram in chat. Use for multi-step processes, workflows, architecture, decision trees. Each clickable node triggers a follow-up question when the user clicks it.",
         {
           title: z.string().describe("Diagram title"),
@@ -241,7 +241,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_datetime",
+        "atlas_datetime",
         "Get current date/time/day or convert timezones. ALWAYS use this for dates and days of the week — never guess.",
         {
           timezone: z.string().optional().describe(`IANA timezone, e.g. 'Europe/Berlin', 'America/New_York'. Default: ${config.TIMEZONE}`),
@@ -255,7 +255,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_calculator",
+        "atlas_calculator",
         "Evaluate a math expression with precision. Use for ANY math — arithmetic, percentages, conversions, financial calculations. Never do math in your head. Takes numbers, + - * / ** (power; ^ isn't one), % (the remainder after dividing, not a percent sign: for 15% of 80 write 15 / 100 * 80), brackets, and Math's functions and constants such as Math.sqrt(), Math.round(), Math.max(), Math.pow() and Math.PI. Nothing else: no names, text or code.",
         {
           expression: z.string().describe("Math expression, e.g. '(149 * 12) * 0.85' or 'Math.sqrt(144)'"),
@@ -270,7 +270,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       // Discord's REST API from Bash: auto mode blocks that as a credential leak, rightly. Atlas's own logged-in bot
       // does it now (src/lib/discord-admin.js). No delete actions.
       tool(
-        "tarsee_discord_admin",
+        "atlas_discord_admin",
         "Admin jobs in a Discord server the bot is in, done by Atlas's own logged-in bot: list_channels, create_channel (text, voice or category; public, private for listed people and roles, or with another channel's access), edit_channel (name, topic, category, who can see or do what), create_webhook, list_webhooks. Use it whenever someone asks for a new channel, a private channel, a webhook or a permission change. It replaces any Discord REST call from Bash: never pull DISCORD_BOT_TOKEN from the vault for this, and never put a bot token or a webhook URL in a command.\n\nGET THE GO FIRST for anything that changes a server, following the approval rules in your instructions (AGENTS.md). A new webhook counts as a credential (its URL lets anyone post), so create_webhook needs the owner's go. Put who said go, in their words, in approved_by (it is logged and shows in the server's audit log). If nobody has said go for this exact change, ask instead. list_channels and list_webhooks need no go.\n\nTHE SERVER: guild_id, or channel_id of any channel in it (the one you are answering in works), or nothing when the bot is in one server only.\n\nWEBHOOK URLS ARE SECRETS: create_webhook saves the URL in the vault under save_as_key (e.g. ALERTS_WATCHDOG_WEBHOOK; say what it is for in purpose) and returns only the webhook id, the key name and a masked URL. Scripts and services read it from the vault by that key name. reveal: true puts the full URL in the result: only when the owner asks to see it themselves, never for anything that goes into a chat.\n\nNOTHING HERE DELETES: deleting a channel or a webhook is for the owner to do by hand; say so if asked. If Discord refuses for a missing permission, the error says which one and where: tell the person, do not try another way around it.",
         {
           action: z.enum(["list_channels", "create_channel", "edit_channel", "create_webhook", "list_webhooks"]).describe("What to do"),
@@ -312,8 +312,8 @@ export function createTarseeMcp(ctx, opts = {}) {
       // GraphQL with the token), a secret in a command line and a transcript. Atlas does it with a token from the
       // vault (lib/railway-admin.js). No delete actions.
       tool(
-        "tarsee_railway",
-        "Railway jobs done by Atlas itself with a Railway token it reads from the vault (RAILWAY_API_TOKEN): list_projects (projects; with project, its environments and services), list_variables (variable NAMES on a service, never values), set_variable (set one variable on a service, then Railway redeploys it as it does on any variable change), redeploy (redeploy a service's latest deployment). Use it whenever someone asks to set a Railway variable or redeploy. It replaces any Railway call from Bash: never put a Railway token or a secret value in a command (no `railway variables --set` with a secret, no GraphQL with a token).\n\nSECRETS GO THROUGH from_key: for anything secret (a token, a password, a webhook URL, a database URL) pass from_key, the vault key name that holds it (e.g. from_key: \"ALERTS_WEBHOOK\"). Atlas reads the value itself; it never shows up in the result, the logs or your context, only a masked form. value is for plain, non-secret text only (a port, a flag, a public URL); a value that looks like a secret or is a vault key's value is refused.\n\nGET THE GO FIRST for set_variable and redeploy: from the owner, or from whoever your instructions (AGENTS.md, USER.md) say may give it. Putting a secret into a service (from_key) counts as handing out a credential, so it needs the owner's go. Put who said go, in their words, in approved_by (it is logged). If nobody has said go for this exact change, ask instead. list_projects and list_variables need no go.\n\nTARSEE'S OWN SERVICE: when Atlas runs on Railway, leaving out project works on the project Atlas runs in, in its environment, on its own service. Redeploying it, or setting a variable on it with a deploy, restarts Atlas and ends the turn doing it: say so before you do it, and finish anything else first.\n\nNAMES OR IDS: project, environment (default: the one Atlas runs in, else production) and service each take a name (any case) or an id. A name that matches nothing, or more than one, is refused with the choices listed.\n\nNOTHING HERE DELETES: deleting a variable, a service or a project is for the owner to do by hand in Railway; say so if asked. If Railway refuses, the error says why in plain words: tell the person, do not try another way around it.",
+        "atlas_railway",
+        "Railway jobs done by Atlas itself with a Railway token it reads from the vault (RAILWAY_API_TOKEN): list_projects (projects; with project, its environments and services), list_variables (variable NAMES on a service, never values), set_variable (set one variable on a service, then Railway redeploys it as it does on any variable change), redeploy (redeploy a service's latest deployment). Use it whenever someone asks to set a Railway variable or redeploy. It replaces any Railway call from Bash: never put a Railway token or a secret value in a command (no `railway variables --set` with a secret, no GraphQL with a token).\n\nSECRETS GO THROUGH from_key: for anything secret (a token, a password, a webhook URL, a database URL) pass from_key, the vault key name that holds it (e.g. from_key: \"ALERTS_WEBHOOK\"). Atlas reads the value itself; it never shows up in the result, the logs or your context, only a masked form. value is for plain, non-secret text only (a port, a flag, a public URL); a value that looks like a secret or is a vault key's value is refused.\n\nGET THE GO FIRST for set_variable and redeploy: from the owner, or from whoever your instructions (AGENTS.md, USER.md) say may give it. Putting a secret into a service (from_key) counts as handing out a credential, so it needs the owner's go. Put who said go, in their words, in approved_by (it is logged). If nobody has said go for this exact change, ask instead. list_projects and list_variables need no go.\n\nATLAS'S OWN SERVICE: when Atlas runs on Railway, leaving out project works on the project Atlas runs in, in its environment, on its own service. Redeploying it, or setting a variable on it with a deploy, restarts Atlas and ends the turn doing it: say so before you do it, and finish anything else first.\n\nNAMES OR IDS: project, environment (default: the one Atlas runs in, else production) and service each take a name (any case) or an id. A name that matches nothing, or more than one, is refused with the choices listed.\n\nNOTHING HERE DELETES: deleting a variable, a service or a project is for the owner to do by hand in Railway; say so if asked. If Railway refuses, the error says why in plain words: tell the person, do not try another way around it.",
         {
           action: z.enum(["list_projects", "list_variables", "set_variable", "redeploy"]).describe("What to do"),
           project: z.string().optional().describe("The project's name (any case) or id. Leave it out for the project Atlas runs in (on Railway); list_projects without it lists them all"),
@@ -332,7 +332,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_browser",
+        "atlas_browser",
         "Control a stealth web browser with captcha solving. Navigate pages, fill forms, click buttons, take screenshots, and auto-solve reCAPTCHA/hCaptcha/Turnstile. Browser persists across calls.",
         {
           action: z.enum(["navigate", "screenshot", "click", "type", "evaluate", "get_text", "wait_for", "scroll", "select", "solve_captcha", "close"]).describe("Browser action"),
@@ -351,7 +351,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_web_fetch",
+        "atlas_web_fetch",
         "Fetch a URL and return its content (HTML converted to text, or raw for APIs).",
         { url: z.string().describe("URL to fetch"), raw: z.boolean().optional().describe("Return raw response (for APIs)") },
         async (args) => {
@@ -361,7 +361,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_web_search",
+        "atlas_web_search",
         "Search the web and return results.",
         { query: z.string().describe("Search query"), num_results: z.number().optional().describe("Number of results, 1-10 (default 5)") },
         async (args) => {
@@ -376,7 +376,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       // For an AI that can't open PDFs itself (every model but Claude's): a message's PDF arrives as its first pages'
       // text plus the saved path (ai/media.js), and this reads the rest. Through executeTool, so Tool Permissions apply.
       tool(
-        "tarsee_pdf_read",
+        "atlas_pdf_read",
         "Read the text of a PDF: a file in the workspace (files people send in are saved in its uploads folder) or a web address. Long PDFs come a few pages at a time; the answer says which pages to ask for next. Use it whenever you need what a PDF says and can't open the file yourself. Scanned pages (pictures of text) have no text to read.",
         {
           path: z.string().describe("The PDF: a path in the workspace (absolute, or relative to it, e.g. 'uploads/report.pdf') or an http(s) address"),
@@ -390,7 +390,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_get_key",
+        "atlas_get_key",
         "Get a value from the encrypted key vault. The session system prompt " +
         "already includes an inventory of what's available — use this tool to " +
         "fetch the actual value when you need to USE a key, not to check whether " +
@@ -404,7 +404,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_set_key",
+        "atlas_set_key",
         "Store a value in the encrypted key vault. Use when the user gives you " +
         "a new credential (API key, token, password) to remember across sessions.",
         {
@@ -419,11 +419,11 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_list_keys",
+        "atlas_list_keys",
         "Re-query the vault live for the current list of keys. The session " +
         "system prompt already snapshots this at start, so only call this if " +
         "you just set/deleted a key or suspect the inventory is stale. Returns " +
-        "names + descriptions only — values require tarsee_get_key.",
+        "names + descriptions only — values require atlas_get_key.",
         {},
         async () => {
           const result = await executeTool("list_keys", {}, ctx);
@@ -432,7 +432,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_delete_key",
+        "atlas_delete_key",
         "Remove a key from the encrypted vault. Use when the user explicitly " +
         "asks to forget or rotate a credential.",
         { key: z.string().describe("Key name to delete") },
@@ -443,7 +443,7 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_list_files",
+        "atlas_list_files",
         "List all Atlas workspace files and their sizes.",
         {},
         async () => {
@@ -453,8 +453,8 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       tool(
-        "tarsee_push_notification",
-        "Send a Web Push notification to all the user's registered devices (iPhone/iPad PWA, laptop browsers). Use this for time-sensitive pings — cron completions, webhook alerts, proactive reminders — when the user may not have the app open. Non-urgent follow-ups should use tarsee_send_message instead.",
+        "atlas_push_notification",
+        "Send a Web Push notification to all the user's registered devices (iPhone/iPad PWA, laptop browsers). Use this for time-sensitive pings — cron completions, webhook alerts, proactive reminders — when the user may not have the app open. Non-urgent follow-ups should use atlas_send_message instead.",
         {
           title: z.string().describe("Short headline — appears as the notification title. Keep under 50 chars."),
           body: z.string().describe("One- or two-sentence body. Keep under 200 chars; platforms truncate."),
@@ -472,6 +472,6 @@ export function createTarseeMcp(ctx, opts = {}) {
 
   // (Quiet for the Codex endpoint, ai/mcp-http.js, which builds one per turn and logs its own start once.)
   if (!opts.quiet) console.log(`[mcp] Creating Atlas MCP server: ${allTools.length} tools, names: ${allTools.map(t => t.name).join(", ")}`);
-  // (A result past TARSEE_TOOL_RESULT_MAX_CHARS goes to a file, by Claude Code itself: ai/context-limits.js.)
-  return createSdkMcpServer({ name: "tarsee", version: "1.0.0", tools: allTools });
+  // (A result past ATLAS_TOOL_RESULT_MAX_CHARS goes to a file, by Claude Code itself: ai/context-limits.js.)
+  return createSdkMcpServer({ name: "atlas", version: "1.0.0", tools: allTools });
 }

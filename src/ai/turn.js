@@ -34,7 +34,7 @@
  */
 import { BACKGROUND_DEFAULTS } from "../config/constants.js";
 import { SettingsStore } from "../db/settings.js";
-import { EFFORT_IDS, TARSEE_DEFAULT_EFFORT } from "../lib/model-picker.js";
+import { EFFORT_IDS, ATLAS_DEFAULT_EFFORT } from "../lib/model-picker.js";
 import { claimQueuedTurn, takeQueuedNote } from "../lib/conversation-lock.js";
 import { publish, newTurnId } from "../lib/live-bus.js";
 import { redactSecrets } from "../lib/redact.js";
@@ -187,7 +187,7 @@ async function fileLoginStatus(opts) {
  *  Model: the caller's own, then the chat's (session.<conv>.model, only when it belongs to that provider: a pick
  *    stored before providers existed is a Claude model, for the Claude plan or the Anthropic key), then for
  *    background work ai.<sid>.backgroundModel and the provider's haiku tier, then ai.<sid>.model (and
- *    TARSEE_AI_MODEL for the default provider), then the provider's default; all through the registry's resolveModelFor. A caller that passes the default provider's
+ *    ATLAS_AI_MODEL for the default provider), then the provider's default; all through the registry's resolveModelFor. A caller that passes the default provider's
  *    default model (what the channels do) has not chosen one either.
  *  Effort: the caller's own, then the chat's, then ai.defaultEffort, then Medium (background work without a chat
  *    sends none), stepped down to a level the model takes.
@@ -245,7 +245,7 @@ export async function resolveTarget(opts = {}, store = storeOf(opts)) {
   if (!wanted && conv) {
     const chats = readStr(store, `session.${conv}.effort`);
     const fallback = readStr(store, "ai.defaultEffort");
-    wanted = [chats, fallback, TARSEE_DEFAULT_EFFORT].find((e) => EFFORT_IDS.includes(e));
+    wanted = [chats, fallback, ATLAS_DEFAULT_EFFORT].find((e) => EFFORT_IDS.includes(e));
   }
 
   await ensureModelList(providerId, pick, store);
@@ -360,9 +360,9 @@ function defaultModelSetting(providerId, store) {
   return readStr(store, `ai.${p.storageId}.model`) || p.defaultModel || null;
 }
 
-/** TARSEE_AI_MODEL: the default provider's model for a headless setup (a bare model, or a ref naming that provider). */
+/** ATLAS_AI_MODEL: the default provider's model for a headless setup (a bare model, or a ref naming that provider). */
 function envModelFor(providerId) {
-  const raw = typeof process.env.TARSEE_AI_MODEL === "string" ? process.env.TARSEE_AI_MODEL.trim() : "";
+  const raw = typeof process.env.ATLAS_AI_MODEL === "string" ? process.env.ATLAS_AI_MODEL.trim() : "";
   if (!raw) return null;
   const ref = parseModelRef(raw);
   if (ref.provider && ref.provider !== providerId) return null;
@@ -371,7 +371,7 @@ function envModelFor(providerId) {
 
 /**
  * Local AI's one rule (lib/model-catalog.js has it for the composer's menu and /model): the model chosen on its card
- * (ai.local.model, else TARSEE_AI_MODEL while Local AI is the default AI; with neither, the first model its server
+ * (ai.local.model, else ATLAS_AI_MODEL while Local AI is the default AI; with neither, the first model its server
  * lists), its background model, and the models verified in Settings > AI run; any other must be verified first. A
  * chat's pick saved while it was the card's model keeps to the rule once the card moves on.
  */
@@ -391,7 +391,7 @@ async function refusalFor(target, ctx) {
     return { subtype: "not-ready", message: `This Atlas can't use the ${p.label}. Choose another AI in Settings > AI.` };
   }
   if (p.kind === "subscription" && keysOnly(store)) {
-    const locked = keysOnlyLocked() ? " (it is locked on by the TARSEE_KEYS_ONLY variable)" : "";
+    const locked = keysOnlyLocked() ? " (it is locked on by the ATLAS_KEYS_ONLY variable)" : "";
     return {
       subtype: "blocked-keys-only",
       message: `"API keys only" is switched on${locked}, so Atlas won't use your ${p.label}. Choose an AI that uses an API key in Settings > AI.`,
@@ -400,7 +400,7 @@ async function refusalFor(target, ctx) {
   let status = null;
   try { status = await deps.providerStatus(p.id, store); } catch (err) { console.warn(`[turn] readiness of ${p.id}: ${err?.message || err}`); }
   if (status && NOT_READY_STATES.has(status.state)) {
-    const nothingChosen = !readStr(store, "ai.activeProvider") && !String(process.env.TARSEE_AI_PROVIDER || "").trim();
+    const nothingChosen = !readStr(store, "ai.activeProvider") && !String(process.env.ATLAS_AI_PROVIDER || "").trim();
     const message = nothingChosen && p.id === "claude"
       ? "Atlas isn't connected to an AI yet: open Settings > AI."
       : [status.detail, status.fix].filter(Boolean).join(" ") || `The ${p.label} isn't set up yet. Open Settings > AI.`;

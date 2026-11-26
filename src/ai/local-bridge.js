@@ -11,7 +11,7 @@
  *
  * How a turn uses it. codex.js opens a turn here before Codex starts: open({upstream, key}) gives a per-turn address,
  * http://127.0.0.1:<port>/t/<turn id>/v1, and a token. Codex's custom provider gets the address as its base_url and the
- * token as its key (TARSEE_PROVIDER_KEY, so it is never on Codex's command line, which the address is), and the
+ * token as its key (ATLAS_PROVIDER_KEY, so it is never on Codex's command line, which the address is), and the
  * owner's key never enters the Codex process: the bridge adds it on the way to the owner's server. A request must name
  * the turn in its path and carry that turn's token as its Bearer header (compared in constant time); both stop working
  * when the turn releases them (codex.js's finally), or after MAX_TURN_MS.

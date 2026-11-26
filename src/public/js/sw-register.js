@@ -4,7 +4,7 @@
  * The SW itself is always registered (PWA shell + offline). Push
  * subscription is NOT automatic — we only prompt the user to enable
  * notifications when they explicitly opt in (from Settings > Appearance
- * or by calling window.TarseePush.enable() from the console/console
+ * or by calling window.AtlasPush.enable() from the console/console
  * dashboard). This keeps us off Apple's/Chrome's spammy-notification
  * shame lists.
  */
@@ -26,7 +26,7 @@
   async function csrfHeaders(method = "POST") {
     const headers = { "Content-Type": "application/json" };
     // Reuse the CSRF token the API wrapper uses when present.
-    const match = document.cookie.match(/(?:^|;\s*)tarsee_csrf=([^;]+)/);
+    const match = document.cookie.match(/(?:^|;\s*)atlas_csrf=([^;]+)/);
     if (match && method !== "GET") headers["X-CSRF-Token"] = match[1];
     return headers;
   }
@@ -113,5 +113,5 @@
     },
   };
 
-  window.TarseePush = api;
+  window.AtlasPush = api;
 })();

@@ -3,7 +3,7 @@ name: ultrareview
 description: Multi-agent code review on the current git branch — spawns three parallel sub-reviews (correctness, architecture, UX/a11y) and aggregates a single structured report.
 metadata:
   {
-    "tarsee":
+    "atlas":
       {
         "emoji": "🔬",
         "category": "review",

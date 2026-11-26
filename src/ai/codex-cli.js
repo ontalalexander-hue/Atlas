@@ -3,7 +3,7 @@
  * (codex-device-login.js) and the signed-in account's model list (codex-models.js). Turns themselves go through the
  * Codex SDK (providers/codex.js); this is the small part both of those other jobs share:
  *
- *   resolveCodexBin()   which codex to run: an explicit path, TARSEE_CODEX_BIN, or the binary the pinned
+ *   resolveCodexBin()   which codex to run: an explicit path, ATLAS_CODEX_BIN, or the binary the pinned
  *                       @openai/codex package installed for this platform (found the way the SDK finds it)
  *   codexChildEnv()     the server's environment minus every credential (engine-env's baseEnv, rule R2), plus
  *                       CODEX_HOME: a sign-in started here can only ever see its own home
@@ -85,12 +85,12 @@ export function pinnedCodexBin({ platform = process.platform, arch = process.arc
 }
 
 /**
- * Which codex to run: `codexBin` when given, else TARSEE_CODEX_BIN (the same override the Codex engine honours),
+ * Which codex to run: `codexBin` when given, else ATLAS_CODEX_BIN (the same override the Codex engine honours),
  * else the pinned binary. An explicit path that isn't a file is refused here, so the error is plain instead of a
  * shell's "not recognized".
  */
 export function resolveCodexBin({ codexBin, env = process.env } = {}) {
-  const explicit = String(codexBin || env?.TARSEE_CODEX_BIN || "").trim();
+  const explicit = String(codexBin || env?.ATLAS_CODEX_BIN || "").trim();
   if (!explicit) return pinnedCodexBin();
   if (!isFile(explicit)) throw new CodexCliError("codex-missing", MISSING_MESSAGE);
   return explicit;

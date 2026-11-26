@@ -337,7 +337,7 @@ ${sendFileHint("discord")}`,
     // ~2e9 (23 days), which is only safe there because its PTY pool has a
     // heartbeat + dead-socket detector. This build has neither, so an infinite
     // value would wedge a turn forever with no console to kill it from.
-    const IDLE_ABORT_MS = Number(process.env.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+    const IDLE_ABORT_MS = Number(process.env.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
     const idleTimer = setInterval(() => {
       if (Date.now() - lastEventAt > IDLE_ABORT_MS) {
         idleAborted = true;
@@ -622,7 +622,7 @@ ${sendFileHint("discord")}`,
     sendMessage: async (channelId, text) => {
       const channel = await client.channels.fetch(channelId);
       if (channel?.isTextBased()) {
-        // Outbound tool sends (tarsee_send_message) get the same tables and quotes as streamed replies.
+        // Outbound tool sends (atlas_send_message) get the same tables and quotes as streamed replies.
         const chunks = splitMessage(formatForDiscord(text), 2000);
         for (const chunk of chunks) {
           await channel.send(chunk);
@@ -630,7 +630,7 @@ ${sendFileHint("discord")}`,
       }
     },
     /**
-     * tarsee_discord_admin (lib/discord-admin.js): list, make and edit channels, and make webhooks (the URL goes to the
+     * atlas_discord_admin (lib/discord-admin.js): list, make and edit channels, and make webhooks (the URL goes to the
      * vault), done by this logged-in client so the agent never handles the bot token. No deletes.
      */
     admin: (args) => discordAdmin(args, { client }),

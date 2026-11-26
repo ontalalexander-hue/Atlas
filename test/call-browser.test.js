@@ -21,7 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PUBLIC = fileURLToPath(new URL("../src/public/", import.meta.url));
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-call-browser-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-call-browser-"));
 
 // --- Sound: what the fake microphone hears, and what the fake voice says -----------------------------------------
 

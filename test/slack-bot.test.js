@@ -1,5 +1,5 @@
 // The Slack bot end to end, against a fake Slack on 127.0.0.1: its Web API, the Socket Mode WebSocket that delivers
-// events and slash commands, the upload URL files go to and the response_url /tarsee answers on. Real @slack/bolt
+// events and slash commands, the upload URL files go to and the response_url /atlas answers on. Real @slack/bolt
 // does the talking; the model is a scripted stream. Nothing here leaves 127.0.0.1.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -9,10 +9,10 @@ import os from "node:os";
 import path from "node:path";
 import { WebSocketServer } from "ws";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-slack-bot-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-slack-bot-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-key-for-unit-tests-only-32chars!";
 fs.mkdirSync(path.join(tmp, "workspace"), { recursive: true });
 
@@ -22,7 +22,7 @@ const { ConversationStore } = await import("../src/db/conversations.js");
 const { createSlackBot } = await import("../src/channels/slack.js");
 const { transcribeAudio, __setForTests: setStt } = await import("../src/voice/stt-handler.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
 
@@ -30,7 +30,7 @@ const convs = new ConversationStore(db);
 
 const calls = [];          // [method, args]
 const uploads = [];        // bytes posted to the upload URL
-const responses = [];      // what /tarsee answered on its response_url
+const responses = [];      // what /atlas answered on its response_url
 const acks = [];           // Socket Mode acknowledgements
 let socket = null;
 let port = 0;
@@ -43,7 +43,7 @@ const nextTs = () => `${++tsCounter}.000100`;
 const of = (method) => calls.filter(([m]) => m === method).map(([, a]) => a);
 
 const handlers = {
-  "auth.test": () => ({ ok: true, user_id: "UBOT", team_id: "T1", bot_id: "BBOT", user: "tarsee", team: "Test Team" }),
+  "auth.test": () => ({ ok: true, user_id: "UBOT", team_id: "T1", bot_id: "BBOT", user: "atlas", team: "Test Team" }),
   // As real Slack does: the app-level token only in the Authorization header. Sent in the body as well, it is refused.
   "apps.connections.open": (args, headers) => {
     if (args.token || headers.authorization !== "Bearer xapp-test") return { ok: false, error: "invalid_auth" };
@@ -142,7 +142,7 @@ function sendCommand(text, channel = "C1") {
     envelope_id: id, type: "slash_commands", accepts_response_payload: true,
     payload: {
       token: "x", team_id: "T1", team_domain: "test", channel_id: channel, channel_name: "ops", user_id: "U1", user_name: "alice",
-      command: "/tarsee", text, api_app_id: "A1", response_url: `http://127.0.0.1:${port}/respond`, trigger_id: "t1",
+      command: "/atlas", text, api_app_id: "A1", response_url: `http://127.0.0.1:${port}/respond`, trigger_id: "t1",
     },
   }));
   return id;
@@ -224,7 +224,7 @@ describe("the Slack bot against a fake Slack", () => {
   it("connects over Socket Mode with the app token, after checking the bot token", () => {
     assert.ok(of("auth.test").length >= 1);
     assert.equal(of("apps.connections.open").length >= 1, true);
-    assert.equal(bot.identity, "@tarsee in Test Team", "who it connected as, for Settings → Channels");
+    assert.equal(bot.identity, "@atlas in Test Team", "who it connected as, for Settings → Channels");
   });
 
   it("acknowledges events and, with no AI set up, hands the message on anyway: the turn layer's answer says what to set up", async () => {
@@ -447,7 +447,7 @@ describe("the Slack bot against a fake Slack", () => {
     assert.equal(streamCalls.length, called + 1, "one call: the turn layer already retried");
     assert.equal(post.thread_ts, "980.000100");
     assert.match(post.markdown_text, /DeepSeek Flash/, "the AI's name, from the route event");
-    assert.match(post.markdown_text, /@tarsee \/clear/, "how /clear is typed in Slack");
+    assert.match(post.markdown_text, /@atlas \/clear/, "how /clear is typed in Slack");
     assert.doesNotMatch(post.markdown_text, /Claude Code/);
     assert.equal(calls.slice(from).filter(([m]) => m === "chat.delete").length, 0, "nothing shown to take back");
   });
@@ -564,27 +564,27 @@ describe("the Slack bot against a fake Slack", () => {
 
   it("help says how to type a command in Slack, where /clear on its own is Slack's", async () => {
     sendCommand("help");
-    const r = await until(() => responses.find((x) => /Atlas Commands/.test(x.blocks?.[0]?.text || "")), "the /tarsee help answer");
+    const r = await until(() => responses.find((x) => /Atlas Commands/.test(x.blocks?.[0]?.text || "")), "the /atlas help answer");
     const top = r.blocks[0].text.split("**Atlas Commands**")[0];
-    assert.match(top, /`\/tarsee \/model opus`/, "first: a command from anywhere");
-    assert.match(top, /`@tarsee \/clear`/, "and a thread's command, in its thread");
-    assert.match(r.text, /`\/tarsee \/model opus`/, "the notification text starts with it too");
+    assert.match(top, /`\/atlas \/model opus`/, "first: a command from anywhere");
+    assert.match(top, /`@atlas \/clear`/, "and a thread's command, in its thread");
+    assert.match(r.text, /`\/atlas \/model opus`/, "the notification text starts with it too");
 
     const from = calls.length;
     sendEvent({ type: "message", channel: "C1", channel_type: "channel", user: "U1", user_team: "T1", text: "<@UBOT> /help", ts: "710.000100" });
     const post = await until(() => calls.slice(from).find(([m, a]) => m === "chat.postMessage" && /Atlas Commands/.test(a.markdown_text || "")), "the help in a thread");
-    assert.match(post[1].markdown_text, /`@tarsee \/clear`/);
+    assert.match(post[1].markdown_text, /`@atlas \/clear`/);
   });
 
-  it("/tarsee: global commands answer privately, thread commands say where they work, a question gets a thread", async () => {
+  it("/atlas: global commands answer privately, thread commands say where they work, a question gets a thread", async () => {
     sendCommand("mention");
-    let r = await until(() => responses.find((x) => /Mention mode/.test(x.text || "")), "the /tarsee mention answer");
+    let r = await until(() => responses.find((x) => /Mention mode/.test(x.text || "")), "the /atlas mention answer");
     assert.equal(r.response_type, "ephemeral");
     assert.equal(r.blocks[0].type, "markdown");
 
     sendCommand("clear");
-    r = await until(() => responses.find((x) => /every thread is its own conversation/.test(x.text || "")), "the /tarsee clear answer");
-    assert.match(r.text, /@tarsee \/clear/);
+    r = await until(() => responses.find((x) => /every thread is its own conversation/.test(x.text || "")), "the /atlas clear answer");
+    assert.match(r.text, /@atlas \/clear/);
 
     sendCommand("/nope");
     r = await until(() => responses.find((x) => /no `\/nope` command/i.test(x.text || "")), "the unknown-command answer");

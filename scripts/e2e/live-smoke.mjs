@@ -11,7 +11,7 @@
  *   verify   with --verify: POST /api/ai/verify/:id for the OpenRouter and Local AI models it is about to chat with
  *   turn     a fresh chat set to that AI and model (PUT /api/models/picker), one message through the real chat route
  *            (POST /api/chat/send, read to the end), asking for a product only Atlas's calculator tool should work out
- *   tool     tarsee_calculator ran, returned the right number, and the reply carries it
+ *   tool     atlas_calculator ran, returned the right number, and the reply carries it
  *   usage    the chat's usage row (GET /api/analytics/usage/chat/:id): provider, model, engine, tokens, cost
  *   cleanup  a turn that wasn't seen to end (the time ran out, the connection broke, the stream ended with no "done")
  *            is stopped first (POST /api/chat/stop, the chat's Stop) and waited for until the chat shows no turn at
@@ -20,7 +20,7 @@
  * OpenRouter gets two chats, one on each engine (a Claude model on Claude Code, an OpenAI model on Codex), unless
  * --model names its own. ChatGPT's chat names no model: the account's default runs, as a new chat would.
  *
- *   node scripts/e2e/live-smoke.mjs [options]          (TARSEE_URL and TARSEE_PASSWORD set in the shell)
+ *   node scripts/e2e/live-smoke.mjs [options]          (ATLAS_URL and ATLAS_PASSWORD set in the shell)
  *     --only a,b             just these AIs: claude anthropic chatgpt openai openrouter deepseek local
  *     --model id=model,...   chat with this model on that AI instead of its card's (OpenRouter may take two)
  *     --verify [list]        verify first. Alone: every OpenRouter and Local AI chat's model. A list of ids
@@ -73,7 +73,7 @@ const KEY_SHAPES = [
   // A key, token, password or cookie after its label: x-api-key: ..., "refresh_token": "...", password=...
   [/((?:x-api-key|api[_-]?key|apikey|authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|token|password|passwd|secret|client[_-]?secret|cookie|set-cookie)["']?\s*[:=]\s*["']?)[^\s"',;&]{4,}/gi, "$1[redacted]"],
   // Atlas's own cookies
-  [/\b(tarsee_session|tarsee_csrf)=[^;\s"',]+/g, "$1=[redacted]"],
+  [/\b(atlas_session|atlas_csrf)=[^;\s"',]+/g, "$1=[redacted]"],
   // Refresh tokens, GitHub, Slack, Google, AWS
   [/\brt[-_][A-Za-z0-9_-]{16,}/g, "[redacted]"],
   [/\b(?:gh[opsur]_|github_pat_)[A-Za-z0-9_]{10,}/g, "[redacted]"],
@@ -98,7 +98,7 @@ export function redact(text, secrets = SECRETS) {
 export const PROVIDER_IDS = ["claude", "anthropic", "chatgpt", "openai", "openrouter", "deepseek", "local"];
 
 const USAGE = `Usage: node scripts/e2e/live-smoke.mjs [--only a,b] [--model id=model,...] [--verify [list]] [--keep] [--timeout <s>]
-Set TARSEE_URL (for example http://localhost:3000) and TARSEE_PASSWORD (Atlas's SETUP_PASSWORD) in the shell first.
+Set ATLAS_URL (for example http://localhost:3000) and ATLAS_PASSWORD (Atlas's SETUP_PASSWORD) in the shell first.
 AIs: ${PROVIDER_IDS.join(" ")}. See docs/live-testing.md.`;
 
 /** The options, and what was wrong with them (never echoing a value that isn't an option: it could be a key). */
@@ -163,7 +163,7 @@ export function parseArgs(argv, { password = "" } = {}) {
       default:
         // A stray argument may be a key or the password pasted in the wrong place: say so without showing it.
         o.errors.push(!a.startsWith("--")
-          ? "An argument that isn't an option was given and ignored (it isn't shown: the address and password go in TARSEE_URL and TARSEE_PASSWORD, never on the command line)"
+          ? "An argument that isn't an option was given and ignored (it isn't shown: the address and password go in ATLAS_URL and ATLAS_PASSWORD, never on the command line)"
           : showable(flag.slice(2)) ? `Unknown option ${flag}` : "An unknown option was given (it isn't shown; see --help)");
     }
   }
@@ -239,7 +239,7 @@ class Atlas {
     const h = { accept: "application/json, text/event-stream" };
     if (this.jar.size) h.cookie = [...this.jar].map(([k, v]) => `${k}=${v}`).join("; ");
     if (!["GET", "HEAD"].includes(method)) {
-      const csrf = this.jar.get("tarsee_csrf");
+      const csrf = this.jar.get("atlas_csrf");
       if (csrf) h["x-csrf-token"] = decodeURIComponent(csrf);
     }
     if (body !== undefined) {
@@ -385,8 +385,8 @@ const plainDigits = (s) => String(s || "").replace(/(?<=\d)[,   '’](?=\d{3}
 export async function main(argv = process.argv.slice(2), env = process.env) {
   T0 = Date.now();
   anyFailed = false;
-  if (env.TARSEE_PASSWORD) addSecret(env.TARSEE_PASSWORD);
-  const o = parseArgs(argv, { password: String(env.TARSEE_PASSWORD || "") });
+  if (env.ATLAS_PASSWORD) addSecret(env.ATLAS_PASSWORD);
+  const o = parseArgs(argv, { password: String(env.ATLAS_PASSWORD || "") });
   if (o.help) { console.log(USAGE); return 0; }
   if (o.errors.length) {
     for (const e of o.errors) say("FAIL", "options", null, e);
@@ -394,18 +394,18 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return 1;
   }
 
-  const rawUrl = String(env.TARSEE_URL || "").trim();
-  const password = String(env.TARSEE_PASSWORD || "");
+  const rawUrl = String(env.ATLAS_URL || "").trim();
+  const password = String(env.ATLAS_PASSWORD || "");
   if (!rawUrl || !password) {
-    say("FAIL", "setup", null, `Set ${[!rawUrl && "TARSEE_URL", !password && "TARSEE_PASSWORD"].filter(Boolean).join(" and ")} in this shell first (docs/live-testing.md)`);
+    say("FAIL", "setup", null, `Set ${[!rawUrl && "ATLAS_URL", !password && "ATLAS_PASSWORD"].filter(Boolean).join(" and ")} in this shell first (docs/live-testing.md)`);
     return 1;
   }
   let base;
   try { base = new URL(rawUrl); } catch { base = null; }
-  if (!base || !/^https?:$/.test(base.protocol)) { say("FAIL", "setup", null, "TARSEE_URL must be an http:// or https:// address, for example http://localhost:3000"); return 1; }
-  if (base.username || base.password) { say("FAIL", "setup", null, "TARSEE_URL has a user name or password in it: take it out (the password goes in TARSEE_PASSWORD only)"); return 1; }
-  const tarsee = new Atlas(base.origin);
-  const api = (method, p, body, opts) => tarsee.request(method, p, body, opts);
+  if (!base || !/^https?:$/.test(base.protocol)) { say("FAIL", "setup", null, "ATLAS_URL must be an http:// or https:// address, for example http://localhost:3000"); return 1; }
+  if (base.username || base.password) { say("FAIL", "setup", null, "ATLAS_URL has a user name or password in it: take it out (the password goes in ATLAS_PASSWORD only)"); return 1; }
+  const atlas = new Atlas(base.origin);
+  const api = (method, p, body, opts) => atlas.request(method, p, body, opts);
   const timeoutMs = o.timeoutSec * 1000;
 
   /** A request again after the wait Atlas asks for (a per-minute limit), when it says how long and that is short. */
@@ -423,7 +423,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   // Test chats still open, deleted if the run is stopped with Ctrl+C.
   const openChats = new Set();
   const onSigint = async () => {
-    say("INFO", "tarsee", "stopped", o.keep ? "stopping their turns and leaving the test chats" : "stopping their turns and deleting the test chats first");
+    say("INFO", "atlas", "stopped", o.keep ? "stopping their turns and leaving the test chats" : "stopping their turns and deleting the test chats first");
     for (const id of openChats) {
       await stopTurn(id, 5000);
       if (!o.keep) await api("DELETE", `/api/chat/conversations/${encodeURIComponent(id)}`, undefined, { timeoutMs: 5000 });
@@ -433,34 +433,34 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   process.once("SIGINT", onSigint);
 
   // --- Sign in, as the page does ---
-  say("INFO", "tarsee", null, `${base.origin} (live test, ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC)`);
+  say("INFO", "atlas", null, `${base.origin} (live test, ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC)`);
   const health = await api("GET", "/healthz", undefined, { timeoutMs: 15_000 });
-  if (health.status !== 200) { say("FAIL", "tarsee", "reach", `Atlas didn't answer at ${base.origin} (${whyNot(health)}). Is it running?`); return 1; }
+  if (health.status !== 200) { say("FAIL", "atlas", "reach", `Atlas didn't answer at ${base.origin} (${whyNot(health)}). Is it running?`); return 1; }
   const status = await api("GET", "/api/auth/status");
-  if (status.json && status.json.needsPassword === false) say("INFO", "tarsee", "sign in", "this Atlas has no SETUP_PASSWORD set");
-  const login = await patient("sign in", "tarsee", () => api("POST", "/api/auth/login", { password }));
-  if (login.status !== 200 || !tarsee.jar.has("tarsee_session")) {
-    const why = login.status === 401 ? "TARSEE_PASSWORD was turned down (it is Atlas's SETUP_PASSWORD)" : whyNot(login);
-    say("FAIL", "tarsee", "sign in", why);
+  if (status.json && status.json.needsPassword === false) say("INFO", "atlas", "sign in", "this Atlas has no SETUP_PASSWORD set");
+  const login = await patient("sign in", "atlas", () => api("POST", "/api/auth/login", { password }));
+  if (login.status !== 200 || !atlas.jar.has("atlas_session")) {
+    const why = login.status === 401 ? "ATLAS_PASSWORD was turned down (it is Atlas's SETUP_PASSWORD)" : whyNot(login);
+    say("FAIL", "atlas", "sign in", why);
     return 1;
   }
   const csrf = await api("GET", "/api/auth/csrf");
-  if (csrf.status !== 200 || !tarsee.jar.has("tarsee_csrf")) { say("FAIL", "tarsee", "sign in", `no CSRF cookie (${whyNot(csrf)})`); return 1; }
-  say("PASS", "tarsee", "sign in", "signed in with the password, as the page does");
+  if (csrf.status !== 200 || !atlas.jar.has("atlas_csrf")) { say("FAIL", "atlas", "sign in", `no CSRF cookie (${whyNot(csrf)})`); return 1; }
+  say("PASS", "atlas", "sign in", "signed in with the password, as the page does");
 
   // --- The cards ---
   const cardsAnswer = await api("GET", "/api/ai/providers");
-  if (cardsAnswer.status !== 200 || !Array.isArray(cardsAnswer.json?.providers)) { say("FAIL", "tarsee", "cards", `GET /api/ai/providers: ${whyNot(cardsAnswer)}`); return 1; }
+  if (cardsAnswer.status !== 200 || !Array.isArray(cardsAnswer.json?.providers)) { say("FAIL", "atlas", "cards", `GET /api/ai/providers: ${whyNot(cardsAnswer)}`); return 1; }
   const cards = Object.fromEntries(cardsAnswer.json.providers.map((c) => [c.id, c]));
-  say("INFO", "tarsee", "cards", cardsAnswer.json.providers.map((c) => `${c.id} ${c.state}${c.active ? " (default)" : ""}`).join(", "));
-  for (const b of cardsAnswer.json.banners || []) say("INFO", "tarsee", "Settings > AI says", b.message);
+  say("INFO", "atlas", "cards", cardsAnswer.json.providers.map((c) => `${c.id} ${c.state}${c.active ? " (default)" : ""}`).join(", "));
+  for (const b of cardsAnswer.json.banners || []) say("INFO", "atlas", "Settings > AI says", b.message);
 
   const wanted = new Set(o.only || cardsAnswer.json.providers.filter((c) => c.ready && c.shipped !== false).map((c) => c.id));
   for (const p of o.models) if (!o.only) wanted.add(p.provider);
   for (const p of o.verify?.extra || []) wanted.add(p.provider);
   const providers = PROVIDER_IDS.filter((id) => wanted.has(id));
-  if (!providers.length) { say("FAIL", "tarsee", "cards", "no AI is ready. Connect one in Settings > AI (or name one with --only)"); return 1; }
-  say("INFO", "tarsee", "plan", `testing ${providers.join(", ")}${o.verify ? " (with Verify)" : ""}`);
+  if (!providers.length) { say("FAIL", "atlas", "cards", "no AI is ready. Connect one in Settings > AI (or name one with --only)"); return 1; }
+  say("INFO", "atlas", "plan", `testing ${providers.join(", ")}${o.verify ? " (with Verify)" : ""}`);
 
   const rows = [];
   const tests = {};
@@ -586,7 +586,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     const a = crypto.randomInt(1000, 99_999);
     const b = crypto.randomInt(100, 9999);
     const product = a * b;
-    const message = `Live test: use Atlas's tarsee_calculator tool to work out ${a} * ${b}, then reply with just the number the tool gives you.`;
+    const message = `Live test: use Atlas's atlas_calculator tool to work out ${a} * ${b}, then reply with just the number the tool gives you.`;
     const created = await api("POST", "/api/chat/conversations", { title: TEST_CHAT_TITLE });
     const conv = created.json?.id;
     if (!(created.status === 200 || created.status === 201) || !conv) {
@@ -612,7 +612,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       // --- The turn ---
       const started = Date.now();
       unfinished = true;
-      const s = await tarsee.stream("/api/chat/send", { conversationId: conv, message }, { timeoutMs });
+      const s = await atlas.stream("/api/chat/send", { conversationId: conv, message }, { timeoutMs });
       const secs = ((Date.now() - started) / 1000).toFixed(1);
       const ev = s.events;
       const sel = all(ev, "model_selected")[0]?.data || null;
@@ -638,13 +638,13 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
       // --- The tool (when there was a reply to look at: a refused or broken turn is already a failure) ---
       if (!problems.length) {
-        const calls = all(ev, "tool_call").filter((e) => /tarsee_(calculator|datetime)/.test(String(e.data?.name || "")));
+        const calls = all(ev, "tool_call").filter((e) => /atlas_(calculator|datetime)/.test(String(e.data?.name || "")));
         const results = all(ev, "tool_result");
         const resultFor = (c) => results.find((x) => c.data?.id && x.data?.id === c.data.id) || results.find((x) => x.data?.name && x.data.name === c.data?.name) || null;
         const right = new RegExp(`=\\s*${product}(?!\\d)`);
         const calc = calls.find((c) => right.test(String(resultFor(c)?.data?.result || "")));
         if (calc) {
-          r.tool = "tarsee_calculator";
+          r.tool = "atlas_calculator";
           say("PASS", who, "tool", `${calc.data.name} worked out ${a} * ${b} = ${product}`);
         } else {
           const others = all(ev, "tool_call").map((e) => e.data?.name).filter(Boolean);

@@ -59,9 +59,9 @@ while (args[0] && /^-[IuEsBq]+$/.test(args[0])) args.shift();
 // ── -c ───────────────────────────────────────────────────────────────────
 if (args[0] === "-c") {
   const code = args[1] || "";
-  if (code.includes("TARSEE-PROBE")) {
+  if (code.includes("ATLAS-PROBE")) {
     if (me.probeHang) await sleep(600_000);
-    out(`TARSEE-PROBE ${JSON.stringify({
+    out(`ATLAS-PROBE ${JSON.stringify({
       version: version.split(".").map(Number),
       executable: me.executable,
       prefix: me.home || path.dirname(me.executable),

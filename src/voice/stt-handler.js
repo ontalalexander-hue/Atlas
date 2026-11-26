@@ -236,7 +236,7 @@ async function transcribeLocal(audioBuffer, settingsStore) {
     console.log(`[stt] ${model.wanted} isn't downloaded yet: downloading it, and using ${model.name} meanwhile`);
   }
   const english = model.name.endsWith(".en");
-  const tmp = path.join(os.tmpdir(), `tarsee-stt-${crypto.randomBytes(6).toString("hex")}${audioExt(audioBuffer)}`);
+  const tmp = path.join(os.tmpdir(), `atlas-stt-${crypto.randomBytes(6).toString("hex")}${audioExt(audioBuffer)}`);
   fs.writeFileSync(tmp, audioBuffer);
   try {
     const res = await _worker.transcribe(rt, {
@@ -269,7 +269,7 @@ export async function warmSTT(settingsStore) {
     silence.write("RIFF", 0, "latin1"); silence.writeUInt32LE(36 + 3200, 4); silence.write("WAVEfmt ", 8, "latin1");
     silence.writeUInt32LE(16, 16); silence.writeUInt16LE(1, 20); silence.writeUInt16LE(1, 22); silence.writeUInt32LE(16000, 24);
     silence.writeUInt32LE(32000, 28); silence.writeUInt16LE(2, 32); silence.writeUInt16LE(16, 34); silence.write("data", 36, "latin1"); silence.writeUInt32LE(3200, 40);
-    const tmp = path.join(os.tmpdir(), `tarsee-stt-warm-${crypto.randomBytes(6).toString("hex")}.wav`);
+    const tmp = path.join(os.tmpdir(), `atlas-stt-warm-${crypto.randomBytes(6).toString("hex")}.wav`);
     fs.writeFileSync(tmp, silence);
     try {
       await _worker.transcribe(rt, { audio: tmp, model: model.dir, language: model.name.endsWith(".en") ? "en" : null, threads: Math.max(1, Math.min(4, os.availableParallelism())) }, timeoutFor(model.name, 0));
@@ -302,7 +302,7 @@ export function __setForTests({ local, timeoutMs, idleMs } = {}) {
  * Transcribe audio using OpenAI Whisper API.
  */
 async function transcribeWhisperAPI(audioBuffer, language, apiKey) {
-  const boundary = "----TarseeSTTBoundary" + Date.now();
+  const boundary = "----AtlasSTTBoundary" + Date.now();
   const parts = [];
 
   parts.push(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.webm"\r\nContent-Type: audio/webm\r\n\r\n`);

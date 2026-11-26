@@ -11,11 +11,11 @@ import os from "node:os";
 import path from "node:path";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-model-picker-"));
-process.env.TARSEE_STATE_DIR = tmp;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-model-picker-"));
+process.env.ATLAS_STATE_DIR = tmp;
 // Hermetic: the shell's AI choice and keys, and this machine's own Claude or Codex sign-in, never decide what the
-// picker lists (the defaults read TARSEE_AI_PROVIDER/TARSEE_AI_MODEL; provider-status reads the homes).
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY", "CLAUDE_CODE_HOME", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CODEX_HOME"]) {
+// picker lists (the defaults read ATLAS_AI_PROVIDER/ATLAS_AI_MODEL; provider-status reads the homes).
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY", "CLAUDE_CODE_HOME", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CODEX_HOME"]) {
   delete process.env[name];
 }
 process.env.HOME = process.env.USERPROFILE = path.join(tmp, "home");

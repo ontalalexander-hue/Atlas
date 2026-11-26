@@ -11,10 +11,10 @@ import os from "node:os";
 import path from "node:path";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-models-route-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-models-route-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -111,7 +111,7 @@ describe("GET /api/models: one group per ready AI", () => {
     } finally { settings.delete("ai.activeProvider"); }
   });
 
-  it("Railway variables only: TARSEE_AI_PROVIDER and TARSEE_AI_MODEL are the defaults, a ref for another AI is not", async () => {
+  it("Railway variables only: ATLAS_AI_PROVIDER and ATLAS_AI_MODEL are the defaults, a ref for another AI is not", async () => {
     const defaultsWith = async (env) => {
       const app = express();
       app.set("db", db);
@@ -119,11 +119,11 @@ describe("GET /api/models: one group per ready AI", () => {
       const s = await new Promise((r) => { const x = app.listen(0, "127.0.0.1", () => r(x)); });
       try { return (await (await fetch(`http://127.0.0.1:${s.address().port}/api/models`)).json()).defaults; } finally { s.close(); }
     };
-    assert.deepEqual(await defaultsWith({ TARSEE_AI_PROVIDER: "deepseek", TARSEE_AI_MODEL: "deepseek-v4-pro" }),
+    assert.deepEqual(await defaultsWith({ ATLAS_AI_PROVIDER: "deepseek", ATLAS_AI_MODEL: "deepseek-v4-pro" }),
       { provider: "deepseek", model: "deepseek-v4-pro", effort: "medium", ref: "deepseek:deepseek-v4-pro" });
-    assert.equal((await defaultsWith({ TARSEE_AI_PROVIDER: "deepseek", TARSEE_AI_MODEL: "deepseek:deepseek-v4-pro" })).model, "deepseek-v4-pro");
-    assert.equal((await defaultsWith({ TARSEE_AI_PROVIDER: "deepseek", TARSEE_AI_MODEL: "chatgpt:gpt-6-luna" })).model, "deepseek-flash");
-    assert.equal((await defaultsWith({ TARSEE_AI_MODEL: "opus" })).model, "opus", "the Claude plan, the default with no provider named");
+    assert.equal((await defaultsWith({ ATLAS_AI_PROVIDER: "deepseek", ATLAS_AI_MODEL: "deepseek:deepseek-v4-pro" })).model, "deepseek-v4-pro");
+    assert.equal((await defaultsWith({ ATLAS_AI_PROVIDER: "deepseek", ATLAS_AI_MODEL: "chatgpt:gpt-6-luna" })).model, "deepseek-flash");
+    assert.equal((await defaultsWith({ ATLAS_AI_MODEL: "opus" })).model, "opus", "the Claude plan, the default with no provider named");
   });
 
   it("an AI that is not switched on in this version is never listed", async () => {

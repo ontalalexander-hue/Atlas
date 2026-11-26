@@ -9,7 +9,7 @@
  *    uploads folder and a note with its path.
  *  - PDFs stay PDFs where the model reads them itself (caps.pdf: Claude models on Claude Code). Anywhere else the
  *    PDF is saved to the uploads folder and its text goes into the message (whole pages, up to about 30,000
- *    characters), with the path and "use the tarsee_pdf_read tool for the rest".
+ *    characters), with the path and "use the atlas_pdf_read tool for the rest".
  *  - Voice notes: no AI here takes sound as it is, so on every engine they become their transcript, from the local
  *    speech-to-text (voice/stt-handler.js transcribeAudio, which only uses the paid Whisper API when the owner chose
  *    it). One that can't be transcribed is saved, and the note says why.
@@ -183,7 +183,7 @@ export async function adaptMedia(content, caps, ctx = {}) {
       } else if (!pages.some((p) => p.trim())) {
         note(`[PDF attached, ${at} (${plural(total, "page")}). ${cant}, and no text could be taken out of this one: it may be scanned pages (pictures of text). Work with the file at that path.]`);
       } else if (pdfBudget < 2_000) {
-        note(`[PDF attached, ${at} (${plural(total, "page")}). ${cant}; read it with the tarsee_pdf_read tool and that path.]`);
+        note(`[PDF attached, ${at} (${plural(total, "page")}). ${cant}; read it with the atlas_pdf_read tool and that path.]`);
       } else {
         const fit = fitPages(pages, { first: 1, maxChars: Math.min(PDF_INLINE_CHARS, pdfBudget) });
         pdfBudget -= fit.text.length;
@@ -191,7 +191,7 @@ export async function adaptMedia(content, caps, ctx = {}) {
         const next = fit.partial ? fit.last : fit.last + 1;
         const head = whole
           ? `[PDF attached, ${at} (${plural(total, "page")}). ${cant}, so here is its text:]`
-          : `[PDF attached, ${at} (${total} pages). ${cant}, so here is the text of pages 1-${fit.last} of ${total}${fit.partial ? " (cut short)" : ""}. For the rest, use the tarsee_pdf_read tool with that path and pages "${next}-${total}".]`;
+          : `[PDF attached, ${at} (${total} pages). ${cant}, so here is the text of pages 1-${fit.last} of ${total}${fit.partial ? " (cut short)" : ""}. For the rest, use the atlas_pdf_read tool with that path and pages "${next}-${total}".]`;
         note(`${head}\n<pdf-text>\n${fit.text}\n</pdf-text>`);
       }
       continue;
@@ -265,7 +265,7 @@ export function writeLocalImages(media, { dir = os.tmpdir() } = {}) {
   const pictures = (Array.isArray(media) ? media : []).filter(isPicture);
   if (!pictures.length) return { inputs: [], dir: null, cleanup() {} };
   fs.mkdirSync(dir, { recursive: true });
-  const folder = fs.mkdtempSync(path.join(dir, "tarsee-images-"));
+  const folder = fs.mkdtempSync(path.join(dir, "atlas-images-"));
   try {
     const inputs = pictures.map((b, i) => {
       const file = path.join(folder, `image-${i + 1}${EXT[kindOf(b.source.media_type)] || ".png"}`);

@@ -11,7 +11,7 @@ describe("VAPID subject", () => {
 
   it("unset: a saved subject, then the Railway address, then a neutral placeholder", () => {
     assert.equal(vapidSubject({}, "mailto:saved@x.io"), "mailto:saved@x.io");
-    assert.equal(vapidSubject({ RAILWAY_PUBLIC_DOMAIN: "tarsee-production-1a2b.up.railway.app" }), "https://tarsee-production-1a2b.up.railway.app");
+    assert.equal(vapidSubject({ RAILWAY_PUBLIC_DOMAIN: "atlas-production-1a2b.up.railway.app" }), "https://atlas-production-1a2b.up.railway.app");
     assert.equal(vapidSubject({}), "mailto:admin@example.com");
   });
 

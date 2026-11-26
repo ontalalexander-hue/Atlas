@@ -4,18 +4,18 @@
 version: "3.8"
 
 services:
-  tarsee:
+  atlas:
     build: .
     ports:
       - "${PORT:-3000}:3000"
     volumes:
-      - tarsee-data:/data
+      - atlas-data:/data
     environment:
       - PORT=3000
       - SETUP_PASSWORD=${SETUP_PASSWORD}
-      - TARSEE_STATE_DIR=/data/tarsee
-      - TARSEE_WORKSPACE_DIR=/data/tarsee/workspace
-      - TARSEE_DATA_DIR=/data/tarsee/data
+      - ATLAS_STATE_DIR=/data/atlas
+      - ATLAS_WORKSPACE_DIR=/data/atlas/workspace
+      - ATLAS_DATA_DIR=/data/atlas/data
       # Encrypts the keys and tokens Atlas stores. Set it before you save any key in Settings > AI.
       - ENCRYPTION_KEY
       # Choose your AI. All optional: the setup wizard and Settings > AI do the same, and keys saved there are
@@ -24,18 +24,18 @@ services:
       # A command the agent runs can still read these keys inside the container (it runs as the same user as
       # Atlas), so give every key a spending limit at its provider: that is the real guard.
       # The default AI: claude, anthropic, chatgpt, openai, openrouter, deepseek or local; and its model.
-      - TARSEE_AI_PROVIDER
-      - TARSEE_AI_MODEL
+      - ATLAS_AI_PROVIDER
+      - ATLAS_AI_MODEL
       # 1 keeps "Only use API keys" on (no Claude or ChatGPT plan sign-in), for a Atlas other people talk to.
-      - TARSEE_KEYS_ONLY
+      - ATLAS_KEYS_ONLY
       # API keys, each billed per use by its provider. The Claude plan ignores ANTHROPIC_API_KEY.
       - ANTHROPIC_API_KEY
       - OPENAI_API_KEY
       - OPENROUTER_API_KEY
       - DEEPSEEK_API_KEY
       # Local AI: your Ollama, LM Studio or llama.cpp server's address, and its key if it asks for one.
-      - TARSEE_LOCAL_AI_URL
-      - TARSEE_LOCAL_AI_KEY
+      - ATLAS_LOCAL_AI_URL
+      - ATLAS_LOCAL_AI_KEY
       # The Claude plan without the Terminal: the token `claude setup-token` prints.
       - CLAUDE_CODE_OAUTH_TOKEN
       # Other services' keys (ElevenLabs, captcha solvers) go in the encrypted vault from Settings.
@@ -47,4 +47,4 @@ services:
       retries: 3
 
 volumes:
-  tarsee-data:
+  atlas-data:

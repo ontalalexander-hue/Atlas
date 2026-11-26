@@ -9,7 +9,7 @@
  *   apiKey         the OpenAI key, for the openai provider only (the SDK turns it into CODEX_API_KEY in the child)
  *   threadOptions  startThread()/resumeThread()'s options
  * No key or token is ever placed in config or on the command line: the custom providers read theirs from
- * TARSEE_PROVIDER_KEY (env_key), Atlas's tools from TARSEE_MCP_TOKEN (bearer_token_env_var), and none of the three
+ * ATLAS_PROVIDER_KEY (env_key), Atlas's tools from ATLAS_MCP_TOKEN (bearer_token_env_var), and none of the three
  * reaches the agent's shell (shell_environment_policy, R7). Every host comes from engine-env hostFor(), OpenAI's
  * included, and none is ever passed as the SDK's baseUrl.
  *
@@ -219,15 +219,15 @@ const oneLine = (s) => String(s ?? "").replace(/[\r\n\0]+/g, " ").trim();
  *   workspace       the agent's working folder (required)
  *   mcp             the turn's grant for Atlas's tools: { url, token } (required)
  *   developerInstructions   the stable instructions (preamble, workspace CLAUDE.md, stable system prompt)
- *   localUrl        Local AI's server address (ai.local.baseUrl, else TARSEE_LOCAL_AI_URL): checked, never sent to Codex
+ *   localUrl        Local AI's server address (ai.local.baseUrl, else ATLAS_LOCAL_AI_URL): checked, never sent to Codex
  *   localBridge     Local AI only, required: the turn's bridge {url, token} (local-bridge.js open()); Codex's base_url
- *                   is url and its key (TARSEE_PROVIDER_KEY) is token. ctx.key is not used for Local AI.
+ *                   is url and its key (ATLAS_PROVIDER_KEY) is token. ctx.key is not used for Local AI.
  *   appTitle, referer   OpenRouter's attribution
- *   contextTokens   the model's context window; compactWindow   TARSEE_COMPACT_WINDOW's value (default from env)
+ *   contextTokens   the model's context window; compactWindow   ATLAS_COMPACT_WINDOW's value (default from env)
  *   thinkingSummaries   ask for reasoning summaries (the dashboard's live view)
  *   accountModels   the ChatGPT account's live model list ([{id, efforts?, default?}])
  *   skillsDir       Atlas's bundled skills (added to the turn's folders)
- *   turnMark        a value unique to this turn, set as TARSEE_CODEX_TURN so Stop can find everything the turn started
+ *   turnMark        a value unique to this turn, set as ATLAS_CODEX_TURN so Stop can find everything the turn started
  *   platform        for the instructions' size limit (default process.platform)
  * Throws CredentialError (engine-env's codes) when the turn can't start: a missing key, Local AI without an address,
  * a provider Codex doesn't run, no grant for the tools.
@@ -253,10 +253,10 @@ export function buildCodexOptions(target, ctx = {}) {
   const childEnv = codexEnvFor(entry, {
     env, vaultEnv: ctx.vaultEnv, key: bridge ? bridge.token : ctx.key, mcpToken: ctx.mcp.token, home: ctx.home, stateDir: ctx.stateDir,
   });
-  if (ctx.turnMark) childEnv.TARSEE_CODEX_TURN = String(ctx.turnMark);
+  if (ctx.turnMark) childEnv.ATLAS_CODEX_TURN = String(ctx.turnMark);
 
   const context = Number(ctx.contextTokens) > 0 ? Math.round(Number(ctx.contextTokens)) : Number(entry.defaultContext) || null;
-  const compact = Number(ctx.compactWindow) > 0 ? Number(ctx.compactWindow) : compactWindowTokens(env.TARSEE_COMPACT_WINDOW);
+  const compact = Number(ctx.compactWindow) > 0 ? Number(ctx.compactWindow) : compactWindowTokens(env.ATLAS_COMPACT_WINDOW);
 
   const config = {
     developer_instructions: capInstructions(ctx.developerInstructions ?? "", instructionsLimit(ctx.platform)),
@@ -277,9 +277,9 @@ export function buildCodexOptions(target, ctx = {}) {
       filters: Object.fromEntries(CODEX_SHELL_EXCLUDED.map((n) => [n, "exclude"])),
     },
     mcp_servers: {
-      tarsee: {
+      atlas: {
         url: ctx.mcp.url,
-        bearer_token_env_var: "TARSEE_MCP_TOKEN",
+        bearer_token_env_var: "ATLAS_MCP_TOKEN",
         default_tools_approval_mode: "approve",
         required: true,
         startup_timeout_sec: MCP_STARTUP_TIMEOUT_SEC,
@@ -300,11 +300,11 @@ export function buildCodexOptions(target, ctx = {}) {
     config.openai_base_url = hostFor(entry, CODEX, { env });
     apiKey = String(ctx.key).trim().replace(/^(["'])(.*)\1$/, "$2").trim();
   } else {
-    const name = `tarsee_${id}`;
+    const name = `atlas_${id}`;
     const provider = {
       name: CUSTOM_PROVIDERS[id]?.name || entry.label || id,
       base_url: bridge ? bridge.url : hostFor(entry, CODEX, { env }),
-      ...(childEnv.TARSEE_PROVIDER_KEY ? { env_key: "TARSEE_PROVIDER_KEY" } : {}),
+      ...(childEnv.ATLAS_PROVIDER_KEY ? { env_key: "ATLAS_PROVIDER_KEY" } : {}),
       wire_api: "responses",
     };
     // A Local AI server that sends its headers and then nothing (a wedged GPU, a model too big for its memory) costs

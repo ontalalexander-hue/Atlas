@@ -10,10 +10,10 @@ import os from "node:os";
 import path from "node:path";
 import { buildPicker } from "../src/lib/model-picker.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-model-picker-core-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-model-picker-core-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 await import("../src/public/js/model-picker-core.js");

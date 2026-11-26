@@ -1,12 +1,12 @@
 // Atlas's own questions (src/public/js/dialogs.js), in place of the browser's confirm() and prompt(): the parts that
-// need no page (TarseeDialog.core), and how the dashboard loads it. What it looks like and does on a page is checked in
+// need no page (AtlasDialog.core), and how the dashboard loads it. What it looks like and does on a page is checked in
 // a browser.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 await import("../src/public/js/dialogs.js");
-const D = globalThis.TarseeDialog;
+const D = globalThis.AtlasDialog;
 const { SETTLE_MS, paragraphs, questionOf, sameKey, noOf, keyAction, tabTo, settled, outsideAnswers, focusBack, lineUp } = D.core;
 const read = (p) => readFileSync(new URL(`../src/public/${p}`, import.meta.url), "utf8");
 

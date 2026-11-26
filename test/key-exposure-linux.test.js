@@ -17,15 +17,15 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const LINUX = process.platform === "linux" ? false : "Linux only: the agent's shell reads /proc/<pid>/environ";
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-key-exposure-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-key-exposure-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 after(() => { try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* a child may hold a file a moment */ } });
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** The credential names either engine is started with; the probe prints only these from each ancestor. */
-const NAMES = ["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "TARSEE_PROVIDER_KEY", "CODEX_API_KEY", "TARSEE_MCP_TOKEN"];
+const NAMES = ["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ATLAS_PROVIDER_KEY", "CODEX_API_KEY", "ATLAS_MCP_TOKEN"];
 /**
  * The agent's command: every ancestor's environ (the engine's first), only the credential lines, each marked with its
  * pid; then how many of those names its own environment has. POSIX sh, so it runs under either engine's shell.
@@ -82,7 +82,7 @@ describe("Claude Code on Linux: a command the agent runs can still read the key 
     for (const d of [stateDir, homeDir, cwd]) fs.mkdirSync(d, { recursive: true });
     const env = { ...process.env };
     for (const k of Object.keys(env)) if (/^(ANTHROPIC_|CLAUDE_CODE_|CLAUDE_CONFIG_DIR$|https?_proxy$|all_proxy$|no_proxy$)/i.test(k)) delete env[k];
-    Object.assign(env, { NODE_ENV: "test", CLAUDE_CODE_MAX_RETRIES: "0", HOME: homeDir, [`TARSEE_TEST_BASE_URL_${providerId.toUpperCase()}`]: fake.url });
+    Object.assign(env, { NODE_ENV: "test", CLAUDE_CODE_MAX_RETRIES: "0", HOME: homeDir, [`ATLAS_TEST_BASE_URL_${providerId.toUpperCase()}`]: fake.url });
     fake.requests.length = 0;
     fake.script = (req) => (lib.hasToolResult(req.body)
       ? { text: "done" }
@@ -116,7 +116,7 @@ describe("Claude Code on Linux: a command the agent runs can still read the key 
 // --- Codex -----------------------------------------------------------------------------------------------------------
 
 const CODEX_KEYS = { openai: "sk-test-canary-exposure-openai-0001", openrouter: "sk-or-v1-testcanaryexposurecodex0001" };
-const CODEX_KEY_NAME = { openai: "CODEX_API_KEY", openrouter: "TARSEE_PROVIDER_KEY" };
+const CODEX_KEY_NAME = { openai: "CODEX_API_KEY", openrouter: "ATLAS_PROVIDER_KEY" };
 const MCP_TOKEN = "sk-test-canary-exposure-mcp-token-0001";
 
 describe("Codex on Linux: a command the agent runs can still read the key and the MCP token from codex's process", { skip: LINUX, timeout: 240_000 }, () => {
@@ -149,10 +149,10 @@ describe("Codex on Linux: a command the agent runs can still read the key and th
       delete: (k) => { m.delete(k); },
       getKeyWithSource: (id) => ({ key: CODEX_KEYS[id] ?? null, source: CODEX_KEYS[id] ? "settings" : null }),
     };
-    const keep = ["PATH", "LANG", "TMPDIR", "TARSEE_CODEX_BIN"];
+    const keep = ["PATH", "LANG", "TMPDIR", "ATLAS_CODEX_BIN"];
     const env = {
       ...Object.fromEntries(keep.filter((k) => process.env[k] != null).map((k) => [k, process.env[k]])),
-      HOME: home, NODE_ENV: "test", TARSEE_TEST_BASE_URL_OPENAI: fake.url, TARSEE_TEST_BASE_URL_OPENROUTER: fake.url,
+      HOME: home, NODE_ENV: "test", ATLAS_TEST_BASE_URL_OPENAI: fake.url, ATLAS_TEST_BASE_URL_OPENROUTER: fake.url,
     };
     let seen = null;
     handler = (body, { index }) => {
@@ -177,13 +177,13 @@ describe("Codex on Linux: a command the agent runs can still read the key and th
   }
 
   for (const provider of ["openrouter", "openai"]) {
-    it(`${provider}: the shell's own environment has no key or token, but ${CODEX_KEY_NAME[provider]} and TARSEE_MCP_TOKEN are in an ancestor's /proc environ`, async () => {
+    it(`${provider}: the shell's own environment has no key or token, but ${CODEX_KEY_NAME[provider]} and ATLAS_MCP_TOKEN are in an ancestor's /proc environ`, async () => {
       const { ancestors, own } = await probeTurn(provider);
       assert.equal(own, 0, "shell_environment_policy keeps them out of the shell's own environment");
       const has = (name, value) => ancestors.some((a) => a.name === name && a.value === value);
       const saw = JSON.stringify(ancestors.map((a) => [a.pid, a.name]));
       assert.ok(has(CODEX_KEY_NAME[provider], CODEX_KEYS[provider]), `the key is no longer readable from an ancestor: real isolation? Revisit the docs and cards. Saw: ${saw}`);
-      assert.ok(has("TARSEE_MCP_TOKEN", MCP_TOKEN), `the MCP token is no longer readable from an ancestor. Saw: ${saw}`);
+      assert.ok(has("ATLAS_MCP_TOKEN", MCP_TOKEN), `the MCP token is no longer readable from an ancestor. Saw: ${saw}`);
     });
   }
 });

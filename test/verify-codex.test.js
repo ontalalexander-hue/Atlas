@@ -1,8 +1,8 @@
 // Verify's Codex half, end to end (design 4.11): verifyModel through its own default runner, the turn layer's
 // verification mode (ai/turn.js runTurn with verify: true and engine: "codex"), the real pinned codex binary, Atlas's
-// real loopback MCP endpoint (ai/mcp-http.js, so tarsee_datetime really runs through executeTool) and a fake OpenRouter
+// real loopback MCP endpoint (ai/mcp-http.js, so atlas_datetime really runs through executeTool) and a fake OpenRouter
 // Responses server (test/fixtures/fake-responses.js) reached through engine-env's test-only base-URL seam. The fake
-// model does what it is asked: it repeats the code word, calls tarsee_datetime, runs the echo with Codex's shell, and
+// model does what it is asked: it repeats the code word, calls atlas_datetime, runs the echo with Codex's shell, and
 // recalls the code word only from what a resumed thread sends it. Every key here is an obvious fake.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -10,15 +10,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-verify-codex-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-verify-codex-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.NODE_ENV = "test";
-for (const k of ["OPENROUTER_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME", "CODEX_API_KEY", "TARSEE_AI_PROVIDER", "TARSEE_KEYS_ONLY"]) delete process.env[k];
-// tarsee_datetime answers in Atlas's zone (config/env.js reads it once, at import), else the host's; the year below
+for (const k of ["OPENROUTER_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME", "CODEX_API_KEY", "ATLAS_AI_PROVIDER", "ATLAS_KEYS_ONLY"]) delete process.env[k];
+// atlas_datetime answers in Atlas's zone (config/env.js reads it once, at import), else the host's; the year below
 // is UTC's, so the zone is UTC too, whatever this machine's is.
-process.env.TARSEE_TIMEZONE = "UTC";
+process.env.ATLAS_TIMEZONE = "UTC";
 
 const { startFakeResponses, functionOutputs, outputText, messageTexts, toolNames } = await import("./fixtures/fake-responses.js");
 const { initDb } = await import("../src/db/sqlite.js");
@@ -44,9 +44,9 @@ function model(body) {
   }
   const users = messageTexts(body, "user");
   const ask = users.at(-1) || "";
-  if (/tarsee_datetime/.test(ask)) {
-    assert.ok(toolNames(body).includes("mcp__tarsee.tarsee_datetime"), `Atlas's tools are offered: ${toolNames(body).join(" ")}`);
-    return { calls: [{ name: "tarsee_datetime", namespace: "mcp__tarsee", arguments: { format: "date" } }] };
+  if (/atlas_datetime/.test(ask)) {
+    assert.ok(toolNames(body).includes("mcp__atlas.atlas_datetime"), `Atlas's tools are offered: ${toolNames(body).join(" ")}`);
+    return { calls: [{ name: "atlas_datetime", namespace: "mcp__atlas", arguments: { format: "date" } }] };
   }
   const echo = /\becho\s+(\S+)/.exec(ask);
   if (echo) return { calls: [{ name: "exec_command", arguments: { cmd: `echo ${echo[1]}` } }] };
@@ -62,8 +62,8 @@ const codexThere = (() => { try { return !!resolveCodexBin(); } catch { return f
 
 before(async () => {
   fake = await startFakeResponses({ handler: (body) => model(body) });
-  process.env.TARSEE_TEST_BASE_URL_OPENROUTER = fake.url;
-  db = initDb(path.join(tmp, "tarsee.db"));
+  process.env.ATLAS_TEST_BASE_URL_OPENROUTER = fake.url;
+  db = initDb(path.join(tmp, "atlas.db"));
   store = new SettingsStore(db);
   store.set("ai.openrouter.apiKey", KEY);
 });

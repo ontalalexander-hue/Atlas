@@ -42,13 +42,13 @@ setup_provider_homes() {
 }
 
 # carry_plan_home <volume> <state dir>: the upgrade from a version before multi-provider support (main), which kept the
-# Claude plan's sign-in in <volume>/tarsee/.claude-code-home whatever TARSEE_STATE_DIR said; this one keeps it in
+# Claude plan's sign-in in <volume>/atlas/.claude-code-home whatever ATLAS_STATE_DIR said; this one keeps it in
 # <state dir>/.claude-code-home (where ~/.claude now points). When those are two folders, move the old one's sign-in
-# and chat history into the new one, so an install with its own TARSEE_STATE_DIR stays signed in and its chats still
+# and chat history into the new one, so an install with its own ATLAS_STATE_DIR stays signed in and its chats still
 # resume. Nothing in the new one is replaced: a file both have stays in the old folder.
 # - Only main's layout is moved. Every boot of this version makes a .codex-home in its state folder and main never
-#   made one, so a <volume>/tarsee with a .codex-home has been this version's own state folder: its sign-in belongs to
-#   that folder and stays there when TARSEE_STATE_DIR changes (only a line says where it is).
+#   made one, so a <volume>/atlas with a .codex-home has been this version's own state folder: its sign-in belongs to
+#   that folder and stays there when ATLAS_STATE_DIR changes (only a line says where it is).
 # - A plan home that is already signed in keeps its sign-in, and the old one is renamed .credentials.json.superseded
 #   (.2, .3, ... when that name is taken), so a later sign-out there can't bring it back.
 # - A state folder off the volume gets nothing (the sign-in would be lost on the next redeploy) and the old sign-in
@@ -57,13 +57,13 @@ setup_provider_homes() {
 carry_plan_home() {
   _vol=$1
   _state=$2
-  _old="$_vol/tarsee/.claude-code-home"
+  _old="$_vol/atlas/.claude-code-home"
   _new="$_state/.claude-code-home"
   [ -f "$_old/.credentials.json" ] || return 0
   [ "$_old" -ef "$_new" ] && return 0
-  if [ -d "$_vol/tarsee/.codex-home" ]; then
+  if [ -d "$_vol/atlas/.codex-home" ]; then
     [ -f "$_new/.credentials.json" ] ||
-      echo "[entrypoint] Claude Code: the Claude plan sign-in in $_old belongs to the state folder $_vol/tarsee, so it was not moved to $_state; set TARSEE_STATE_DIR back to $_vol/tarsee to use it."
+      echo "[entrypoint] Claude Code: the Claude plan sign-in in $_old belongs to the state folder $_vol/atlas, so it was not moved to $_state; set ATLAS_STATE_DIR back to $_vol/atlas to use it."
     return 0
   fi
   mkdir -p "$_new" || return 1
@@ -73,7 +73,7 @@ carry_plan_home() {
     "$_vol_real"/*) ;;
     *)
       [ -f "$_new/.credentials.json" ] ||
-        echo "[entrypoint] Claude Code: the Claude plan sign-in is in $_old. TARSEE_STATE_DIR ($_state) is not on the volume, so it was not moved there; set TARSEE_STATE_DIR to a folder in $_vol to use it."
+        echo "[entrypoint] Claude Code: the Claude plan sign-in is in $_old. ATLAS_STATE_DIR ($_state) is not on the volume, so it was not moved there; set ATLAS_STATE_DIR to a folder in $_vol to use it."
       return 0
       ;;
   esac
@@ -130,7 +130,7 @@ seed_codex_config() {
   if [ ! -f "$_file" ]; then
     echo "# Set by Atlas on every boot. Never put a key or token in this file." > "$_file" || return 1
   fi
-  _tmp="$_file.tarsee-tmp"
+  _tmp="$_file.atlas-tmp"
   awk -v method="$_method" '
     BEGIN {
       n = split("cli_auth_credentials_store check_for_update_on_startup forced_login_method", order, " ")
@@ -188,25 +188,25 @@ report_sign_ins() {
 }
 
 main() {
-  STATE_DIR="${TARSEE_STATE_DIR:-/data/tarsee}"
+  STATE_DIR="${ATLAS_STATE_DIR:-/data/atlas}"
 
   # If /data exists (Railway volume), ensure node user can write to it
   if [ -d /data ]; then
     # The server (src/config/env.js) uses this same folder, so the sign-in folders, CODEX_HOME and the workspace set up
-    # here are the ones it reads. Without a volume it keeps its own ~/.tarsee. gosu keeps the environment.
-    export TARSEE_STATE_DIR="$STATE_DIR"
-    mkdir -p /data/tarsee/data /data/tarsee/workspace/skills /data/tarsee/workspace/memory "$STATE_DIR"
+    # here are the ones it reads. Without a volume it keeps its own ~/.atlas. gosu keeps the environment.
+    export ATLAS_STATE_DIR="$STATE_DIR"
+    mkdir -p /data/atlas/data /data/atlas/workspace/skills /data/atlas/workspace/memory "$STATE_DIR"
     # Seed default workspace files if they don't exist
     for f in CLAUDE.md SOUL.md MEMORY.md IDENTITY.md USER.md TOOLS.md AGENTS.md; do
-      if [ ! -f "/data/tarsee/workspace/$f" ] && [ -f "/app/src/workspace-defaults/$f" ]; then
-        cp "/app/src/workspace-defaults/$f" "/data/tarsee/workspace/$f"
+      if [ ! -f "/data/atlas/workspace/$f" ] && [ -f "/app/src/workspace-defaults/$f" ]; then
+        cp "/app/src/workspace-defaults/$f" "/data/atlas/workspace/$f"
       fi
     done
-    chown -R node:node /data/tarsee
+    chown -R node:node /data/atlas
     chown node:node "$STATE_DIR"
 
     # Each AI's sign-in folder on the volume, so sign-ins persist across restarts and redeploys. An install upgraded
-    # from a version before multi-provider support, whose TARSEE_STATE_DIR isn't /data/tarsee, first gets its Claude
+    # from a version before multi-provider support, whose ATLAS_STATE_DIR isn't /data/atlas, first gets its Claude
     # plan sign-in from where that version kept it.
     carry_plan_home /data "$STATE_DIR"
     setup_provider_homes "$STATE_DIR" /home/node node:node
@@ -227,12 +227,12 @@ main() {
   echo "[entrypoint] Codex: ${CODEX_VERSION:-not found}"
 
   # Optional Claude Code CLI auto-update on boot.
-  # Set TARSEE_AUTO_UPDATE_CLI=1 to opt in. Off by default so boots are
+  # Set ATLAS_AUTO_UPDATE_CLI=1 to opt in. Off by default so boots are
   # deterministic + fast (~60s saved): the image installs the version pinned in
   # the Dockerfile (CLAUDE_CODE_VERSION), and a rebuild keeps it. An update made
   # here lives in the container only, so it is redone on every boot.
   CURRENT_VERSION=$(claude --version 2>/dev/null | head -1 || echo "unknown")
-  if [ "${TARSEE_AUTO_UPDATE_CLI:-0}" = "1" ]; then
+  if [ "${ATLAS_AUTO_UPDATE_CLI:-0}" = "1" ]; then
     echo "[entrypoint] Claude Code: $CURRENT_VERSION — checking for updates..."
     npm install -g @anthropic-ai/claude-code@latest --prefer-online 2>/dev/null &
     UPDATE_PID=$!
@@ -250,12 +250,12 @@ main() {
       echo "[entrypoint] warning: the Terminal's Claude Code (${NEW_VERSION%% *}) is not the version chat turns run ($ENGINE_VERSION, the Agent SDK's own)"
     fi
   else
-    echo "[entrypoint] Claude Code: $CURRENT_VERSION, chat turns $ENGINE_VERSION (auto-update off; TARSEE_AUTO_UPDATE_CLI=1 to enable)"
+    echo "[entrypoint] Claude Code: $CURRENT_VERSION, chat turns $ENGINE_VERSION (auto-update off; ATLAS_AUTO_UPDATE_CLI=1 to enable)"
   fi
 
   # Auto-generate ENCRYPTION_KEY if not set (persist on volume)
   if [ -z "$ENCRYPTION_KEY" ] && [ -d /data ]; then
-    KEY_FILE="/data/tarsee/.encryption-key"
+    KEY_FILE="/data/atlas/.encryption-key"
     if [ -f "$KEY_FILE" ]; then
       export ENCRYPTION_KEY=$(cat "$KEY_FILE")
       echo "[entrypoint] Loaded ENCRYPTION_KEY from volume"

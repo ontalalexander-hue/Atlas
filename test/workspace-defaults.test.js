@@ -1,6 +1,6 @@
 // The workspace files a new install is seeded with (src/workspace-defaults, copied by entrypoint.sh) work on any AI
 // (docs/superpowers/specs/2026-11-09-multi-provider-design.md 4.16, Phase 5 "Docs and defaults"): no "powered by
-// Claude", no tool names only Claude Code has (Bash, Read/Write/Edit/Grep/Glob, mcp__tarsee__*), no Claude model names
+// Claude", no tool names only Claude Code has (Bash, Read/Write/Edit/Grep/Glob, mcp__atlas__*), no Claude model names
 // for the agent team. An install seeded with the Claude-only wording keeps its own files: on boot only the exact old
 // default lines are swapped for the new ones (lib/workspace-files.js upgradeDefaultWorkspaceFiles), so an unedited file
 // becomes the new default exactly and a line the owner changed is left alone.
@@ -12,8 +12,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-workspace-defaults-"));
-process.env.TARSEE_STATE_DIR = tmp;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-workspace-defaults-"));
+process.env.ATLAS_STATE_DIR = tmp;
 const { upgradeDefaultWorkspaceFiles } = await import("../src/lib/workspace-files.js");
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
@@ -38,7 +38,7 @@ function workspaceFrom(name, files) {
 function assertNeutral(text, what) {
   assert.doesNotMatch(text, /powered by/i, what);
   assert.doesNotMatch(text, /\bClaude\b/, `${what}: no Claude (the file name CLAUDE.md aside)`);
-  assert.doesNotMatch(text, /mcp__/, `${what}: Codex names Atlas's tools differently: say tarsee_*`);
+  assert.doesNotMatch(text, /mcp__/, `${what}: Codex names Atlas's tools differently: say atlas_*`);
   assert.doesNotMatch(text, /\bBash\b/, `${what}: say the shell`);
   assert.doesNotMatch(text, /Read, Write, Edit|\bGrep, Glob\b/, what);
   assert.doesNotMatch(text, /\b(Opus|Sonnet|Haiku|Fable)\b/, `${what}: no Claude model names`);
@@ -65,7 +65,7 @@ describe("the default workspace files work on any AI", () => {
     const soul = fs.readFileSync(path.join(DEFAULTS, "SOUL.md"), "utf8");
     assert.match(soul, /You are \*\*Atlas\*\*/);
     assert.match(soul, /run any command/);
-    assert.match(soul, /tarsee_\* tools/);
+    assert.match(soul, /atlas_\* tools/);
     assert.match(soul, /grep/i);
   });
   it("SOUL.md says to offer a follow-up and schedule it only once the owner says yes (every run can be a paid turn)", () => {

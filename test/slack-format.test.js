@@ -15,7 +15,7 @@ const {
 describe("slackTextToPlain", () => {
   it("drops the bot's own mention and keeps the words", () => {
     assert.equal(slackTextToPlain("<@UBOT> what's up?", { botUserId: "UBOT" }), "what's up?");
-    assert.equal(slackTextToPlain("hey <@UBOT|tarsee>, help", { botUserId: "UBOT" }), "hey, help");
+    assert.equal(slackTextToPlain("hey <@UBOT|atlas>, help", { botUserId: "UBOT" }), "hey, help");
   });
 
   it("turns other people's mentions into @names it can read", () => {
@@ -63,7 +63,7 @@ describe("slackTextToPlain", () => {
 describe("mentionsUser", () => {
   it("finds a mention of the bot, with or without a label", () => {
     assert.equal(mentionsUser("hi <@UBOT>", "UBOT"), true);
-    assert.equal(mentionsUser("hi <@UBOT|tarsee>", "UBOT"), true);
+    assert.equal(mentionsUser("hi <@UBOT|atlas>", "UBOT"), true);
     assert.equal(mentionsUser("hi <@UOTHER>", "UBOT"), false);
     assert.equal(mentionsUser("hi @UBOT", "UBOT"), false);
     assert.equal(mentionsUser("", "UBOT"), false);

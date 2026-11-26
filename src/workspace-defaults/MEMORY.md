@@ -3,8 +3,8 @@
 This file stores everything Atlas learns across sessions. It grows long: grep it for what a task needs, and never read it whole.
 
 ## API Keys & Secrets
-<!-- When the user gives you an API key, save it to the encrypted vault with tarsee_set_key, then note it here -->
-- No keys stored yet. Use `tarsee_set_key` to store, `tarsee_get_key` to retrieve.
+<!-- When the user gives you an API key, save it to the encrypted vault with atlas_set_key, then note it here -->
+- No keys stored yet. Use `atlas_set_key` to store, `atlas_get_key` to retrieve.
 
 ## User Preferences
 <!-- What the user likes, their timezone, communication style, etc. -->

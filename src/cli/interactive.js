@@ -7,7 +7,7 @@ import readline from "node:readline";
 
 export async function startInteractive() {
   const port = process.env.PORT || 3000;
-  const token = process.env.TARSEE_API_TOKEN || "";
+  const token = process.env.ATLAS_API_TOKEN || "";
 
   console.log("\n  Atlas Interactive Mode");
   console.log("  Type your message and press Enter. Ctrl+C to exit.\n");

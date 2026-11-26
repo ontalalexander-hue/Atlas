@@ -59,7 +59,7 @@ RUN apt-get update \
     libasound2 \
     libwayland-client0 \
     # pdftotext: the text of a PDF for an AI that can't open PDFs itself
-    # (src/ai/media.js), and the tarsee_pdf_read tool
+    # (src/ai/media.js), and the atlas_pdf_read tool
     poppler-utils \
     # Python for faster-whisper
     python3 \
@@ -90,28 +90,28 @@ RUN pip3 install --no-cache-dir --break-system-packages faster-whisper==1.2.1 pi
 # so speech-to-text works on the first try after a deploy, with no setup. It
 # lives outside /data on purpose: Railway mounts the volume at /data, which
 # would hide anything the image put there. Models downloaded later from
-# Settings > Voice go to the volume (/data/tarsee/data/whisper-models) and
+# Settings > Voice go to the volume (/data/atlas/data/whisper-models) and
 # survive redeploys. The download is the same one Settings makes (the official
 # Systran/faster-whisper-base.en on Hugging Face, at a pinned revision, every
 # file checked against its size and published hash). Only the two files the
 # download needs are copied in, so a change elsewhere in src/ doesn't download
 # the model again.
-ENV TARSEE_WHISPER_BUNDLED_DIR=/opt/tarsee/whisper-models
-COPY src/voice/whisper-models.js src/voice/install-common.js /opt/tarsee/stt-build/
+ENV ATLAS_WHISPER_BUNDLED_DIR=/opt/atlas/whisper-models
+COPY src/voice/whisper-models.js src/voice/install-common.js /opt/atlas/stt-build/
 RUN set -e; \
-  cd /opt/tarsee/stt-build; \
+  cd /opt/atlas/stt-build; \
   echo '{"type":"module"}' > package.json; \
-  node whisper-models.js download base.en "$TARSEE_WHISPER_BUNDLED_DIR"; \
+  node whisper-models.js download base.en "$ATLAS_WHISPER_BUNDLED_DIR"; \
   cd /; \
-  rm -rf /opt/tarsee/stt-build
+  rm -rf /opt/atlas/stt-build
 # The check: a real WAV goes through the worker's own decode() (src/voice/stt_worker.py), as every recording does,
 # and the model, loaded offline, transcribes it; a failure stops the build. A blank array would skip the decoder,
 # and the decoder is what broke when PyAV dropped an option faster-whisper's own decoder still passes. The worker
 # comes in after the download, so changing it doesn't download the model again.
-COPY src/voice/stt_worker.py /opt/tarsee/stt-check/
+COPY src/voice/stt_worker.py /opt/atlas/stt-check/
 RUN set -e; \
-  HF_HUB_OFFLINE=1 python3 -I -c "import sys, wave, math, struct; sys.path.insert(0, '/opt/tarsee/stt-check'); from stt_worker import decode; from faster_whisper import WhisperModel; f = '/tmp/tarsee-stt-check.wav'; w = wave.open(f, 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b''.join(struct.pack('<h', int(8000 * math.sin(2 * math.pi * 440 * n / 16000))) for n in range(16000))); w.close(); m = WhisperModel(sys.argv[1], device='cpu', compute_type='int8'); s, i = m.transcribe(decode(f), language='en'); list(s); assert i.duration > 0.9, i.duration; print('faster-whisper decodes a WAV and transcribes with', sys.argv[1])" "$TARSEE_WHISPER_BUNDLED_DIR/base.en"; \
-  rm -rf /opt/tarsee/stt-check /tmp/tarsee-stt-check.wav
+  HF_HUB_OFFLINE=1 python3 -I -c "import sys, wave, math, struct; sys.path.insert(0, '/opt/atlas/stt-check'); from stt_worker import decode; from faster_whisper import WhisperModel; f = '/tmp/atlas-stt-check.wav'; w = wave.open(f, 'wb'); w.setnchannels(1); w.setsampwidth(2); w.setframerate(16000); w.writeframes(b''.join(struct.pack('<h', int(8000 * math.sin(2 * math.pi * 440 * n / 16000))) for n in range(16000))); w.close(); m = WhisperModel(sys.argv[1], device='cpu', compute_type='int8'); s, i = m.transcribe(decode(f), language='en'); list(s); assert i.duration > 0.9, i.duration; print('faster-whisper decodes a WAV and transcribes with', sys.argv[1])" "$ATLAS_WHISPER_BUNDLED_DIR/base.en"; \
+  rm -rf /opt/atlas/stt-check /tmp/atlas-stt-check.wav
 
 ENV NODE_ENV=production
 WORKDIR /app
@@ -123,7 +123,7 @@ WORKDIR /app
 # kept the same version: CLAUDE_CODE_VERSION is the `claudeCodeVersion` of the
 # @anthropic-ai/claude-agent-sdk pinned in package.json, and the build stops
 # below if they differ. To move it: bump the SDK, set this to its
-# claudeCodeVersion and rebuild. TARSEE_AUTO_UPDATE_CLI=1 installs the latest
+# claudeCodeVersion and rebuild. ATLAS_AUTO_UPDATE_CLI=1 installs the latest
 # on every boot instead (entrypoint.sh warns that the two then differ).
 ARG CLAUDE_CODE_VERSION=2.1.319
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} && npm cache clean --force \
@@ -177,7 +177,7 @@ COPY entrypoint.sh ./entrypoint.sh
 
 # Bake commit hash into image for version tracking
 ARG RAILWAY_GIT_COMMIT_SHA=""
-ENV TARSEE_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
+ENV ATLAS_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 
 # Fix permissions
 RUN chown -R node:node /home/node/.cache \

@@ -14,12 +14,12 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-channel-turns-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-channel-turns-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-key-for-unit-tests-only-32chars!";
-delete process.env.TARSEE_AI_PROVIDER;
+delete process.env.ATLAS_AI_PROVIDER;
 fs.mkdirSync(path.join(tmp, "workspace"), { recursive: true });
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -31,7 +31,7 @@ const { createWhatsAppBot } = await import("../src/channels/whatsapp.js");
 const { createDiscordBot } = await import("../src/channels/discord.js");
 const { createEmailBot } = await import("../src/channels/email.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
 
@@ -359,7 +359,7 @@ class FakeDiscordClient extends EventEmitter {
   constructor(options) {
     super();
     this.options = options;
-    this.user = { id: "999", tag: "tarsee#0001", username: "tarsee" };
+    this.user = { id: "999", tag: "atlas#0001", username: "atlas" };
     this.channels = { fetch: async () => null };
     FakeDiscordClient.last = this;
   }
@@ -533,13 +533,13 @@ function mention(body) {
     seen: false,
     raw: [
       "From: Sam <sam@example.com>",
-      "To: tarsee@example.com",
+      "To: atlas@example.com",
       `Subject: Question ${n}`,
       `Message-ID: <question-${n}@example.com>`,
       "Date: Mon, 09 Nov 2026 10:00:00 +0000",
       "Content-Type: text/plain; charset=utf-8",
       "",
-      `@tarsee ${body}`,
+      `@atlas ${body}`,
       "",
     ].join("\r\n"),
   });
@@ -548,9 +548,9 @@ function mention(body) {
 
 const EMAIL_CONFIG = {
   enabled: true,
-  tarseeEmailAddress: "tarsee@example.com",
-  imap: { host: "127.0.0.1", port: 1, user: "tarsee@example.com", password: "test-password-not-real" },
-  smtp: { host: "127.0.0.1", port: 1, user: "tarsee@example.com", password: "test-password-not-real" },
+  atlasEmailAddress: "atlas@example.com",
+  imap: { host: "127.0.0.1", port: 1, user: "atlas@example.com", password: "test-password-not-real" },
+  smtp: { host: "127.0.0.1", port: 1, user: "atlas@example.com", password: "test-password-not-real" },
   allowlistFromAddresses: ["sam@example.com"],
 };
 
@@ -606,8 +606,8 @@ describe("email", () => {
       uid: n,
       seen: false,
       raw: [
-        "From: Sam <sam@example.com>", "To: tarsee@example.com", `Subject: Question ${n}`, `Message-ID: <question-${n}@example.com>`,
-        "Date: Mon, 09 Nov 2026 10:00:00 +0000", "Content-Type: text/plain; charset=utf-8", "", "/cron list @tarsee", "",
+        "From: Sam <sam@example.com>", "To: atlas@example.com", `Subject: Question ${n}`, `Message-ID: <question-${n}@example.com>`,
+        "Date: Mon, 09 Nov 2026 10:00:00 +0000", "Content-Type: text/plain; charset=utf-8", "", "/cron list @atlas", "",
       ].join("\r\n"),
     });
     const smtp = await answerInbox();

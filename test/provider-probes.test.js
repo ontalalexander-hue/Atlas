@@ -8,10 +8,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-provider-probes-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-provider-probes-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { refreshBalance, probeProvider } = await import("../src/ai/provider-probes.js");
 const { providerStatus, failureFlag, setFailureFlag } = await import("../src/ai/provider-status.js");
@@ -81,16 +81,16 @@ describe("refreshBalance: the card's balance read", () => {
     });
   }
 
-  it("in a test server (NODE_ENV=test and a loopback TARSEE_TEST_BASE_URL_<ID>) the read goes to the fake, never the real host", async () => {
+  it("in a test server (NODE_ENV=test and a loopback ATLAS_TEST_BASE_URL_<ID>) the read goes to the fake, never the real host", async () => {
     for (const id of ["openrouter", "deepseek"]) {
       const real = { openrouter: "https://openrouter.ai/api/v1/key", deepseek: "https://api.deepseek.com/user/balance" }[id];
       const path = new URL(real).pathname;
-      const seam = { NODE_ENV: "test", [`TARSEE_TEST_BASE_URL_${id.toUpperCase()}`]: "http://127.0.0.1:47811/anthropic" };
+      const seam = { NODE_ENV: "test", [`ATLAS_TEST_BASE_URL_${id.toUpperCase()}`]: "http://127.0.0.1:47811/anthropic" };
       let net = stubFetch(200);
       await refreshBalance(id, { store: railwayStore(), fetch: net.fetch, env: seam });
       assert.deepEqual(net.calls.map((c) => c.url), [`http://127.0.0.1:47811${path}`], id);
       // Outside tests, or a seam that isn't loopback: the provider's own host, as always.
-      for (const env of [{ ...seam, NODE_ENV: "production" }, { ...seam, [`TARSEE_TEST_BASE_URL_${id.toUpperCase()}`]: "http://canary.invalid" }, {}]) {
+      for (const env of [{ ...seam, NODE_ENV: "production" }, { ...seam, [`ATLAS_TEST_BASE_URL_${id.toUpperCase()}`]: "http://canary.invalid" }, {}]) {
         net = stubFetch(200);
         await refreshBalance(id, { store: railwayStore(), fetch: net.fetch, env });
         assert.deepEqual(net.calls.map((c) => c.url), [real], `${id} ${JSON.stringify(env)}`);

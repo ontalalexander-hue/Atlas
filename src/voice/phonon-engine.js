@@ -6,7 +6,7 @@
  *
  * Setup: Settings -> Voice -> Install Phonon, or the automatic background
  * install on first boot (see phonon-install.js). The model and the English
- * voices live on the data volume under DATA_DIR/tts/phonon (TARSEE_PHONON_DIR
+ * voices live on the data volume under DATA_DIR/tts/phonon (ATLAS_PHONON_DIR
  * overrides it), never in git or the image.
  *
  * One persistent Python worker (phonon_worker.py) loads the model once and
@@ -109,17 +109,17 @@ function catalogName(id) {
 export const INSTALL_MARKER = "install.json";
 
 /**
- * Where everything lives. The Python interpreter is TARSEE_PHONON_PYTHON if set,
+ * Where everything lives. The Python interpreter is ATLAS_PHONON_PYTHON if set,
  * else the private venv the installer creates on machines without ptts (when
  * it exists; made from the Python speech-to-text uses, python-runtime.js), else
  * python3 on PATH (the Docker image installs ptts there).
  */
 export function phononPaths() {
-  const root = process.env.TARSEE_PHONON_DIR?.trim() || path.join(config.DATA_DIR, "tts", "phonon");
+  const root = process.env.ATLAS_PHONON_DIR?.trim() || path.join(config.DATA_DIR, "tts", "phonon");
   const venv = path.join(root, "venv");
   // bin/python, or Scripts\python.exe on Windows.
   const venvPython = venvInterpreter(venv);
-  const override = process.env.TARSEE_PHONON_PYTHON?.trim();
+  const override = process.env.ATLAS_PHONON_PYTHON?.trim();
   const useVenv = !override && fs.existsSync(venvPython);
   return {
     root,
@@ -160,9 +160,9 @@ export function resetPhononAvailability() {
   _importChecks.clear();
 }
 
-/** Worker threads: TARSEE_PHONON_THREADS, else up to 4 (more rarely helps on CPU). */
+/** Worker threads: ATLAS_PHONON_THREADS, else up to 4 (more rarely helps on CPU). */
 export function phononThreads() {
-  const n = Number.parseInt(process.env.TARSEE_PHONON_THREADS || "", 10);
+  const n = Number.parseInt(process.env.ATLAS_PHONON_THREADS || "", 10);
   if (Number.isFinite(n) && n > 0) return n;
   return Math.max(1, Math.min(4, os.availableParallelism()));
 }

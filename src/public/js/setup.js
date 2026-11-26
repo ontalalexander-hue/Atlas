@@ -155,7 +155,7 @@ const Setup = {
     }
     const note = document.getElementById("setupKeysOnlyNote");
     if (note && k.locked) {
-      note.textContent = "Locked on by the Railway variable TARSEE_KEYS_ONLY=1: plan sign-ins stay off." +
+      note.textContent = "Locked on by the Railway variable ATLAS_KEYS_ONLY=1: plan sign-ins stay off." +
         (keyIds.length ? "" : " No API-key AI is switched on in this version of Atlas, so remove that variable to use your plan.");
     }
     const keysOnly = this._aiKeysOnly();

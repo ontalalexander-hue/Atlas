@@ -27,11 +27,11 @@ const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
 
 /** Every AI variable the owner may set, by name only. */
 const AI_VARS = [
-  "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY",
+  "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY",
   "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ENCRYPTION_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ENCRYPTION_KEY",
 ];
-const SECRET_VARS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ENCRYPTION_KEY", "SETUP_PASSWORD"];
+const SECRET_VARS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY", "CLAUDE_CODE_OAUTH_TOKEN", "ENCRYPTION_KEY", "SETUP_PASSWORD"];
 const OLD_ADVICE = /do not set (this|anthropic_api_key)|no ANTHROPIC_API_KEY here|silently switch billing/i;
 const KEY_SHAPED = /\b(sk-(ant|or|proj|svcacct)-[A-Za-z0-9_-]{12,}|sk-[A-Za-z0-9]{32,}|xox[abp]-[A-Za-z0-9-]{10,}|ghp_[A-Za-z0-9]{20,})/;
 const lines = (text) => text.split(/\r?\n/);
@@ -59,8 +59,8 @@ describe(".env.example", () => {
   it("explains the providers instead of warning against ANTHROPIC_API_KEY", () => {
     assert.doesNotMatch(text, OLD_ADVICE);
     assert.match(text, /Settings\s*(>|→)\s*AI/);
-    assert.match(text, /TARSEE_AI_PROVIDER=/);
-    for (const id of PROVIDER_IDS) assert.match(text, new RegExp(`\\b${id}\\b`), `the provider id ${id} is listed for TARSEE_AI_PROVIDER`);
+    assert.match(text, /ATLAS_AI_PROVIDER=/);
+    for (const id of PROVIDER_IDS) assert.match(text, new RegExp(`\\b${id}\\b`), `the provider id ${id} is listed for ATLAS_AI_PROVIDER`);
   });
 });
 
@@ -95,7 +95,7 @@ describe("railway.toml", () => {
   it("keeps the deploy as it was", () => {
     assert.match(text, /healthcheckPath = "\/healthz"/);
     assert.match(text, /requiredMountPath = "\/data"/);
-    assert.match(text, /TARSEE_STATE_DIR = "\/data\/tarsee"/);
+    assert.match(text, /ATLAS_STATE_DIR = "\/data\/atlas"/);
   });
 });
 
@@ -124,7 +124,7 @@ describe("README", () => {
     assert.match(s, /claude auth login/);
     assert.match(s, /codex login --device-auth/);
     assert.match(s, /CLAUDE_CODE_OAUTH_TOKEN/);
-    assert.match(s, /TARSEE_LOCAL_AI_URL/);
+    assert.match(s, /ATLAS_LOCAL_AI_URL/);
     assert.match(s, /per (message|use)|no per-message cost|free/i);
     assert.match(s, /docs\/providers\.md/);
   });
@@ -132,7 +132,7 @@ describe("README", () => {
     const s = section("Choose your AI");
     assert.match(s, /own (personal )?use/i);
     assert.match(s, /Only use API keys/);
-    assert.match(s, /TARSEE_KEYS_ONLY/);
+    assert.match(s, /ATLAS_KEYS_ONLY/);
   });
   it("keeps keys in Settings or Railway variables, never in files", () => {
     assert.match(text, /Settings\s*(>|→)\s*AI/);
@@ -151,16 +151,16 @@ describe("README", () => {
     assert.match(docker, /-p 3000:3000/);
     assert.doesNotMatch(docker, /8080/);
   });
-  it("says what the Docker volume keeps, and where (entrypoint.sh hands the server /data/tarsee)", () => {
+  it("says what the Docker volume keeps, and where (entrypoint.sh hands the server /data/atlas)", () => {
     const docker = unfenced(section("Self-Hosting with Docker"));
-    assert.match(docker, /`?tarsee-data`? volume/, "names the volume");
-    assert.match(docker, /\/data\/tarsee/);
+    assert.match(docker, /`?atlas-data`? volume/, "names the volume");
+    assert.match(docker, /\/data\/atlas/);
     for (const what of [/database/i, /sign-ins?/i, /workspace/i]) assert.match(docker, what);
   });
-  it("lists TARSEE_STATE_DIR, and says to keep it on the volume", () => {
-    const row = lines(section("Environment Variables")).find((l) => /^\|\s*`TARSEE_STATE_DIR`\s*\|/.test(l));
-    assert.ok(row, "a TARSEE_STATE_DIR row");
-    assert.match(row, /\/data\/tarsee/, "its default with a volume");
+  it("lists ATLAS_STATE_DIR, and says to keep it on the volume", () => {
+    const row = lines(section("Environment Variables")).find((l) => /^\|\s*`ATLAS_STATE_DIR`\s*\|/.test(l));
+    assert.ok(row, "a ATLAS_STATE_DIR row");
+    assert.match(row, /\/data\/atlas/, "its default with a volume");
     assert.match(row, /inside `\/data`/, "keep it on the volume");
     // entrypoint.sh carry_plan_home: only main's layout is moved, once, and only the Claude plan's sign-in and chats.
     assert.match(row, /changing it later moves nothing/i, "a change on this version leaves everything in the folder it was in");
@@ -222,14 +222,14 @@ describe("docs/providers.md", () => {
     for (const m of G.TERMS_NOTE.matchAll(/href="([^"]+)"/g)) assert.ok(doc.includes(m[1]), m[1]);
     assert.match(doc, /own (personal )?use/i);
     assert.match(doc, /Only use API keys/);
-    assert.match(doc, /TARSEE_KEYS_ONLY/);
+    assert.match(doc, /ATLAS_KEYS_ONLY/);
     assert.match(doc, /\bVerify\b/);
     assert.match(doc, /Backup/i);
     assert.match(doc, /Monthly spending cap/i);
     assert.match(doc, /railway\.internal/);
     assert.match(doc, /spend(ing)? limit|credit limit|hard limit/i);
-    assert.match(doc, /TARSEE_AI_PROVIDER/);
-    assert.match(doc, /TARSEE_AI_MODEL/);
+    assert.match(doc, /ATLAS_AI_PROVIDER/);
+    assert.match(doc, /ATLAS_AI_MODEL/);
     assert.match(doc, /ENCRYPTION_KEY/);
     const table = doc.split(/\r?\n/).filter((l) => l.startsWith("|"));
     for (const id of PROVIDER_IDS) assert.ok(table.some((l) => l.includes(PROVIDERS[id].label)), `the matrix has ${PROVIDERS[id].label}`);

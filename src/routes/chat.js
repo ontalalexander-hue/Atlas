@@ -675,7 +675,7 @@ chatRouter.post("/send", async (req, res) => {
     // ~2e9 (23 days), which is only safe there because its PTY pool has a
     // heartbeat + dead-socket detector. This build has neither, so an infinite
     // value would wedge a turn forever with no console to kill it from.
-    const IDLE_ABORT_MS = Number(process.env.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+    const IDLE_ABORT_MS = Number(process.env.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
     const hb = setInterval(() => {
       if (res.writableEnded || clientDetached) {
         if (Date.now() - lastEventAt > IDLE_ABORT_MS) {

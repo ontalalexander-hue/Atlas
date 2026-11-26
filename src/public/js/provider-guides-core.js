@@ -202,7 +202,7 @@
         "Pick a model and click <strong>Use this AI</strong>: that model is used at once. To use another of your server's models from a chat's model menu, click <strong>Verify</strong> on its row first (it checks that the model can use Atlas's tools, which is worth doing for small models).",
       ],
       tips: [
-        "<code>localhost</code> means the machine Atlas itself runs on. On Railway, which has no GPUs, Local AI is offered only once the Railway variable <code>TARSEE_LOCAL_AI_URL</code> holds the address of a model server you run: another Railway service at its private address (like <code>http://ollama.railway.internal:11434/v1</code>), or a public address protected by a key.",
+        "<code>localhost</code> means the machine Atlas itself runs on. On Railway, which has no GPUs, Local AI is offered only once the Railway variable <code>ATLAS_LOCAL_AI_URL</code> holds the address of a model server you run: another Railway service at its private address (like <code>http://ollama.railway.internal:11434/v1</code>), or a public address protected by a key.",
         "Ollama only answers the machine it runs on. To reach it from another machine, start it with <code>OLLAMA_HOST=0.0.0.0</code>. llama.cpp is the same: add <code>--host 0.0.0.0</code>.",
         "llama.cpp's older builds and its Docker image use port 8080, not 9931: the address is then <code>http://localhost:8080/v1</code>.",
         "If you start llama-server with <code>--api-key</code>, paste the same key in the key box.",
@@ -210,7 +210,7 @@
         "If Test says there is too little room (under 32768 tokens): start llama-server with <code>-c 65536</code>, load the model in LM Studio with a longer context length, or set <code>OLLAMA_CONTEXT_LENGTH=65536</code> where Ollama runs.",
         "If your server asks for a key, paste it in the key box. Atlas sends it only to this address.",
         "Replies appear a message at a time, not word by word.",
-        "Instead of setting it here, you can use the Railway variables <code>TARSEE_LOCAL_AI_URL</code> and, if needed, <code>TARSEE_LOCAL_AI_KEY</code>.",
+        "Instead of setting it here, you can use the Railway variables <code>ATLAS_LOCAL_AI_URL</code> and, if needed, <code>ATLAS_LOCAL_AI_KEY</code>.",
         "On a Linux server a command the agent runs can still read this key, if your server uses one, from the engine's process, so use a key made only for Atlas.",
       ],
     },

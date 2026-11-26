@@ -188,7 +188,7 @@ export function composeMechanicalCheckpoint(db, settings) {
   try {
     const provider = settings.get("ai.activeProvider") || "claude-code";
     const model = settings.get(`ai.${provider}.model`) || "default";
-    const theme = settings.get("ui.theme") || "warm-charcoal";
+    const theme = settings.get("ui.theme") || "atlas";
     const pushSubs = (settings.get("push.subscriptions") || []).length;
     lines.push("## Current Settings");
     lines.push(`- Provider: ${provider} / Model: ${model}`);

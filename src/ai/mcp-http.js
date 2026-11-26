@@ -1,21 +1,21 @@
 /**
  * mcp-http.js: Atlas's own tools for the Codex engine, on a loopback MCP endpoint (design 4.9, rule R12).
  *
- * Claude Code takes Atlas's tools as an in-process MCP server (tarsee-mcp.js). Codex runs as a child process and can
- * only reach an MCP server it starts itself or one over HTTP, so Atlas serves the very same tools (createTarseeMcp, so
+ * Claude Code takes Atlas's tools as an in-process MCP server (atlas-mcp.js). Codex runs as a child process and can
+ * only reach an MCP server it starts itself or one over HTTP, so Atlas serves the very same tools (createAtlasMcp, so
  * the same executeTool path, Tool Permissions, SSRF checks and audit log) over streamable HTTP, from inside the main
  * process:
  *
  *   - its own http server on 127.0.0.1, on a port the system picks (listen(0)), started on first use. It is never
  *     mounted on the Express app, so Railway's proxy can't reach it and the dashboard's login and CSRF don't apply;
  *   - each Codex turn gets a grant, {url, token, revoke()}: a fresh 32-byte bearer token tied to that turn's tool
- *     context. Codex reads it from TARSEE_MCP_TOKEN (bearer_token_env_var), which is not in its shell's environment
+ *     context. Codex reads it from ATLAS_MCP_TOKEN (bearer_token_env_var), which is not in its shell's environment
  *     (R7), though on Linux the shell can still read it from codex's /proc environ: the grant lasts one turn and is
  *     revoked when the turn ends, and Tool Permissions still apply to every call made with it;
  *   - every request must come from this machine, name this endpoint in its Host header (no DNS rebinding), carry no
  *     web page's Origin, and carry a live grant's token (compared in constant time); the body is capped at 4 MB, and
  *     only POST /mcp is served (stateless: a fresh MCP server and transport per request);
- *   - a tool result too long for the model's context (TARSEE_TOOL_RESULT_MAX_CHARS, default 12,000 characters, the
+ *   - a tool result too long for the model's context (ATLAS_TOOL_RESULT_MAX_CHARS, default 12,000 characters, the
  *     same limit Claude Code applies) is saved to STATE_DIR/tool-output/<turn>/, outside the workspace and the files
  *     screen, and the model gets the path and the start of it. Those files are pruned after 7 days;
  *   - a grant ends when the turn revokes it (runTurn's finally), when the turn's stop signal fires, or when it
@@ -29,7 +29,7 @@ import http from "node:http";
 import net from "node:net";
 import path from "node:path";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { createTarseeMcp } from "./tarsee-mcp.js";
+import { createAtlasMcp } from "./atlas-mcp.js";
 import { DEFAULT_TOOL_RESULT_MAX_CHARS } from "./context-limits.js";
 import config from "../config/env.js";
 
@@ -62,10 +62,10 @@ const grants = new Map();
 
 /**
  * Most characters of one tool result the model gets inline; past it the result goes to a file. Same rule as
- * context-limits.js mcpOutputEnv(): TARSEE_TOOL_RESULT_MAX_CHARS when it is at least 1,000, else 12,000.
+ * context-limits.js mcpOutputEnv(): ATLAS_TOOL_RESULT_MAX_CHARS when it is at least 1,000, else 12,000.
  */
 export function spillThreshold(env = process.env) {
-  const own = Number(env.TARSEE_TOOL_RESULT_MAX_CHARS);
+  const own = Number(env.ATLAS_TOOL_RESULT_MAX_CHARS);
   return Number.isFinite(own) && own >= 1000 ? Math.round(own) : DEFAULT_TOOL_RESULT_MAX_CHARS;
 }
 
@@ -130,7 +130,7 @@ export async function stopMcpHttp() {
 
 /**
  * Grant one turn the use of Atlas's tools: {url, token, expiresAt, revoke()}. The token goes to Codex as
- * TARSEE_MCP_TOKEN (codexEnvFor's mcpToken) and the url as the tarsee MCP server's url.
+ * ATLAS_MCP_TOKEN (codexEnvFor's mcpToken) and the url as the atlas MCP server's url.
  *
  * ctx is the turn's tool context ({db, settingsStore, channelManager, conversationId, channel, ...}), exactly what
  * the tools get. opts:
@@ -239,7 +239,7 @@ async function handle(req, res) {
   const grant = grantFor(req.headers.authorization);
   if (!grant) {
     warnOnce("token", "refused a request without a live grant's token");
-    return reply(res, 401, "This needs a live grant's token.", { "WWW-Authenticate": 'Bearer realm="tarsee"' });
+    return reply(res, 401, "This needs a live grant's token.", { "WWW-Authenticate": 'Bearer realm="atlas"' });
   }
   if (req.method !== "POST") return reply(res, 405, "Only POST is served here.", { Allow: "POST" });
 
@@ -282,7 +282,7 @@ async function serve(req, res, grant, message) {
     if (!mcp) throw new Error("none idle");
     await mcp.instance.connect(transport);
   } catch {
-    mcp = createTarseeMcp(grant.ctx, { quiet: true });
+    mcp = createAtlasMcp(grant.ctx, { quiet: true });
     await mcp.instance.connect(transport);
   }
   res.on("close", () => {

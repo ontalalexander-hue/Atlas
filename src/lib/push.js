@@ -146,7 +146,7 @@ export async function sendPush(payload) {
     title: payload.title || "Atlas",
     body: payload.body || "",
     url: payload.url || "/",
-    tag: payload.tag || "tarsee",
+    tag: payload.tag || "atlas",
     icon: payload.icon || "/icon-192.png",
     badge: payload.badge || "/icon-192.png",
   });

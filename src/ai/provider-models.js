@@ -103,7 +103,7 @@ export async function listProviderModels(providerId, opts = {}) {
  * Read a provider's model list and put it to use.
  * opts: as listProviderModels, plus store (SettingsStore): the key comes from it when not handed in (encrypted
  * Settings, then the provider's Railway variable: getKeyWithSource), and Local AI's address from ai.local.baseUrl,
- * else TARSEE_LOCAL_AI_URL. A list that can't be read leaves the registry as it was.
+ * else ATLAS_LOCAL_AI_URL. A list that can't be read leaves the registry as it was.
  * Returns the listProviderModels result plus:
  *   openai    models: the table rows the key can use ({id, label})
  *   deepseek  models: the table rows with confirmed true or false; extra: ids the table doesn't know
@@ -147,9 +147,9 @@ let _localFailed = null;
 
 /**
  * Local AI's models when nothing has read them since the server started: the runtime catalog lives only in memory,
- * and Local AI has no default model, so an install set up only through Railway variables (TARSEE_LOCAL_AI_URL, no
- * TARSEE_AI_MODEL) would otherwise count as "no model chosen" after every restart until someone opened Settings > AI.
- * Reads the server at ai.local.baseUrl, else TARSEE_LOCAL_AI_URL (refreshProviderModels), once for callers asking
+ * and Local AI has no default model, so an install set up only through Railway variables (ATLAS_LOCAL_AI_URL, no
+ * ATLAS_AI_MODEL) would otherwise count as "no model chosen" after every restart until someone opened Settings > AI.
+ * Reads the server at ai.local.baseUrl, else ATLAS_LOCAL_AI_URL (refreshProviderModels), once for callers asking
  * together; a server that can't be read (or lists nothing) isn't asked again at that address for a minute.
  * Resolves the models now in the catalog ([] when there are none). Never throws.
  * opts: env, fetch, now, timeoutMs (5 s).

@@ -151,7 +151,7 @@ const FileManager = {
   async newFile() {
     // (The folder shown when it was pressed is where it goes, whatever the page did while it was asked.)
     const dir = this.currentPath;
-    const name = await TarseeDialog.askText({ title: "New file", label: "File name", yes: "Create", no: "Cancel" });
+    const name = await AtlasDialog.askText({ title: "New file", label: "File name", yes: "Create", no: "Cancel" });
     if (!name) return;
     const filePath = dir === "." ? name : `${dir}/${name}`;
     try {

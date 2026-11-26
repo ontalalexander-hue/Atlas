@@ -2,9 +2,9 @@
  * The vault's keys in the agent's environment, so its scripts read a key by name (os.environ["OPENAI_API_KEY"],
  * process.env.RESEND_API_KEY) and it never pastes one into a command. A key pasted into a command lands in the
  * session's transcript, and Claude Code's own checks rightly refuse commands that carry credentials. Ported from
- * TarseeMacOS ("the point of the vault is that the agent can use any key it was given").
+ * the macOS app ("the point of the vault is that the agent can use any key it was given").
  *
- * It gives the agent nothing new: tarsee_get_key already returns any key. So when the owner has set get_key to
+ * It gives the agent nothing new: atlas_get_key already returns any key. So when the owner has set get_key to
  * "always deny" in Settings > Tool Permissions, no key goes in either.
  *
  * Every key whose name is an environment variable name in capitals goes in, except:
@@ -13,17 +13,17 @@
  *     the Claude subscription onto pay-per-use billing; Codex's (CODEX_*) and OPENAI_BASE_URL, which would change
  *     the Codex engine's login, home or host (ai/engine-env.js strips them again before every turn)
  *   - Atlas's own secrets (ENCRYPTION_KEY, SETUP_PASSWORD)
- *   - names that change how programs run rather than what they can reach: Atlas's own settings (TARSEE_*), Node
+ *   - names that change how programs run rather than what they can reach: Atlas's own settings (ATLAS_*), Node
  *     and the loader (NODE_*, LD_*, DYLD_*), npm's, Python's start-up and paths, the shell's, and the proxies
- * A value over 32 KB, or one with a NUL in it, stays out too (tarsee_get_key still has it).
- * TARSEE_AGENT_ENV_KEYS: a comma-separated list of names to use instead of every key, or "off" for none.
+ * A value over 32 KB, or one with a NUL in it, stays out too (atlas_get_key still has it).
+ * ATLAS_AGENT_ENV_KEYS: a comma-separated list of names to use instead of every key, or "off" for none.
  * Read from the vault at most once a minute for the default call (Atlas's own environment); a call that passes its own
  * `env` (engine-env's baseEnv(), say) compares against that one, so it is never answered from, or stored in, that cache.
  * Denying get_key applies at once either way.
  */
 import { getKey, listKeys } from "../lib/key-vault.js";
 
-export const AGENT_ENV_KEEP_OUT = /^(CLAUDE_|ANTHROPIC_|CODEX_|TARSEE_|NODE_|LD_|DYLD_|NPM_|PYTHON|GIT_|SSL_|BASH_)/;
+export const AGENT_ENV_KEEP_OUT = /^(CLAUDE_|ANTHROPIC_|CODEX_|ATLAS_|NODE_|LD_|DYLD_|NPM_|PYTHON|GIT_|SSL_|BASH_)/;
 const KEEP_OUT_NAMES = new Set(["PATH", "HOME", "USER", "SHELL", "ENV", "PWD", "TMPDIR", "LANG", "TERM",
   "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "ALL_PROXY", "MAX_MCP_OUTPUT_TOKENS", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE",
   "OPENAI_BASE_URL", "ENCRYPTION_KEY", "SETUP_PASSWORD"]);
@@ -44,7 +44,7 @@ export function agentVaultEnv({ names, get = getKey, list = () => listKeys().map
   if (cachable && !blocked && now - cached.at < 60_000) return cached.value;
   const out = {};
   const skipped = [];
-  const setting = String(env.TARSEE_AGENT_ENV_KEYS ?? "").trim();
+  const setting = String(env.ATLAS_AGENT_ENV_KEYS ?? "").trim();
   if (!blocked && setting.toLowerCase() !== "off") {
     let wanted = names;
     if (wanted === undefined && setting) wanted = setting.split(",");
@@ -55,7 +55,7 @@ export function agentVaultEnv({ names, get = getKey, list = () => listKeys().map
       let value = null;
       try { value = String(get(name) || "").trim() || null; } catch { /* vault unavailable */ }
       // Linux refuses a single environment string past about 128 KB, and then the agent could not start at all; a
-      // value that big (a certificate bundle, a credentials file) is for tarsee_get_key. A NUL can't be in one either.
+      // value that big (a certificate bundle, a credentials file) is for atlas_get_key. A NUL can't be in one either.
       if (value && (value.length > VALUE_MAX_CHARS || value.includes("\0"))) { skipped.push(name); continue; }
       if (value) out[name] = value;
     }
@@ -63,7 +63,7 @@ export function agentVaultEnv({ names, get = getKey, list = () => listKeys().map
   if (cachable) {
     const had = Object.keys(cached.value).sort().join(",");
     const has = Object.keys(out).sort().join(",");
-    if (had !== has) console.log(`[claude-code] ${Object.keys(out).length} vault key(s) in the agent's environment${blocked ? " (none: get_key is denied in Tool Permissions)" : ""}${skipped.length ? ` (too big or not text, left to tarsee_get_key: ${skipped.join(", ")})` : ""}`);
+    if (had !== has) console.log(`[claude-code] ${Object.keys(out).length} vault key(s) in the agent's environment${blocked ? " (none: get_key is denied in Tool Permissions)" : ""}${skipped.length ? ` (too big or not text, left to atlas_get_key: ${skipped.join(", ")})` : ""}`);
     // A denied answer isn't kept as fresh: allowing get_key again takes effect on the next turn.
     cached = { at: blocked ? 0 : now, value: out };
   }
