@@ -263,7 +263,7 @@ const Live = {
     let content = String(p.content || "");
     const role = p.role === "user" ? "user" : "assistant";
     if (role === "assistant") {
-      content = content.split("|||PERSONALITY_COMPLETE|||")[0].replace(/\[REMEMBER:\s*.+?\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+      content = ChatCore.cleanReply(content);
       // The reply to a turn on screen goes in that turn's place, under its steps line.
       const turn = this.waitingTurn(evt.createdAt || Date.now());
       if (turn) {

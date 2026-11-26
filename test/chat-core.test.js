@@ -284,3 +284,23 @@ describe("chat core: Markdown", () => {
     assert.equal(md(null), "");
   });
 });
+
+describe("cleanReply: the server's markers out of a reply's words", () => {
+  it("plain words: the setup marker and what follows go, and so does [REMEMBER: ...]", () => {
+    assert.equal(C.cleanReply("Locked in. [REMEMBER: likes tea]\n\n\n\nNext.|||PERSONALITY_COMPLETE|||\n{\"name\":\"Atlas\"}"), "Locked in. \n\nNext.");
+  });
+  it("a reply that used tools stays readable timeline JSON, cleaned inside", () => {
+    const content = JSON.stringify({ __timeline: true, text: "Locked in.|||PERSONALITY_COMPLETE|||{}", items: [
+      { type: "tool", name: "mcp__atlas__atlas_write_file", summary: "USER.md", input: "{}", output: "ok", status: "done" },
+      { type: "text", text: "Locked in. [REMEMBER: owner is Alex]|||PERSONALITY_COMPLETE|||{}" },
+    ] });
+    const cleaned = C.cleanReply(content);
+    const p = C.replyParts(cleaned);
+    assert.equal(p.answer, "Locked in.");
+    assert.equal(p.tools.length, 1);
+    assert.ok(!cleaned.includes("PERSONALITY_COMPLETE") && !cleaned.includes("REMEMBER"));
+  });
+  it("timeline JSON that does not parse is left as it is", () => {
+    assert.equal(C.cleanReply('{"__timeline":true,"items":['), '{"__timeline":true,"items":[');
+  });
+});
