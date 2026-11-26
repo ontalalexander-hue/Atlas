@@ -21,7 +21,7 @@
   --text:               #e8f1ff;
   --text-secondary:     #9fb2cf;
   --text-muted:         #8296b5;
-  --text-inverse:       #070b14;
+  --text-inverse:       #ffffff;
 
   --accent:             #1f7ae0;
   --accent-hover:       #3a8ff0;
@@ -36,4 +36,160 @@
 
   --glass-highlight:         inset 0 1px 0 rgba(92, 200, 255, 0.10);
   --glass-highlight-strong:  inset 0 1px 0 rgba(92, 200, 255, 0.18);
+}
+
+/* --------------------------------------------------------------------------
+   Atlas brand layer. The logo is a brushed-silver "A" in an electric-blue
+   orbit on deep space; these rules carry that onto the surfaces people see
+   first (sign-in, setup, the empty chat) and onto primary buttons. Scoped to
+   this theme, so the other themes are untouched.
+   -------------------------------------------------------------------------- */
+
+[data-theme="atlas"] {
+  --atlas-glow:        rgba(47, 155, 255, 0.55);
+  --atlas-glow-soft:   rgba(47, 155, 255, 0.18);
+  --atlas-edge:        rgba(92, 200, 255, 0.22);
+  --atlas-silver:      linear-gradient(180deg, #ffffff 0%, #dfe8f5 45%, #9fb2cf 100%);
+  --atlas-space:
+    radial-gradient(1100px 520px at 50% -8%, rgba(31, 122, 224, 0.22), transparent 62%),
+    radial-gradient(900px 420px at 50% 112%, rgba(47, 155, 255, 0.14), transparent 60%),
+    var(--bg);
+  --atlas-button:      linear-gradient(180deg, #3a96f5 0%, #1f7ae0 55%, #1867c4 100%);
+  --atlas-button-hover: linear-gradient(180deg, #55a8ff 0%, #2b88ee 55%, #1f74d6 100%);
+}
+
+/* Deep-space backdrop behind the sign-in and setup cards */
+[data-theme="atlas"] .login-screen,
+[data-theme="atlas"] .setup-wizard {
+  background: var(--atlas-space);
+}
+
+/* Cards: a lit top edge and a blue under-glow, like the logo's ring */
+[data-theme="atlas"] .login-card,
+[data-theme="atlas"] .setup-card {
+  background: linear-gradient(180deg, rgba(17, 27, 45, 0.92) 0%, rgba(8, 13, 24, 0.96) 100%);
+  border-color: var(--atlas-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(31, 122, 224, 0.08),
+    0 30px 80px -24px var(--atlas-glow);
+}
+
+/* Sign-in: the emblem large, the name set like the wordmark */
+[data-theme="atlas"] .login-card .logo-large {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  background: none;
+  box-shadow: 0 0 0 1px var(--atlas-edge), 0 0 44px -6px var(--atlas-glow);
+  margin-bottom: var(--space-5);
+}
+[data-theme="atlas"] .login-card .logo-large img,
+[data-theme="atlas"] .setup-card-header .logo-large img,
+[data-theme="atlas"] .pin-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+[data-theme="atlas"] .login-card h1,
+[data-theme="atlas"] .pin-title {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  margin-right: -0.34em;            /* optical centring: tracking adds space after the last letter */
+  text-transform: uppercase;
+  background: var(--atlas-silver);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="atlas"] .login-card p {
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+[data-theme="atlas"] .pin-logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 22px;
+  box-shadow: 0 0 0 1px var(--atlas-edge), 0 0 40px -6px var(--atlas-glow);
+}
+
+/* Setup wizard header: dark with a blue glow instead of a flat blue block,
+   and text that stays readable on it */
+[data-theme="atlas"] .setup-card-header {
+  background:
+    radial-gradient(120% 150% at 50% -20%, rgba(47, 155, 255, 0.38), transparent 62%),
+    linear-gradient(180deg, #0f1d36 0%, #0a1222 100%);
+  border-bottom: 1px solid var(--atlas-edge);
+}
+[data-theme="atlas"] .setup-card-header .logo-large {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: none;
+  box-shadow: 0 0 0 1px var(--atlas-edge), 0 0 36px -6px var(--atlas-glow);
+}
+[data-theme="atlas"] .setup-card-header h2 {
+  background: var(--atlas-silver);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+[data-theme="atlas"] .setup-card-header p {
+  color: #c9d8ee;
+  text-shadow: none;
+}
+
+/* Primary actions: a lit blue with white text */
+[data-theme="atlas"] .btn-primary,
+[data-theme="atlas"] .input-btn-send {
+  background: var(--atlas-button);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 22px -10px var(--atlas-glow);
+}
+[data-theme="atlas"] .btn-primary:hover:not(:disabled),
+[data-theme="atlas"] .input-btn-send:hover:not(:disabled) {
+  background: var(--atlas-button-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 10px 28px -10px var(--atlas-glow);
+}
+[data-theme="atlas"] .btn-primary:disabled {
+  background: var(--bg-surface-hover);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+/* Fields: a soft blue ring on focus */
+[data-theme="atlas"] .login-card input:focus,
+[data-theme="atlas"] .setup-card input:focus,
+[data-theme="atlas"] .setup-card textarea:focus {
+  border-color: var(--accent-hover);
+  box-shadow: 0 0 0 3px var(--atlas-glow-soft);
+  outline: none;
+}
+
+/* Empty chat: the emblem as the centrepiece */
+[data-theme="atlas"] .welcome-logo img {
+  width: 96px;
+  height: 96px;
+  border-radius: 24px;
+  box-shadow: 0 0 0 1px var(--atlas-edge), 0 0 56px -8px var(--atlas-glow);
+}
+[data-theme="atlas"] .welcome h2 {
+  background: var(--atlas-silver);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="atlas"] .welcome-logo img,
+  [data-theme="atlas"] .login-card .logo-large {
+    animation: atlas-breathe 5s ease-in-out infinite;
+  }
+}
+@keyframes atlas-breathe {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(92, 200, 255, 0.22), 0 0 40px -10px rgba(47, 155, 255, 0.45); }
+  50%      { box-shadow: 0 0 0 1px rgba(92, 200, 255, 0.32), 0 0 64px -6px rgba(47, 155, 255, 0.70); }
 }

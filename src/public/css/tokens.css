@@ -28,7 +28,7 @@
      to a lighter tone (readable on --bg). Used for timestamps, typing
      labels, and disabled states — must remain readable. */
   --text-muted:         #8296b5;
-  --text-inverse:       #070b14;
+  --text-inverse:       #ffffff;
 
   --accent:             #1f7ae0;
   --accent-hover:       #3a8ff0;
