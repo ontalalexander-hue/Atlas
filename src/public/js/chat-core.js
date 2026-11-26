@@ -377,6 +377,23 @@
     return { answer: raw, notes: [], tools: list, steps: list };
   }
 
+  /**
+   * A reply with the markers meant for the server taken out of its words: the setup interview's
+   * "|||PERSONALITY_COMPLETE|||" (and anything after it) and "[REMEMBER: ...]". A reply that used tools is timeline
+   * JSON, so its words are cleaned inside it: cutting the JSON text itself at a marker left it unreadable, and the
+   * page then showed the raw JSON as the answer.
+   */
+  function cleanReply(content) {
+    const words = (t) => String(t ?? "").split("|||PERSONALITY_COMPLETE|||")[0].replace(/\[REMEMBER:\s*.+?\]/gi, "").replace(/\n{3,}/g, "\n\n").trim();
+    const raw = String(content ?? "");
+    if (!raw.startsWith('{"__timeline":true')) return words(raw);
+    let data = null;
+    try { data = JSON.parse(raw); } catch { data = null; }
+    if (!data || !Array.isArray(data.items)) return raw;
+    const items = data.items.map((x) => (x && x.type === "text" ? { ...x, text: words(x.text) } : x));
+    return JSON.stringify({ ...data, items, text: words(data.text) });
+  }
+
   /** Words as they are compared (is this note the answer itself?): Markdown's marks and the spacing gone. */
   function plainWords(s) {
     return String(s || "").replace(/[*_`#>~]+/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\s+/g, " ").trim();
@@ -587,7 +604,7 @@
 
   const api = {
     escapeHtml, safeHref, GROUPS, GROUP_LIMIT, groupOf, parseTs, timeLabel, chatName, foldWords, groupChats,
-    chatPath, parseChatPath, pageTitle, stepLabel, programOf, summaryOf, plainWords, turnLine, fmtDur, replyParts, sender, renderMarkdown, inline,
+    chatPath, parseChatPath, pageTitle, stepLabel, programOf, summaryOf, plainWords, turnLine, fmtDur, replyParts, cleanReply, sender, renderMarkdown, inline,
   };
   globalThis.ChatCore = Object.freeze(api);
 })();
