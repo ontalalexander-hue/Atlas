@@ -30,7 +30,8 @@ import { MODEL_TIERS, tierOf } from "../../config/constants.js";
 import { SettingsStore } from "../../db/settings.js";
 import { resolveModel } from "../../lib/model-catalog.js";
 import { isTranscriptOverCap, transcriptSizeMB, SESSION_JSONL_MAX_MB } from "../../lib/claude-transcript.js";
-import { stepsFromSdkMessage, toolResultsFromSdkMessage, createStreamWatcher } from "../../lib/tool-steps.js";
+import { stepsFromSdkMessage, toolResultsFromSdkMessage, createStreamWatcher, subagentSteps } from "../../lib/tool-steps.js";
+import { sdkAgents } from "../../lib/agent-registry.js";
 import { agentVaultEnv } from "../agent-env.js";
 import { getSecurityManager } from "../../lib/security-manager.js";
 import { getProvider, normalizeProviderId, contextTokensFor, effortsFor, capsFor, engineFor, resolveModelFor } from "../provider-registry.js";
@@ -54,6 +55,8 @@ export const CLAUDE_ENGINE_PROVIDERS = Object.freeze(["claude", "anthropic", "de
 /** The built-in tools every provider gets, plus Atlas's own (without the mcp__atlas__* entry the SDK filters them out). */
 export const BUILTIN_TOOLS = Object.freeze(["Read", "Write", "Edit", "Bash", "Glob", "Grep"]);
 const ALL_TOOLS = Object.freeze([...BUILTIN_TOOLS, "mcp__atlas__*"]);
+/** The tool that hands work to one of the team (lib/agent-registry.js): only where there is a team to hand it to. */
+const SPAWN_TOOL = "Agent";
 
 /**
  * R6: the apiKeySource the CLI may report on its init message for each provider, recorded with fake credentials
@@ -201,12 +204,18 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
   const model = gateway ? turnEnv.ANTHROPIC_MODEL : resolve(requested);
   const caps = capsFor(id, gateway ? bare(requested) : model, store) || {};
 
+  // The team the main agent can delegate to. Claude's own models only: a gateway model can't run their models.
+  const team = claudeModels && opts.delegate !== false ? (deps.agents ?? sdkAgents()) : {};
+  const hasTeam = Object.keys(team).length > 0;
+  const tools = hasTeam ? [...BUILTIN_TOOLS, SPAWN_TOOL, "mcp__atlas__*"] : [...ALL_TOOLS];
+
   const options = {
     cwd,
     env: turnEnv,
     model,
-    tools: [...ALL_TOOLS],
-    allowedTools: [...ALL_TOOLS],
+    tools,
+    allowedTools: [...tools],
+    ...(hasTeam ? { agents: team } : {}),
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
     // Interactive chat keeps the generous ceiling; background callers pass a much lower one.
@@ -560,6 +569,8 @@ export async function* run(opts = {}) {
     let everStreamed = false;
     let inThinking = false;
     const seenToolIds = new Set();
+    /** Agent tool call id -> who it went to, so a subagent's own steps can be put to its name. */
+    const delegated = new Map();
     const watcher = createStreamWatcher();
     const stream = query({ prompt: queryPrompt, options: queryOptions });
     for await (const message of stream) {
@@ -645,8 +656,19 @@ export async function* run(opts = {}) {
             lastAssistantError = { code: "authentication_failed", text: textOf(message.message?.content) };
             break;
           }
+          if (!top) {
+            // A subagent's tool calls: live steps of their own kind, never part of the reply.
+            const who = delegated.get(message.parent_tool_use_id) || "general-purpose";
+            for (const step of subagentSteps(message, who, seenToolIds)) {
+              if (step.subagent) delegated.set(step.id, step.subagent);
+              yield { type: "step", ...step };
+            }
+          }
           if (top) {
-            for (const step of stepsFromSdkMessage(message, seenToolIds)) yield { type: "step", ...step };
+            for (const step of stepsFromSdkMessage(message, seenToolIds)) {
+              if (step.subagent) delegated.set(step.id, step.subagent);
+              yield { type: "step", ...step };
+            }
             if (!everStreamed) {
               const text = textOf(message.message?.content);
               if (text) {
@@ -665,7 +687,12 @@ export async function* run(opts = {}) {
         case "user": {
           // A tool's output comes back as a user message holding a tool_result block. Replays of earlier turns on
           // resume are skipped, and so are a subagent's inner results.
-          if (message.isReplay || message.parent_tool_use_id) break;
+          if (message.isReplay) break;
+          if (message.parent_tool_use_id) {
+            const who = delegated.get(message.parent_tool_use_id) || "general-purpose";
+            for (const step of subagentSteps(message, who, seenToolIds)) yield { type: "step", ...step };
+            break;
+          }
           for (const step of stepsFromSdkMessage(message, seenToolIds)) yield { type: "step", ...step };
           for (const r of toolResultsFromSdkMessage(message)) {
             yield { type: "tool_result", id: r.id, ok: r.ok, result: r.result.slice(0, 2000) };

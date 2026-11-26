@@ -40,6 +40,22 @@ export function toolInputPreview(name, input) {
   return text.length > INPUT_CHARS ? text.slice(0, INPUT_CHARS) + "…" : text;
 }
 
+/** The tools that hand work to a subagent ("Task" is the older name). */
+export const SPAWN_TOOLS = new Set(["Agent", "Task"]);
+
+/**
+ * A subagent's own tool calls, as steps of their own kind (sub_tool_start / sub_tool_end) so the chat's timeline,
+ * which shows the subagent as its one Agent step, is unchanged. `agent` is who is doing it.
+ */
+export function subagentSteps(message, agent, seen = new Set()) {
+  const out = [];
+  for (const s of stepsFromSdkMessage(message, seen)) {
+    if (s.kind === "tool_start") out.push({ kind: "sub_tool_start", id: s.id, name: s.name, rawName: s.rawName, summary: s.summary, agent, ...(s.subagent ? { subagent: s.subagent } : {}) });
+    else if (s.kind === "tool_end") out.push({ kind: "sub_tool_end", id: s.id, ok: s.ok, preview: String(s.preview || "").slice(0, 300), agent });
+  }
+  return out;
+}
+
 /** A short human label for what a tool call is doing. */
 export function summarizeToolInput(name, input = {}) {
   const n = String(name || "");
@@ -104,6 +120,8 @@ export function stepsFromSdkMessage(message, seen = new Set()) {
           rawName: b.name,
           summary: redactSecrets(summarizeToolInput(b.name, b.input)),
           input: toolInputPreview(b.name, b.input),
+          // Delegating (the Agent tool): who the work goes to, for the office view.
+          ...(SPAWN_TOOLS.has(b.name) ? { subagent: String(b.input?.subagent_type || "general-purpose").slice(0, 60) } : {}),
         });
       } else if (b?.type === "text" && b.text?.trim()) {
         steps.push({ kind: "text", text: b.text.trim() });

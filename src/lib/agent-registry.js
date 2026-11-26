@@ -59,7 +59,47 @@ const DEFAULT_AGENTS = [
     icon: "ph ph-lightning",
     status: "online",
   },
+  {
+    id: "finance",
+    name: "Finance",
+    nickname: "",
+    model: resolveModelAlias("sonnet"),
+    prompt: "You are a careful finance analyst. Work only from figures you were given or read from a file or tool, and say where each one came from. Never invent, estimate or round a number without saying so; when a figure is missing, say it is missing. You read and report: you never move money, pay, send or change a record.",
+    tools: ["Read", "Glob", "Grep"],
+    color: "#14b8a6",
+    icon: "ph ph-chart-line-up",
+    status: "online",
+  },
 ];
+
+/** When to hand each default agent a task (the Agent tool's description of it). */
+const WHEN = {
+  coder: "Writing, fixing or testing code and scripts.",
+  researcher: "Looking things up, reading documents and summarizing what they say.",
+  writer: "Drafting emails, documents, reports and other content.",
+  quick: "Small, simple jobs: a lookup, a calculation, reformatting.",
+  finance: "Reading and checking financial figures and reporting on them, without changing anything.",
+};
+
+/**
+ * The team as the Claude Agent SDK's `agents` option: what the main agent can delegate to with its Agent tool.
+ * An agent whose definition is unusable (no id or no prompt) is left out.
+ */
+export function sdkAgents(agents = getAgents()) {
+  const out = {};
+  for (const a of Array.isArray(agents) ? agents : []) {
+    if (!a || a.isOrchestrator || a.status === "offline") continue;
+    const id = String(a.id || "").trim();
+    if (!/^[a-z][a-z0-9_-]{0,40}$/.test(id) || !a.prompt) continue;
+    out[id] = {
+      description: a.description || WHEN[id] || `${a.name || id}: ${String(a.prompt).slice(0, 120)}`,
+      prompt: String(a.prompt),
+      ...(Array.isArray(a.tools) && a.tools.length ? { tools: [...a.tools] } : {}),
+      ...(a.model ? { model: a.model } : {}),
+    };
+  }
+  return out;
+}
 
 let _settingsStore = null;
 
@@ -69,7 +109,15 @@ export function initAgentRegistry(settingsStore) {
   const existing = getAgents();
   if (existing.length === 0) {
     _settingsStore.set("agents.registry", JSON.stringify(DEFAULT_AGENTS));
+  } else {
+    // A default added after this registry was seeded (Finance) joins it once; one the owner removed stays removed.
+    let known = [];
+    try { known = JSON.parse(_settingsStore.get("agents.defaults_seen") || "[]"); } catch { known = []; }
+    if (!Array.isArray(known) || !known.length) known = ["coder", "researcher", "writer", "quick"];
+    const add = DEFAULT_AGENTS.filter((d) => !known.includes(d.id) && !existing.some((e) => e.id === d.id));
+    if (add.length) _settingsStore.set("agents.registry", JSON.stringify([...existing, ...add]));
   }
+  _settingsStore.set("agents.defaults_seen", JSON.stringify(DEFAULT_AGENTS.map((d) => d.id)));
 
   // Create workspace dirs for each agent
   ensureAgentWorkspaces();

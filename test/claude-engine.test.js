@@ -75,7 +75,10 @@ describe("buildQueryOptions: the Claude plan", () => {
   it("the same tools, permissions and MCP rules on every provider", () => {
     for (const id of ["claude", "anthropic", "deepseek", "openrouter"]) {
       const b = build(id, { key: KEYS[id], mcpServer: { name: "atlas-stub" } });
-      assert.deepEqual(b.options.tools, ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "mcp__atlas__*"], id);
+      // Claude's own models also get the Agent tool, to delegate to the team (lib/agent-registry.js).
+      const own = id === "claude" || id === "anthropic";
+      assert.deepEqual(b.options.tools, own ? ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "mcp__atlas__*"] : ["Read", "Write", "Edit", "Bash", "Glob", "Grep", "mcp__atlas__*"], id);
+      assert.equal(!!b.options.agents, own, id);
       assert.deepEqual(b.options.allowedTools, b.options.tools, id);
       assert.equal(b.options.permissionMode, "bypassPermissions", id);
       assert.equal(b.options.allowDangerouslySkipPermissions, true, id);
