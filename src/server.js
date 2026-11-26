@@ -25,6 +25,7 @@ import { callRouter } from "./routes/voice-call.js";
 import { settingsRouter } from "./routes/settings.js";
 import { automationApprovalRouter } from "./routes/automation-approval.js";
 import { adminRouter } from "./routes/admin.js";
+import { officeRouter } from "./routes/office.js";
 import { filesRouter } from "./routes/files.js";
 import { debugRouter } from "./routes/debug.js";
 import { memoryRouter } from "./routes/memory.js";
@@ -197,6 +198,7 @@ app.use("/api/webhooks", webhookRouter); // Token auth, no session/CSRF needed
 app.use("/api/channels/whapi", whapiRouter); // Per-channel secret in URL, no session/CSRF
 app.use("/api/analytics", requireAuth, csrfProtect, analyticsRouter);
 app.use("/api/push", requireAuth, csrfProtect, pushRouter);
+app.use("/api/office", requireAuth, csrfProtect, officeRouter); // the 3D office view: the team and the live feed (routes/office.js)
 app.use("/api/ai", requireAuth, csrfProtect, aiRouter); // Settings > AI and the setup wizard (routes/ai.js)
 app.use("/api/models", requireAuth, csrfProtect, modelsRouter); // every ready AI's models, and each chat's pick (routes/models.js)
 app.use("/api/v1", requireAuth, externalApiRouter); // Bearer token auth, no CSRF needed for API clients

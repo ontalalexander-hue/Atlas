@@ -40,3 +40,6 @@ test/
 piper-voices/
 openclaw-main/
 clawdbot-railway-template/
+
+# The 3D office page is served from its built bundle (src/public/office); its source is not needed in the image.
+office-app

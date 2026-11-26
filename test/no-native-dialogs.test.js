@@ -212,7 +212,8 @@ const lineOf = (src, at) => src.slice(0, at).split("\n").length;
 function* files(dir) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) yield* files(p);
+    // (public/office is a built bundle of other people's libraries, office-app/NOTICE.md: not our code to hold to this.)
+    if (statSync(p).isDirectory()) { if (!(dir === PUBLIC && name === "office")) yield* files(p); }
     else if (/\.(m?js|cjs|html?)$/i.test(name)) yield p;
   }
 }

@@ -1,0 +1,205 @@
+// Simulyatsiya rejimi: orqasida Claude yo'q. Jamoadagi har bir rol o'z xonasida ishlaydi,
+// vaqti-vaqti bilan xato va konteyner yiqilishi bo'ladi.
+import { useOffice } from './store.js';
+import { severityOf } from './severity.js';
+import { tr } from './i18n.js';
+
+const S = () => useOffice.getState();
+const L = () => S().layout;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+const WORK = {
+  backend: {
+    tasks: ['Login API', 'Users migration', 'JWT check', 'Orders endpoint', 'Cache layer'],
+    acts: ['Read src/server/routes.ts', 'Edit src/server/auth.ts', 'Bash npm test -- auth', 'Grep "userId"', 'Write migrations/004_users.sql'],
+    errors: ['TypeError: Cannot read properties of undefined (reading \'id\')', 'ECONNREFUSED 127.0.0.1:5432', 'Test failed: auth.spec.ts (3 failing)'],
+  },
+  frontend: {
+    tasks: ['Login page', 'Dashboard table', 'Dark mode', 'Form validation', 'Mobile menu'],
+    acts: ['Read src/pages/Login.tsx', 'Edit src/components/Table.tsx', 'Bash npm run lint', 'Write src/hooks/useAuth.ts'],
+    errors: ['Module not found: Can\'t resolve \'./Button\'', 'Hydration failed: server/client mismatch', 'ESLint: 4 errors'],
+  },
+  devops: {
+    tasks: ['Docker image', 'CI pipeline', 'Nginx config', 'Monitoring', 'Backup script'],
+    acts: ['Edit Dockerfile', 'Write .github/workflows/ci.yml', 'Bash docker build .', 'Edit deploy/nginx.conf'],
+    errors: ['docker build failed: exit code 2', 'nginx: [emerg] unknown directive', 'CI job "test" failed'],
+  },
+  mobile: {
+    tasks: ['Login screen', 'Push notifications', 'Offline cache', 'Riverpod state', 'Android build'],
+    acts: ['Edit lib/screens/login_screen.dart', 'Bash flutter test', 'Read pubspec.yaml', 'Bash flutter analyze', 'Write lib/providers/auth_provider.dart'],
+    errors: ['RenderFlex overflowed by 42 pixels', 'Gradle task assembleDebug failed', 'Null check operator used on a null value'],
+  },
+  qa: {
+    tasks: ['E2E tests', 'Regression', 'Login test', 'Load test'],
+    acts: ['Bash npx playwright test', 'Write tests/e2e/login.spec.ts', 'Read reports/junit.xml'],
+    errors: ['3 tests failed in login.spec.ts', 'Timeout 30000ms exceeded'],
+  },
+  data: {
+    tasks: ['Model training', 'Data cleaning', 'Feature engineering', 'Eval'],
+    acts: ['Bash python train.py', 'Edit notebooks/eda.ipynb', 'Read data/schema.json'],
+    errors: ['CUDA out of memory', 'KeyError: \'label\''],
+  },
+  generic: {
+    tasks: ['Task', 'Refactoring', 'Code review', 'Writing docs'],
+    acts: ['Read README.md', 'Edit src/index.ts', 'Bash npm test', 'Grep "TODO"'],
+    errors: ['Command failed with exit code 1'],
+  },
+};
+const workFor = (kind) => WORK[kind] ?? (kind === 'design' || kind === 'docs' ? WORK.frontend : kind === 'security' ? WORK.devops : WORK.generic);
+
+let token = 0;
+
+export function startSim() {
+  const my = ++token;
+  const alive = () => my === token && S().mode === 'sim';
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const busy = (id) => S().agents[id]?.down || S().isPanicking(id);
+  const settle = async (id) => { while (alive() && (S().agents[id]?.state === 'walking' || busy(id))) await wait(150); };
+  const walk = async (id, cell, after) => { S().goTo(id, cell, after); await settle(id); };
+  const toDesk = async (id) => { S().goToDesk(id); await settle(id); };
+  const workers = new Set();
+
+  async function worker(id, delay) {
+    workers.add(id);
+    await wait(delay);
+    while (alive()) {
+      const a = S().agents[id];
+      if (!a) return;
+      const w = workFor(a.kind);
+      await settle(id);
+      if (!alive()) return;
+      const task = tr(pick(w.tasks));
+      S().patch(id, { task });
+      await toDesk(id);
+      if (!alive()) return;
+      S().say(id, tr('Working on {task}', { task }));
+      S().log(id, tr('Task: {task}', { task }));
+      const steps = Math.floor(rand(3, 7));
+      for (let i = 0; i < steps && alive(); i++) {
+        await wait(rand(1500, 3200));
+        if (!alive()) return;
+        if (busy(id)) { await settle(id); continue; }
+        const act = pick(w.acts);
+        S().log(id, act);
+        if (Math.random() < 0.35) S().say(id, act.split(' ')[0] + '…', 1800);
+      }
+      if (!alive()) return;
+      if (busy(id)) continue;
+      S().log(id, tr('✓ {task} done', { task }));
+      S().say(id, tr('Done!'), 2000, 'ok');
+      await wait(1200);
+      if (!alive() || busy(id)) continue;
+      const r = Math.random();
+      if (r < 0.35) {
+        S().patch(id, { task: tr('Coffee break') });
+        await walk(id, L().lounge.coffeeSpot, { state: 'idle' });
+        if (!busy(id)) S().say(id, '☕', 2500);
+        await wait(rand(3000, 5000));
+        if (!busy(id)) S().goToLounge(id);
+        await settle(id);
+        await wait(rand(2000, 4000));
+      } else if (r < 0.6) {
+        S().patch(id, { task: tr('Meeting') });
+        await walk(id, pick(L().meeting.seats), { state: 'talking' });
+        if (!busy(id)) S().say(id, tr(pick(['When do we ship?', 'Did we agree on the API schema?', 'Tests passed'])), 3000);
+        await wait(rand(4000, 6500));
+      }
+    }
+  }
+
+  async function manager() {
+    const id = 'manager';
+    await toDesk(id);
+    while (alive()) {
+      S().setState(id, 'thinking');
+      S().patch(id, { task: tr('Planning') });
+      S().log(id, tr('Splitting up the work'));
+      await wait(rand(5000, 9000));
+      if (!alive()) return;
+      const candidates = S().team.map((r) => r.id).filter((x) => S().agents[x] && !S().agents[x].down);
+      if (!candidates.length) continue;
+      const target = pick(candidates);
+      const t = S().agents[target];
+      const d = L().desks[t.deskId];
+      if (!d) continue;
+      S().patch(id, { task: tr('Talking to {name}', { name: t.name }) });
+      await walk(id, [d.seat[0] + 1, d.seat[1] + 1], { state: 'talking' });
+      if (!alive()) return;
+      S().say(id, tr('{name}, how is it going?', { name: t.name }), 2500);
+      await wait(2200);
+      if (!alive()) return;
+      if (!busy(target)) S().say(target, t.task ? tr('{task} — almost done', { task: t.task }) : tr('Starting now'), 2500);
+      S().log(id, tr('Sync with {name}', { name: t.name }));
+      await wait(2600);
+      await toDesk(id);
+      S().setState(id, 'working');
+      S().patch(id, { task: tr('Code review') });
+      await wait(rand(4000, 7000));
+    }
+  }
+
+  const services = () => S().team.map((r) => ({ id: `docker:app-${r.id}-1`, name: `app-${r.id}-1`, kind: 'docker', agent: r.id }));
+
+  // To'rt darajaning hammasi navbat bilan: mayda → o'rtacha → katta → kritik, keyin xizmat nosozliklari
+  const SAMPLES = [
+    ['minor', 'WARNING urllib3 Retrying (Retry(total=2)) after connection broken'],
+    ['moderate', '[ERROR/ForkPoolWorker-1] task.failed name=sync.process_queue'],
+    ['major', 'IndexError: pop from empty list'],
+    ['critical', 'FATAL:  role "smartshop" does not exist'],
+    ['minor', 'DeprecationWarning: datetime.utcnow() is deprecated'],
+    ['moderate', 'GET /api/orders 500'],
+    ['major', 'Traceback (most recent call last):'],
+    ['critical', 'asyncpg.exceptions.InvalidPasswordError: password authentication failed'],
+  ];
+
+  async function incidents() {
+    for (const sv of services()) S().setService({ hook: 'Service', ...sv, state: 'up', severity: 'info', detail: 'Up 3 minutes' });
+    await wait(rand(6000, 9000));
+    let i = 0;
+    while (alive()) {
+      const ids = S().team.map((r) => r.id).filter((x) => S().agents[x] && !S().agents[x].down);
+      const step = i % (SAMPLES.length + 2);
+      if (step < SAMPLES.length && ids.length) {
+        const [want, text] = SAMPLES[step];
+        const id = pick(ids);
+        const sev = severityOf(text) ?? want; // haqiqiy qoidalar bilan baholanadi
+        // kritik postgres xatosi takrorlanib turadi — bitta guruhlangan yozuv + hisoblagich
+        const repeat = sev === 'critical' ? 4 : 1;
+        for (let k = 0; k < repeat && alive(); k++) {
+          S().alert(id, sev, text, `app-${id}-1`, { key: `sim|${id}|${text}` });
+          if (k < repeat - 1) await wait(2500);
+        }
+      } else if (step === SAMPLES.length) {
+        // unhealthy → katta
+        const sv = pick(services());
+        S().setService({ hook: 'Service', ...sv, state: 'unhealthy', severity: 'major', detail: 'Up (unhealthy)' });
+        await wait(rand(12000, 16000));
+        if (!alive()) return;
+        S().setService({ hook: 'Service', ...sv, state: 'up', severity: 'info', detail: 'Up 1 second' });
+      } else {
+        // konteyner yiqildi → kritik (dam olish xonasi)
+        const sv = pick(services());
+        S().setService({ hook: 'Service', ...sv, state: 'down', severity: 'critical', exitCode: 1, detail: 'Exited (1) 1 second ago' });
+        S().log(sv.agent, 'FATAL: process crashed', 'critical', sv.name);
+        await wait(rand(12000, 18000));
+        if (!alive()) return;
+        S().setService({ hook: 'Service', ...sv, state: 'up', severity: 'info', detail: 'Up 1 second' });
+      }
+      i++;
+      await wait(rand(9000, 14000));
+    }
+  }
+
+  // Jamoaga yangi rol qo'shilsa, uning ishchisi ham ishga tushadi
+  const unsub = useOffice.subscribe((s, p) => {
+    if (!alive()) { unsub(); return; }
+    if (s.team !== p.team) for (const r of s.team) if (!workers.has(r.id)) worker(r.id, 1500);
+  });
+
+  manager();
+  S().team.forEach((r, i) => worker(r.id, 300 + i * 600));
+  incidents();
+}
+
+export function stopSim() { token++; }

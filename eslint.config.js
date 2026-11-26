@@ -74,6 +74,9 @@ export default [
     // that is green in CI and red locally is one people learn to ignore.
     ignores: [
       "node_modules/**",
+      // The 3D office: its source (a Vite + React app, MIT, see office-app/NOTICE.md) and its built bundle.
+      "office-app/**",
+      "src/public/office/**",
       "data/**",
       "src/skills/**",
       "openclaw-main/**",
