@@ -197,7 +197,7 @@ describe("Telegram", () => {
 
   it("hands the message to the turn layer even with no AI chosen (the turn layer says what to set up)", async () => {
     settings.delete("ai.activeProvider");
-    model.script = () => [{ type: "text", content: "Tarsee isn't connected to an AI yet: open Settings > AI." }, { type: "error", message: "Tarsee isn't connected to an AI yet: open Settings > AI.", subtype: "not-ready" }, { type: "done", stopReason: "not-ready" }];
+    model.script = () => [{ type: "text", content: "Atlas isn't connected to an AI yet: open Settings > AI." }, { type: "error", message: "Atlas isn't connected to an AI yet: open Settings > AI.", subtype: "not-ready" }, { type: "done", stopReason: "not-ready" }];
     send(703, { text: "hi" });
     await until(() => editsIn(703).some((t) => /isn't connected to an AI yet/.test(t)), "the turn layer's answer");
     await settle();
@@ -279,7 +279,7 @@ describe("WhatsApp", () => {
       }
       res.writeHead(200, { "content-type": "application/json" });
       if (req.url === "/health") {
-        res.end(JSON.stringify({ status: { text: "AUTH" }, user: { id: "447700900001", name: "Tarsee" } }));
+        res.end(JSON.stringify({ status: { text: "AUTH" }, user: { id: "447700900001", name: "Atlas" } }));
         return;
       }
       sent.push({ path: req.url, method: req.method, body: raw ? JSON.parse(raw) : {} });
@@ -525,7 +525,7 @@ function fakeSmtp() {
 }
 
 let mailNo = 0;
-/** A mail from an allowlisted sender that @mentions Tarsee, so a reply is expected. */
+/** A mail from an allowlisted sender that @mentions Atlas, so a reply is expected. */
 function mention(body) {
   const n = ++mailNo;
   FakeImap.inbox.push({

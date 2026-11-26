@@ -84,7 +84,7 @@ export function initLiveBus(db) {
       GROUP BY s.turn_id
     `).all(Date.now() - 2 * 86_400_000);
     for (const r of open) {
-      publish(r.conversation_id, "turn_end", { stopReason: "interrupted", note: "Tarsee restarted during this turn" }, { turnId: r.turn_id });
+      publish(r.conversation_id, "turn_end", { stopReason: "interrupted", note: "Atlas restarted during this turn" }, { turnId: r.turn_id });
     }
     if (open.length) console.log(`[live-bus] closed ${open.length} turn(s) left open by a restart`);
   } catch (err) {

@@ -4,7 +4,7 @@ import { readWorkspaceFile, truncateContent, getHeartbeatContext, getBootContext
 /**
  * The owner's OK for HEARTBEAT.md and BOOT.md.
  *
- * Both files run the AI on their own: HEARTBEAT.md every 30 minutes (lib/heartbeat.js), BOOT.md when Tarsee restarts
+ * Both files run the AI on their own: HEARTBEAT.md every 30 minutes (lib/heartbeat.js), BOOT.md when Atlas restarts
  * (lib/boot-runner.js), and each run is paid for. The AI can write either file with its file tools in any chat, so
  * neither runs text the owner hasn't OK'd. The owner OKs a text by:
  *   - saving it in Settings > Automation's editor (the editor's autosave, then POST /api/automation-approval/approve
@@ -83,7 +83,7 @@ export function approveIfUnchanged(store, name, shownText, by) {
 
 /**
  * The first start of this version: no OK is stored yet for `name`, so what is there now (written under an older
- * Tarsee, which ran it without asking) counts as OK'd, and that is noted ({ by: "upgrade" }). Runs once: after it,
+ * Atlas, which ran it without asking) counts as OK'd, and that is noted ({ by: "upgrade" }). Runs once: after it,
  * an OK is always stored, so a change the AI makes later waits, through restarts too. Returns whether it ran.
  */
 export function upgradeApproval(store, name, log = console.log) {
@@ -113,7 +113,7 @@ export function gateAutomation(store, name, log = console.log) {
   // The prompt comes from a second read of the file. Should a write land between the two, what would be sent isn't
   // the text checked below: nothing runs this time, and the next check sees the file as it is.
   if (prompt !== truncateContent(text)) {
-    return { run: false, reason: `${name} changed while Tarsee was reading it: checked again next time` };
+    return { run: false, reason: `${name} changed while Atlas was reading it: checked again next time` };
   }
   const hash = textHash(text);
   if (store.get(`${key}.approvedHash`) === hash) {

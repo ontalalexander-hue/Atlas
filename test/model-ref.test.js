@@ -5,7 +5,7 @@ import { parseModelRef, formatModelRef } from "../src/ai/model-ref.js";
 // A model ref names a model on a provider: "deepseek:deepseek-flash",
 // "openrouter:deepseek/deepseek-chat:free", or a bare "sonnet". OpenRouter and
 // Ollama ids carry colons of their own, so a ref splits on the FIRST colon
-// only, and only when what is in front of it is a provider Tarsee knows.
+// only, and only when what is in front of it is a provider Atlas knows.
 
 describe("parseModelRef", () => {
   it("keeps the colons inside an OpenRouter id", () => {
@@ -69,7 +69,7 @@ describe("formatModelRef", () => {
     assert.equal(formatModelRef(null, null), "");
   });
 
-  it("refuses a provider Tarsee does not know", () => {
+  it("refuses a provider Atlas does not know", () => {
     assert.throws(() => formatModelRef("gemini", "pro"), /unknown provider/i);
   });
 

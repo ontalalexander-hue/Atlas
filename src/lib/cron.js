@@ -135,7 +135,7 @@ export function promptScheduleProblem(schedule) {
   return `"${text}" runs ${gap === 1 ? "1 minute" : `${gap} minutes`} apart. ${rule}: "*/${MIN_PROMPT_GAP_MINUTES} * * * *" is the most often.`;
 }
 
-/** The longest schedule Tarsee hands node-cron. A real one is 5 short parts; the cap keeps unsafeScheduleProblem quick. */
+/** The longest schedule Atlas hands node-cron. A real one is 5 short parts; the cap keeps unsafeScheduleProblem quick. */
 const MAX_SCHEDULE_LENGTH = 1000;
 /** No part of a schedule holds more numbers than this: seconds and minutes go from 0 to 59. */
 const MOST_NUMBERS_IN_A_PART = 60;
@@ -227,7 +227,7 @@ function weekdayStepOf0(text, written, read) {
     const instead = [...written];
     instead[at] = pieces.map((p, i) => (i === k ? first : p)).join(",");
     const suggestion = instead.join(" ");
-    // Offered only when it is one Tarsee takes itself: another piece with a step of 7 ("1-5/7,*/7") would be refused too.
+    // Offered only when it is one Atlas takes itself: another piece with a step of 7 ("1-5/7,*/7") would be refused too.
     if (unsafeScheduleProblem(suggestion) === null && cron.validate(suggestion)) {
       return `${where}, the scheduler reads the first 7 as 0 (7 and 0 both mean Sunday), so "${piece}" works out to a step of 0. A step must be 1 or more. Counting ${step} days on from ${DAY_NAMES[day]} goes past the end of the week, so "${piece}" means ${DAY_NAMES[day]}s only: write "${suggestion}".`;
     }
@@ -297,7 +297,7 @@ function cronFields(schedule) {
   try {
     const fields = task.timeMatcher?.expressions;
     if (!Array.isArray(fields) || fields.length !== 6 || !fields.every(Array.isArray)) {
-      throw new Error(`Tarsee couldn't read the times in the schedule "${schedule}"`);
+      throw new Error(`Atlas couldn't read the times in the schedule "${schedule}"`);
     }
     return fields;
   } finally {
@@ -371,7 +371,7 @@ export function setCronChannelManager(channelManager) {
  * Load and start all enabled cron jobs (at boot, and whenever every timer is made again). A task waiting for the
  * owner's OK gets no timer. Saved tasks that share an id get their own first (giveEachTaskItsOwnId), while no timer is
  * left to point at the wrong one. A task that can't be scheduled is logged and skipped: the others still start, and so
- * does Tarsee.
+ * does Atlas.
  */
 export function startCronScheduler() {
   stopCronScheduler();
@@ -572,21 +572,21 @@ async function notifyJobComplete(job, status, errMsg = null) {
     const name = job.name || job.id || "cron";
     if (status === "ok") {
       await sendPush({
-        title: `Tarsee · ${name}`,
+        title: `Atlas · ${name}`,
         body: "Job finished.",
         tag: `cron-${job.id}`,
         url: "/",
       });
     } else if (status === "over-budget") {
       await sendPush({
-        title: `Tarsee · ${name} went over its spending limit`,
+        title: `Atlas · ${name} went over its spending limit`,
         body: (errMsg || "").slice(0, 140),
         tag: `cron-${job.id}`,
         url: "/",
       });
     } else {
       await sendPush({
-        title: `Tarsee · ${name} failed`,
+        title: `Atlas · ${name} failed`,
         body: (errMsg || "").slice(0, 140),
         tag: `cron-${job.id}-error`,
         url: "/",
@@ -786,7 +786,7 @@ function uniqueId(jobs, base) {
 }
 
 let lastStamp = 0;
-/** The time in milliseconds, in letters and digits; never the same twice in a run of Tarsee, even within a millisecond. */
+/** The time in milliseconds, in letters and digits; never the same twice in a run of Atlas, even within a millisecond. */
 function timeStamp() {
   lastStamp = Math.max(Date.now(), lastStamp + 1);
   return lastStamp.toString(36);

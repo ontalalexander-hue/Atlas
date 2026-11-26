@@ -111,7 +111,7 @@ function displayUrl(raw) {
 }
 
 function unknownProvider(res, id) {
-  return res.status(404).json({ error: `Tarsee doesn't know an AI called "${String(id ?? "").slice(0, 40)}".` });
+  return res.status(404).json({ error: `Atlas doesn't know an AI called "${String(id ?? "").slice(0, 40)}".` });
 }
 
 /** A per-address sliding-window limiter, one bucket per kind of request. */
@@ -158,7 +158,7 @@ function notesFor(p) {
     case "deepseek": return ["The cheapest per token; a small top-up is enough, and it is all DeepSeek can spend.", readable];
     case "local": return [
       "Free: runs on a machine you run (Ollama, LM Studio, llama.cpp or any Responses-compatible server). Small models may use tools poorly.",
-      "On a Linux server a command the agent runs can still read this key, if your server uses one, from the engine's process, so use a key made only for Tarsee.",
+      "On a Linux server a command the agent runs can still read this key, if your server uses one, from the engine's process, so use a key made only for Atlas.",
       messageAtATime,
     ];
     default: return [];
@@ -200,11 +200,11 @@ export function createAiRouter(deps = {}) {
   /** False (with a 400 sent) for a provider this version doesn't switch on. */
   const requireShipped = (p, res) => {
     if (shipped(p.id)) return true;
-    res.status(400).json({ error: `${p.label} isn't available in this version of Tarsee.` });
+    res.status(400).json({ error: `${p.label} isn't available in this version of Atlas.` });
     return false;
   };
 
-  /** The environment Codex gets for a sign-in or model-list call: no credential, no Tarsee secret, its own home. */
+  /** The environment Codex gets for a sign-in or model-list call: no credential, no Atlas secret, its own home. */
   const codexChildEnv = () => ({ ...baseEnv(envOf()), CODEX_HOME: codexHome() });
 
   async function loadDeviceLogin() {
@@ -242,7 +242,7 @@ export function createAiRouter(deps = {}) {
   /**
    * Check a model for a provider: {ok, model} (null clears the choice, undefined leaves it), or {ok:false, status,
    * error, state?}. Claude takes its words and ids; Local AI any id its server may have; every other provider only
-   * ids it offers, and OpenRouter's only once verified (or by a maker Tarsee runs without verification).
+   * ids it offers, and OpenRouter's only once verified (or by a maker Atlas runs without verification).
    */
   async function checkModel(p, raw, store) {
     if (raw === undefined) return { ok: true, model: undefined };
@@ -372,10 +372,10 @@ export function createAiRouter(deps = {}) {
         id: `settings-guard-${i + 1}`,
         level: "error",
         message: g.dotenv
-          ? `${g.file} is loaded by Codex into its own environment (a proxy or certificate there could read the AI's key and traffic), so Tarsee won't run ${who} turns until it is set aside.`
+          ? `${g.file} is loaded by Codex into its own environment (a proxy or certificate there could read the AI's key and traffic), so Atlas won't run ${who} turns until it is set aside.`
           : g.unreadable
-          ? `${g.file} can't be read safely, so Tarsee won't run ${who} turns until it is fixed or set aside.`
-          : `${g.file} has settings that could send an AI key or its requests somewhere else (${g.entries.join(", ")}), so Tarsee won't run ${who} turns until they're removed.`,
+          ? `${g.file} can't be read safely, so Atlas won't run ${who} turns until it is fixed or set aside.`
+          : `${g.file} has settings that could send an AI key or its requests somewhere else (${g.entries.join(", ")}), so Atlas won't run ${who} turns until they're removed.`,
         action: { label: g.unreadable ? "Set this file aside" : "Remove these entries", kind: "settings-guard", file: g.file },
       });
     });
@@ -582,9 +582,9 @@ export function createAiRouter(deps = {}) {
       if (!s.ready) return res.status(409).json({ error: s.detail, state: s.state, fix: s.fix });
       try {
         const r = await fillChatgptModels(store);
-        if (!r.models.length) note = "Your ChatGPT account's model list couldn't be read, so Tarsee names no model and Codex uses your account's default model.";
+        if (!r.models.length) note = "Your ChatGPT account's model list couldn't be read, so Atlas names no model and Codex uses your account's default model.";
       } catch (err) {
-        return res.status(502).json({ error: `Tarsee couldn't read your ChatGPT account's models: ${redactSecrets(err?.message || String(err))}` });
+        return res.status(502).json({ error: `Atlas couldn't read your ChatGPT account's models: ${redactSecrets(err?.message || String(err))}` });
       }
     } else if (p.id === "local") {
       const url = localUrlFor(store, env);
@@ -617,14 +617,14 @@ export function createAiRouter(deps = {}) {
           const missing = r.models.filter((m) => !m.confirmed).map((m) => m.label || m.id);
           const words = [];
           if (missing.length) words.push(`DeepSeek doesn't list ${missing.join(" or ")} for this key right now.`);
-          if (r.extra?.length) words.push(`DeepSeek also offers ${r.extra.slice(0, 5).join(", ")}, which this version of Tarsee doesn't list yet.`);
+          if (r.extra?.length) words.push(`DeepSeek also offers ${r.extra.slice(0, 5).join(", ")}, which this version of Atlas doesn't list yet.`);
           note = words.join(" ") || null;
         }
       }
     }
     const verified = verifiedModels(p.id, store);
     // Whether a chat's model menu and /model take each model (lib/model-catalog.js, the one rule): Local AI's chosen
-    // model and its verified ones, OpenRouter's once verified or by a maker Tarsee runs as it is. The card's own list
+    // model and its verified ones, OpenRouter's once verified or by a maker Atlas runs as it is. The card's own list
     // (needsVerification) keeps every model the provider has, so a new default can still be chosen there.
     const menu = new Map(modelChoices(p.id, store, { env }).map((c) => [c.id, c.selectable]));
     // The OpenAI key: a newer model its table lacks, once the owner verified it (the card's model id box), is one of

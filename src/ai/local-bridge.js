@@ -2,7 +2,7 @@
  * local-bridge.js: the Local AI bridge, a small loopback server between Codex and the owner's own AI server (Ollama, LM
  * Studio, llama.cpp's llama-server or any other Responses server).
  *
- * Why it is there. Codex 0.167 always sends Tarsee's tools (its MCP server) as one {type: "namespace"} tool holding
+ * Why it is there. Codex 0.167 always sends Atlas's tools (its MCP server) as one {type: "namespace"} tool holding
  * function tools, and finds the tool to run from a reply's {namespace, name} pair, with no fallback to a flat name.
  * LM Studio, Ollama before 0.34 and llama-server drop a namespace tool without a word (llama-server logs "unsupported
  * Responses tool type 'namespace' skipped"), so a Local AI model never sees the calculator, the memory or the files,
@@ -40,7 +40,7 @@
  *   - an HTTP error goes back unchanged; any other path (a GET of /models) is passed through as it is
  *   - when Codex hangs up, the request to the server is stopped
  *
- * Everything here runs inside Tarsee's own process. The server listens on 127.0.0.1 only, starts on first use and
+ * Everything here runs inside Atlas's own process. The server listens on 127.0.0.1 only, starts on first use and
  * doesn't keep the process alive. Nothing is logged with a key or a token in it.
  */
 import crypto from "node:crypto";
@@ -56,7 +56,7 @@ export const MAX_TURN_MS = 6 * 60 * 60 * 1000;
 /** The largest request Codex sends that the bridge reads (its whole history; a picture is a file path, not bytes). */
 const MAX_BODY_BYTES = 64 * 1024 * 1024;
 
-/** The input items every Responses server Tarsee knows takes. */
+/** The input items every Responses server Atlas knows takes. */
 const KNOWN_ITEMS = new Set(["message", "function_call", "function_call_output", "reasoning"]);
 
 const LEAD_ROLES = new Set(["developer", "system"]);

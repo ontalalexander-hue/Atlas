@@ -563,7 +563,7 @@ export async function createEmailBot(rawConfig, db, { chatStream: streamChat = c
   };
 }
 
-// ── What Tarsee sends, built apart from the sending (test/email-smtp.test.js
+// ── What Atlas sends, built apart from the sending (test/email-smtp.test.js
 //    sends these through nodemailer to a local SMTP server) ──────────────────
 
 /** nodemailer's SMTP transport options: port 465 is implicit TLS; any other port upgrades with STARTTLS when offered. */
@@ -621,7 +621,7 @@ function withDeadline(promise, ms, error) {
 }
 
 function fromHeader({ cfg, selfAddress }) {
-  return `"${cfg.fromName || "Tarsee"}" <${selfAddress}>`;
+  return `"${cfg.fromName || "Atlas"}" <${selfAddress}>`;
 }
 
 /**
@@ -697,7 +697,7 @@ export function buildDirectMail(chatId, message, sender) {
   return {
     from: fromHeader(sender),
     to: to.join(", "),
-    subject: sender.cfg.defaultSubject || "Tarsee message",
+    subject: sender.cfg.defaultSubject || "Atlas message",
     text: parts.text,
     ...(parts.html ? { html: parts.html } : {}),
   };
@@ -712,8 +712,8 @@ export function normalizeConfig(c) {
   const out = {
     enabled: !!c.enabled,
     tarseeEmailAddress: c.tarseeEmailAddress || c.emailAddress || c.imap?.user || "",
-    fromName: c.fromName || "Tarsee",
-    defaultSubject: c.defaultSubject || "Tarsee",
+    fromName: c.fromName || "Atlas",
+    defaultSubject: c.defaultSubject || "Atlas",
     mentionKeyword: c.mentionKeyword || DEFAULT_MENTION_KEYWORD,
     replyAllMarker: c.replyAllMarker || DEFAULT_REPLY_ALL_MARKER,
     // Outbound signature — plain text, or HTML (rendered as multipart/alternative).

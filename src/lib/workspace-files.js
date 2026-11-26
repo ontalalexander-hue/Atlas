@@ -245,16 +245,16 @@ const SEND_FILE_LINE = "- **tarsee_send_file** — Send a file as a real attachm
 const SOUL_TOOLS_LINE = "- **Platform tools** (the tarsee_* tools): Send messages and files (real attachments) to Telegram/Discord/WhatsApp/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.";
 // The lines of TOOLS.md (both the image's and config/env.js's) that told the agent to stay out of Bash.
 const TOOLS_SHELL_LINES = [
-  ["- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from Bash and never pull DISCORD_BOT_TOKEN from the vault for it: Tarsee's own bot does the work.",
-    "- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Tarsee's own bot does the work."],
-  ["- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from Bash and never put a Railway token or a secret value in a command: Tarsee reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).",
-    "- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Tarsee reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token)."],
+  ["- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from Bash and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work.",
+    "- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work."],
+  ["- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from Bash and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).",
+    "- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token)."],
 ];
 
 const DEFAULT_UPGRADES = {
   "SOUL.md": [
-    ["You are **Tarsee** — a 24/7 autonomous AI agent powered by Claude.",
-      "You are **Tarsee** — a 24/7 autonomous AI agent."],
+    ["You are **Atlas** — a 24/7 autonomous AI agent powered by Claude.",
+      "You are **Atlas** — a 24/7 autonomous AI agent."],
     ["- **Full tool access**: Read, Write, Edit, Bash, Grep, Glob — you can work with any file or run any command.",
       "- **Full tool access**: you can read, write, edit and search any file, and run any command in the shell."],
     ["- **Platform tools** (mcp__tarsee__*): Send messages to Telegram/Discord/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.",
@@ -287,8 +287,8 @@ const DEFAULT_UPGRADES = {
       "- **Quick** (its fastest model) — Fast lookups, formatting, simple tasks."],
   ],
   "MEMORY.md": [
-    ["This file stores everything Tarsee learns across sessions. Read this at the start of every conversation.",
-      "This file stores everything Tarsee learns across sessions. It grows long: grep it for what a task needs, and never read it whole."],
+    ["This file stores everything Atlas learns across sessions. Read this at the start of every conversation.",
+      "This file stores everything Atlas learns across sessions. It grows long: grep it for what a task needs, and never read it whole."],
   ],
   "TOOLS.md": TOOLS_SHELL_LINES,
   "CLAUDE.md": [

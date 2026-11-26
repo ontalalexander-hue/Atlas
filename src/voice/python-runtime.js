@@ -1,9 +1,9 @@
 /**
- * The Python that Tarsee's local voice runs on: faster-whisper (speech-to-text, stt-install.js) and Phonon
+ * The Python that Atlas's local voice runs on: faster-whisper (speech-to-text, stt-install.js) and Phonon
  * (text-to-speech, phonon-install.js). Each gets its own venv; this module finds, or fetches, the Python those venvs
  * are made from.
  *
- *   1. Tarsee's own copy, once downloaded: <state>/python/cpython-<version>.
+ *   1. Atlas's own copy, once downloaded: <state>/python/cpython-<version>.
  *   2. A Python 3.9 to 3.14 on this computer that has the venv module: on Windows the py launcher (py -3.12, ...), then
  *      python; elsewhere python3.12, ..., python3. The Microsoft Store's "python" shortcut is not a Python.
  *   3. Otherwise, only when the owner asks (a click in Settings), a standalone CPython from
@@ -26,7 +26,7 @@ import { extractTarGz } from "./tar-extract.js";
 export const PYTHON_RANGE = Object.freeze({ min: [3, 9], max: [3, 14] });
 
 /**
- * The standalone CPython Tarsee downloads when there is no usable Python: python-build-standalone's release
+ * The standalone CPython Atlas downloads when there is no usable Python: python-build-standalone's release
  * 20261026, CPython 3.12.16, the install_only builds. sha256 as the release lists them (each asset's digest).
  */
 export const STANDALONE_PYTHON = Object.freeze({
@@ -44,7 +44,7 @@ export const STANDALONE_PYTHON = Object.freeze({
   }),
 });
 
-const OWN_LABEL = "Tarsee's own Python";
+const OWN_LABEL = "Atlas's own Python";
 const MARKER = "tarsee-python.json";
 
 let _spawn = spawn;
@@ -58,7 +58,7 @@ export function __setForTests({ spawn: s, candidates } = {}) {
 
 // ── Where things are ─────────────────────────────────────────────────────
 
-/** Tarsee's Python folder: its own CPython (when downloaded) and the voice venvs. */
+/** Atlas's Python folder: its own CPython (when downloaded) and the voice venvs. */
 export function pythonHome() {
   return path.join(config.STATE_DIR, "python");
 }
@@ -77,7 +77,7 @@ export function venvInterpreter(dir, platform = process.platform) {
   return platform === "win32" ? path.win32.join(dir, "Scripts", "python.exe") : path.posix.join(dir, "bin", "python");
 }
 
-/** Tarsee's own CPython is unpacked, checked, and there. */
+/** Atlas's own CPython is unpacked, checked, and there. */
 export function standaloneReady(pin = STANDALONE_PYTHON) {
   const dir = standaloneDir(pin);
   return fs.existsSync(path.join(dir, MARKER)) && fs.existsSync(interpreterIn(dir));
@@ -106,10 +106,10 @@ export function pythonTarget({ platform = process.platform, arch = process.arch,
   if (platform === "darwin") return { triple: `${cpu}-apple-darwin` };
   if (platform === "linux") {
     const libc = glibc === undefined ? glibcVersion() : glibc;
-    if (!libc) return { error: "this Linux uses musl (Alpine, for one), and faster-whisper has no build for it; use Tarsee's Docker image, or a Linux with glibc" };
+    if (!libc) return { error: "this Linux uses musl (Alpine, for one), and faster-whisper has no build for it; use Atlas's Docker image, or a Linux with glibc" };
     return { triple: `${cpu}-unknown-linux-gnu` };
   }
-  return { error: `there is no Python build Tarsee can download for ${platform}` };
+  return { error: `there is no Python build Atlas can download for ${platform}` };
 }
 
 /** The Pythons to look for on this computer, best first. */
@@ -216,7 +216,7 @@ const cmpVer = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
 
 /**
  * Ask a Python about itself. { ...ref, found, usable, version, executable, venv, fasterWhisper, problem }:
- * found (the program exists), usable (a Python in PYTHON_RANGE with venv: a base for Tarsee's venvs), fasterWhisper
+ * found (the program exists), usable (a Python in PYTHON_RANGE with venv: a base for Atlas's venvs), fasterWhisper
  * (its version when this Python can import it), problem (why it isn't usable, in plain words).
  */
 export async function probePython(ref, { timeout = 30_000 } = {}) {
@@ -246,7 +246,7 @@ export async function probePython(ref, { timeout = 30_000 } = {}) {
   return { ...res, usable: true };
 }
 
-/** Every Python found: Tarsee's own first (when there), then this computer's, without repeats. */
+/** Every Python found: Atlas's own first (when there), then this computer's, without repeats. */
 export async function findPythons({ pin = STANDALONE_PYTHON } = {}) {
   const list = [];
   if (standaloneReady(pin)) list.push({ cmd: interpreterIn(standaloneDir(pin)), args: [], source: "tarsee", label: OWN_LABEL });
@@ -270,7 +270,7 @@ export async function findBasePython(opts = {}) {
 export const NO_PYTHON = "No Python 3.9 or newer was found on this computer";
 
 /**
- * A Python to make a venv from: findBasePython's, else (allowDownload) Tarsee's own, downloaded now. Without
+ * A Python to make a venv from: findBasePython's, else (allowDownload) Atlas's own, downloaded now. Without
  * allowDownload, no Python is an error that says what to do.
  * opts: allowDownload, fetch, pin, onProgress({ phase, bytesDone, bytesTotal }), log, retryDelayMs.
  */
@@ -278,7 +278,7 @@ export async function ensureBasePython(opts = {}) {
   const found = await findBasePython({ pin: opts.pin });
   if (found) return found;
   if (!opts.allowDownload) {
-    throw Object.assign(new Error(`${NO_PYTHON}. Install it from python.org, or use the Install button in Settings > Voice, which downloads Tarsee's own copy (about 45 MB).`), { code: "NO_PYTHON" });
+    throw Object.assign(new Error(`${NO_PYTHON}. Install it from python.org, or use the Install button in Settings > Voice, which downloads Atlas's own copy (about 45 MB).`), { code: "NO_PYTHON" });
   }
   return downloadStandalonePython(opts);
 }
@@ -288,7 +288,7 @@ export async function ensureBasePython(opts = {}) {
 /** Download, check, unpack and run once the pinned standalone CPython. Resolves with its probe (source "tarsee"). */
 export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDALONE_PYTHON, onProgress, log = () => {}, retryDelayMs = 1000 } = {}) {
   const target = pythonTarget();
-  if (target.error) throw new Error(`Tarsee can't download Python for this computer: ${target.error}.`);
+  if (target.error) throw new Error(`Atlas can't download Python for this computer: ${target.error}.`);
   const get = guardedFetch([OFFICIAL_HOSTS.github], fetchImpl || globalThis.fetch);
 
   // 1. The release, from GitHub's API.
@@ -296,7 +296,7 @@ export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDAL
   let res;
   try {
     res = await get(apiUrl, {
-      headers: { Accept: "application/vnd.github+json", "User-Agent": "Tarsee", "X-GitHub-Api-Version": "2022-11-28" },
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "Atlas", "X-GitHub-Api-Version": "2022-11-28" },
       signal: AbortSignal.timeout(30_000),
     });
   } catch (err) {
@@ -316,7 +316,7 @@ export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDAL
   const pinned = pin.sha256?.[target.triple] || null;
   const listed = /^sha256:([0-9a-f]{64})$/i.exec(String(asset.digest || ""))?.[1]?.toLowerCase() || null;
   if (pinned && listed && listed !== pinned) {
-    throw new Error(`The Python build GitHub lists (${name}) does not match the one this version of Tarsee expects, so it was not downloaded.`);
+    throw new Error(`The Python build GitHub lists (${name}) does not match the one this version of Atlas expects, so it was not downloaded.`);
   }
   const sha256 = pinned || listed;
   if (!sha256) throw new Error(`GitHub lists no hash for ${name}, so it was not downloaded.`);
@@ -359,7 +359,7 @@ export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDAL
   fs.renameSync(partial, dir);
   cleanDownloads(downloads, file);
 
-  // 5. Run it once (the only thing from a download Tarsee ever runs is this interpreter).
+  // 5. Run it once (the only thing from a download Atlas ever runs is this interpreter).
   const probe = await probePython({ cmd: interpreterIn(dir), args: [], source: "tarsee", label: OWN_LABEL });
   if (!probe.usable) {
     fs.rmSync(dir, { recursive: true, force: true });

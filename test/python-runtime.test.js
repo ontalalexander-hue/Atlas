@@ -1,6 +1,6 @@
 // The Python that faster-whisper and Phonon run on (src/voice/python-runtime.js): a usable Python 3.9+ with venv is
 // found on this computer (the Windows py launcher, python3, python; never the Microsoft Store shortcut), else a
-// standalone CPython from astral-sh/python-build-standalone is downloaded into Tarsee's state folder: the right asset
+// standalone CPython from astral-sh/python-build-standalone is downloaded into Atlas's state folder: the right asset
 // for the OS and CPU from the GitHub releases API, checked against the pinned sha256 and the size GitHub lists,
 // extracted safely, and run once to prove it works. A fake Python (a real process) and a fake GitHub stand in.
 import { describe, it, before, after, beforeEach } from "node:test";
@@ -64,7 +64,7 @@ describe("which Python build fits this computer", () => {
     assert.equal(interpreterIn("C:\\t\\cpython", "win32"), "C:\\t\\cpython\\python.exe");
     assert.equal(interpreterIn("/t/cpython", "darwin"), "/t/cpython/bin/python3");
     assert.ok(standaloneDir().startsWith(pythonHome()));
-    assert.ok(pythonHome().startsWith(tmp), "in Tarsee's state folder");
+    assert.ok(pythonHome().startsWith(tmp), "in Atlas's state folder");
   });
 });
 
@@ -180,7 +180,7 @@ describe("downloading a standalone Python", () => {
     const again = await ensureBasePython({ allowDownload: true, fetch: host.fetch, pin });
     assert.equal(again.cmd, ref.cmd);
     assert.equal(host.hits[api], 1, "no second download");
-    assert.equal((await findBasePython()).source, "tarsee", "Tarsee's own Python comes first once it is there");
+    assert.equal((await findBasePython()).source, "tarsee", "Atlas's own Python comes first once it is there");
   });
 
   it("a usable Python on this computer is used, and nothing is downloaded", async () => {

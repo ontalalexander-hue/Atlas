@@ -1,13 +1,13 @@
 /**
  * verify-model.js: the one-click Verify for a model with no tested path yet (design 4.11, decision 2).
  *
- * A picker lists a model only once a tool-using test turn has passed on its engine. For a model Tarsee doesn't ship as
+ * A picker lists a model only once a tool-using test turn has passed on its engine. For a model Atlas doesn't ship as
  * verified (an OpenRouter model from a maker other than Anthropic or OpenAI, a DeepSeek model on another engine, a
  * Local AI model), the owner runs this on their own key. It runs four turns through the engine-neutral turn layer
  * (turn.js runTurn, injectable as deps.runner), on one engine at a time:
  *
  *   1. reply    a plain reply that must carry a code word it was given
- *   2. tool     a call to Tarsee's tarsee_datetime tool: a real tool_use and its successful result
+ *   2. tool     a call to Atlas's tarsee_datetime tool: a real tool_use and its successful result
  *   3. shell    a shell command whose output (a marker) must come back in the command's own result, so a model that
  *               only repeats the marker from the prompt doesn't pass
  *   4. resume   a second turn on the same session, sending only the new question, that must recall the code word
@@ -58,7 +58,7 @@ function trackWorkspace(dir) {
 const CLAUDE_CODE = "claude-code";
 const CODEX = "codex";
 
-const VERIFY_SYSTEM_PROMPT = "You are being checked by Tarsee, an assistant app, to see whether you can work as its assistant. "
+const VERIFY_SYSTEM_PROMPT = "You are being checked by Atlas, an assistant app, to see whether you can work as its assistant. "
   + "Follow each instruction exactly, use a tool when you are asked to, and keep every reply short.";
 
 /** Per turn: a small tool loop is all any check needs, and a ceiling well above what one check costs. */
@@ -82,8 +82,8 @@ const NO_CLAUDE_IDS = new Set(["deepseek", "chatgpt", "openai", "local"]);
 
 const DETAIL = {
   reply: "It didn't reply with the code word it was given.",
-  tool: "It didn't use Tarsee's tools when asked.",
-  toolFailed: "It called Tarsee's tool, but the call failed.",
+  tool: "It didn't use Atlas's tools when asked.",
+  toolFailed: "It called Atlas's tool, but the call failed.",
   shell: "It didn't run the shell command when asked.",
   resume: "It didn't remember the earlier message when the conversation was continued.",
   noSession: "It didn't hand back a session to continue, so the conversation couldn't be picked up again.",
@@ -119,7 +119,7 @@ export function verifyEngines(providerId, model, { engines } = {}) {
   return list;
 }
 
-/** The effort levels worth trying on a model (Tarsee's ids, lowest first). */
+/** The effort levels worth trying on a model (Atlas's ids, lowest first). */
 function candidateEfforts(p, id, deps = {}) {
   if (Array.isArray(deps.efforts)) return EFFORT_IDS.filter((e) => deps.efforts.includes(e));
   if (p.catalog === "claude") return [...EFFORT_IDS];
@@ -246,7 +246,7 @@ const defaultLimiter = createVerifyLimiter();
  *   runner       the turn layer (default: turn.js runTurn)
  *   store        SettingsStore: where the result is recorded (and what the registry reads)
  *   record       false to record nothing (default true when a store is given)
- *   stateDir     Tarsee's state folder (default config.STATE_DIR); the scratch folder goes under <stateDir>/verify/
+ *   stateDir     Atlas's state folder (default config.STATE_DIR); the scratch folder goes under <stateDir>/verify/
  *   engines      narrow or order the engines tried
  *   efforts      the effort levels to try (default: what the model lists)
  *   toolCtx      the tool context handed to the turns (no conversation)
@@ -268,7 +268,7 @@ const defaultLimiter = createVerifyLimiter();
  */
 export async function verifyModel(providerId, model, deps = {}) {
   const p = getProvider(providerId);
-  if (!p) return refusal(null, model, "unknown-provider", "Tarsee doesn't know that AI.");
+  if (!p) return refusal(null, model, "unknown-provider", "Atlas doesn't know that AI.");
   const id = bareModel(model);
   // The ChatGPT plan may be checked on the account's default model (the smoke script); nothing is recorded for it.
   if (!id && p.id !== "chatgpt") return refusal(p.id, id, "no-model", "Choose a model to check first.");
@@ -277,7 +277,7 @@ export async function verifyModel(providerId, model, deps = {}) {
   }
   const engines = verifyEngines(p.id, id, { engines: deps.engines });
   if (!engines.length) {
-    return refusal(p.id, id, "no-engine", `${modelLabel(p, id)} can't run on either of Tarsee's engines: OpenRouter lists no chat endpoint Tarsee speaks for it.`);
+    return refusal(p.id, id, "no-engine", `${modelLabel(p, id)} can't run on either of Atlas's engines: OpenRouter lists no chat endpoint Atlas speaks for it.`);
   }
 
   const limiter = deps.limiter === undefined ? defaultLimiter : deps.limiter;
@@ -289,7 +289,7 @@ export async function verifyModel(providerId, model, deps = {}) {
     let runner = deps.runner;
     if (!runner) {
       try { runner = (await import("./turn.js")).runTurn; } catch { runner = null; }
-      if (typeof runner !== "function") return refusal(p.id, id, "not-available", "Tarsee's turn layer isn't available, so the check can't run.");
+      if (typeof runner !== "function") return refusal(p.id, id, "not-available", "Atlas's turn layer isn't available, so the check can't run.");
     }
     const stateDir = deps.stateDir || (await import("../config/env.js")).default.STATE_DIR;
     const root = path.join(stateDir, "verify");
@@ -411,8 +411,8 @@ function judge(step, res, { word, marker, engine, provider, model = null }) {
     const detail = elsewhere.backup || (elsewhere.provider && elsewhere.provider !== provider)
       ? "The backup model answered instead of the model being checked, so the result couldn't be trusted. Try again, or switch the backup model off while you verify."
       : elsewhere.engine && elsewhere.engine !== engine
-        ? `Tarsee ran the check on another engine than the one being tested (${elsewhere.engine}, not ${engine}), so the result couldn't be trusted.`
-        : `Tarsee ran another model (${bareModel(elsewhere.model)}) than the one being checked, so the result couldn't be trusted.`;
+        ? `Atlas ran the check on another engine than the one being tested (${elsewhere.engine}, not ${engine}), so the result couldn't be trusted.`
+        : `Atlas ran another model (${bareModel(elsewhere.model)}) than the one being checked, so the result couldn't be trusted.`;
     return { ok: false, stop: true, code: "engine-not-forced", detail };
   }
   const stopCode = (e) => [e.subtype, e.code].find((c) => STOP_CODES.has(c)) || null;
@@ -574,7 +574,7 @@ function succeed(ctx, engine, attempt, efforts, attempts) {
     attempts: attempts.map(summary),
     recorded,
     entry,
-    message: `${ctx.label} passed every check: it replied, used Tarsee's tools, ran a command and remembered the conversation.`,
+    message: `${ctx.label} passed every check: it replied, used Atlas's tools, ran a command and remembered the conversation.`,
   };
 }
 

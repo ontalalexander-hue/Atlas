@@ -10,7 +10,7 @@ import {
   tierOf,
 } from "../src/config/constants.js";
 
-// The registry is the single source of truth for every model Tarsee can run.
+// The registry is the single source of truth for every model Atlas can run.
 // These tests pin the invariants the rest of the app relies on: every tier has
 // an alias, the newest model in each tier is reachable, exact ids beat
 // substring guesses, and the default is an alias (never a stale pin).

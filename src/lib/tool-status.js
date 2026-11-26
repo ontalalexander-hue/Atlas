@@ -5,7 +5,7 @@
  * Never returns command bodies, env values, key names or values, full URLs, or query strings: the bot UX stays safe
  * by construction even if the user disabled the webapp's secret-redaction toggle.
  *
- * Claude Code names a tool from an MCP server mcp__<server>__<tool>, so Tarsee's own tools arrive as
+ * Claude Code names a tool from an MCP server mcp__<server>__<tool>, so Atlas's own tools arrive as
  * mcp__tarsee__tarsee_send_file and so on: they get words of their own, and any other server's tool shows by its own
  * name without the prefix.
  */
@@ -18,7 +18,7 @@ const pdfBase = (i) => fileBase(String(i?.path || i?.source || "").split(/[?#]/)
 /** mcp__tarsee__tarsee_send_file → tarsee_send_file; a built-in tool's name stays as it is. */
 const bareName = (name) => String(name || "tool").replace(/^mcp__[^_]+(?:_[^_]+)*?__/, "");
 
-// Tarsee's own tools: [while it runs, when it is done, when it failed]. A function gets the tool's input.
+// Atlas's own tools: [while it runs, when it is done, when it failed]. A function gets the tool's input.
 const TARSEE = {
   tarsee_send_file: [(i) => `Sending ${fileBase(i.file_path)}…`, (i) => `Sent ${fileBase(i.file_path)}`, (i) => `Sending ${fileBase(i.file_path)} failed`],
   tarsee_send_message: ["Sending a message…", "Message sent", "Sending the message failed"],

@@ -1,5 +1,5 @@
 // Settings > Voice > Speech-to-text's installer (src/voice/stt-install.js): what is installed and with which Python,
-// each model with its size and where it is; "Install faster-whisper" (a Python found here, else Tarsee's own copy
+// each model with its size and where it is; "Install faster-whisper" (a Python found here, else Atlas's own copy
 // downloaded; a private folder for faster-whisper; the pinned faster-whisper from pypi.org, ready-made builds only;
 // then the default model), with progress and plain-words errors; per-model Download and Delete; one job at a time.
 // A fake Python (a real process), a fake GitHub and a fake Hugging Face stand in: nothing is downloaded.
@@ -157,7 +157,7 @@ describe("Install faster-whisper", () => {
     for (const flag of ["--isolated", "--only-binary=:all:", "--no-input", "--disable-pip-version-check"]) assert.ok(pip.args.includes(flag), `pip ${flag}`);
     assert.equal(pip.args[pip.args.indexOf("--index-url") + 1], "https://pypi.org/simple");
     assert.ok(pip.args.includes(`faster-whisper==${stt.FASTER_WHISPER_VERSION}`));
-    assert.equal(pip.cmd, runtime.venvInterpreter(path.join(tmp, "python", "stt-venv")), "pip runs in Tarsee's own folder, not the system Python");
+    assert.equal(pip.cmd, runtime.venvInterpreter(path.join(tmp, "python", "stt-venv")), "pip runs in Atlas's own folder, not the system Python");
 
     const s = await stt.getSttStatus();
     assert.equal(s.runtime.state, "ready");
@@ -168,7 +168,7 @@ describe("Install faster-whisper", () => {
     assert.equal(rt.python.cmd, runtime.venvInterpreter(path.join(tmp, "python", "stt-venv")), "speech-to-text now uses that Python");
   });
 
-  it("with no Python at all: Tarsee's own Python is downloaded first, then the rest", async () => {
+  it("with no Python at all: Atlas's own Python is downloaded first, then the rest", async () => {
     const { result, seen } = await watch(stt.startSttInstall(opts()));
     assert.equal(result.ok, true, result.error);
     assert.ok(seen.some((j) => j.phase === "python" && /Python 3\.12/.test(j.step)), "says it is downloading Python");

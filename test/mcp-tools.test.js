@@ -6,7 +6,7 @@ import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-// A state folder of the test's own, set before Tarsee's modules load (config/env.js reads it once), so the tasks the
+// A state folder of the test's own, set before Atlas's modules load (config/env.js reads it once), so the tasks the
 // tests below save land nowhere else.
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-mcp-tools-"));
 process.env.TARSEE_STATE_DIR = tmp;
@@ -27,7 +27,7 @@ const { toolDoneLabel } = await import("../src/lib/tool-status.js");
 //
 // The failure is NOT scoped to that one tool. tools/list is a single call, so
 // one bad schema fails the whole listing: the server is marked failed and
-// EVERY mcp__tarsee__* tool disappears. Claude Code then sees none of Tarsee's
+// EVERY mcp__tarsee__* tool disappears. Claude Code then sees none of Atlas's
 // tools while the system prompt still advertises twenty of them, so the model
 // improvises — shelling out to curl to reach Telegram, hand-editing MEMORY.md
 // instead of calling remember. It looks like a prompting problem and is not.
@@ -37,7 +37,7 @@ const { toolDoneLabel } = await import("../src/lib/tool-status.js");
 // surfaces as absent tools rather than a crash. So the test has to do what
 // the SDK does: connect a real MCP client and list the tools.
 
-/** Connect an in-memory MCP client to the Tarsee server (around this tool context) and return it. */
+/** Connect an in-memory MCP client to the Atlas server (around this tool context) and return it. */
 async function connect(ctx = {}) {
   const server = createTarseeMcp(ctx, { quiet: true });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

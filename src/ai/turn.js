@@ -5,7 +5,7 @@
  *
  * Two engines run the turns, each with its own tool loop: Claude Code (providers/claude-code.js) and Codex
  * (providers/codex.js). They are reached through loadEngine(), and tests put scripted ones in with registerEngine().
- * An engine's run(opts) yields Tarsee's events (text, thinking, tool_use, tool_result, usage, step, error, done); this
+ * An engine's run(opts) yields Atlas's events (text, thinking, tool_use, tool_result, usage, step, error, done); this
  * layer does everything that is the same on every AI:
  *
  *   a. which provider, model and effort (resolveTarget): the caller's own choice, else the chat's pick
@@ -19,7 +19,7 @@
  *      new session is stored tagged
  *   e. the prompt: the queued note once (never on a slash command), media adapted to what the model takes
  *   f. the live timeline (lib/live-bus.js): turn_start, the steps (usage at most every 3s), turn_end
- *   g. the engine, with the turn's ceilings (and Tarsee's tools over loopback MCP for Codex)
+ *   g. the engine, with the turn's ceilings (and Atlas's tools over loopback MCP for Codex)
  *   h. the spend ceiling, for AIs whose engine has none of its own: running totals stop the work in progress; a cost
  *      that only arrives with the finished reply (Codex's, a Claude Code result's) marks the turn over budget (its
  *      done carries overBudget, ceilingUsd and spentUsd) and warns, and never fails what already happened
@@ -134,7 +134,7 @@ export async function loadEngine(name) {
  *   monthlyCap({providerId, model, store, db})   spend.js monthlyCapStatus: {ok, capUsd, spentUsd, message}
  *   checkTurnBudget(opts)            spend.js: {tripped, spentUsd, message} for the turn's usage so far
  *   priceUsage(providerId, model, usage, at, store)   spend.js: the turn's cost in USD at the price table, or null
- *   grantMcp(ctx, {turnId, signal})  mcp-http.js grantTurn: {url, token, revoke()}, Tarsee's tools for a Codex turn
+ *   grantMcp(ctx, {turnId, signal})  mcp-http.js grantTurn: {url, token, revoke()}, Atlas's tools for a Codex turn
  *   recordUsage(row, db)             token-usage.js recordDirect: a turn with no Claude transcript (Codex)
  *   recordReported(row, db)          spend.js recordReportedCost: an Anthropic key's exact cost for a turn with no
  *                                    live conversation (no turn_end will carry it to the usage index)
@@ -191,7 +191,7 @@ async function fileLoginStatus(opts) {
  *    default model (what the channels do) has not chosen one either.
  *  Effort: the caller's own, then the chat's, then ai.defaultEffort, then Medium (background work without a chat
  *    sends none), stepped down to a level the model takes.
- * Returns { target } or { refusal: {subtype, message} } (an AI Tarsee doesn't know).
+ * Returns { target } or { refusal: {subtype, message} } (an AI Atlas doesn't know).
  */
 export async function resolveTarget(opts = {}, store = storeOf(opts)) {
   const conv = opts.toolCtx?.conversationId || null;
@@ -202,7 +202,7 @@ export async function resolveTarget(opts = {}, store = storeOf(opts)) {
   if (opts.provider != null && String(opts.provider).trim() !== "") {
     asked = normalizeProviderId(String(opts.provider));
     if (!asked) {
-      return { refusal: { subtype: "not-ready", message: `Tarsee doesn't know an AI called "${clip(String(opts.provider), 40)}". Choose one in Settings > AI.` } };
+      return { refusal: { subtype: "not-ready", message: `Atlas doesn't know an AI called "${clip(String(opts.provider), 40)}". Choose one in Settings > AI.` } };
     }
   }
   const explicit = ref.provider || (asked && asked !== activeId ? asked : null);
@@ -388,13 +388,13 @@ async function refusalFor(target, ctx) {
   const p = getProvider(target.provider);
   const { store } = ctx;
   if (!isShipped(p.id)) {
-    return { subtype: "not-ready", message: `This Tarsee can't use the ${p.label}. Choose another AI in Settings > AI.` };
+    return { subtype: "not-ready", message: `This Atlas can't use the ${p.label}. Choose another AI in Settings > AI.` };
   }
   if (p.kind === "subscription" && keysOnly(store)) {
     const locked = keysOnlyLocked() ? " (it is locked on by the TARSEE_KEYS_ONLY variable)" : "";
     return {
       subtype: "blocked-keys-only",
-      message: `"API keys only" is switched on${locked}, so Tarsee won't use your ${p.label}. Choose an AI that uses an API key in Settings > AI.`,
+      message: `"API keys only" is switched on${locked}, so Atlas won't use your ${p.label}. Choose an AI that uses an API key in Settings > AI.`,
     };
   }
   let status = null;
@@ -402,7 +402,7 @@ async function refusalFor(target, ctx) {
   if (status && NOT_READY_STATES.has(status.state)) {
     const nothingChosen = !readStr(store, "ai.activeProvider") && !String(process.env.TARSEE_AI_PROVIDER || "").trim();
     const message = nothingChosen && p.id === "claude"
-      ? "Tarsee isn't connected to an AI yet: open Settings > AI."
+      ? "Atlas isn't connected to an AI yet: open Settings > AI."
       : [status.detail, status.fix].filter(Boolean).join(" ") || `The ${p.label} isn't set up yet. Open Settings > AI.`;
     return { subtype: "not-ready", message };
   }
@@ -450,7 +450,7 @@ export function stopTurns(conversationId) {
  *   background          unattended work (crons, the heartbeat): the background model, a lower turn ceiling, and a
  *                       tool context marked with its source (toolCtx.background = liveSource)
  *   systemPrompt | systemParts {stable, volatile}
- *   toolCtx             {db, settingsStore, conversationId, channelManager, messageId, ...} for Tarsee's tools
+ *   toolCtx             {db, settingsStore, conversationId, channelManager, messageId, ...} for Atlas's tools
  *   sessionId           the chat's stored session handle (bare for the Claude plan, tagged for the rest)
  *   onSessionId(handle) store the handle of the session this turn ran in (tagged as session-handle.js says)
  *   signal              the caller's stop
@@ -462,7 +462,7 @@ export function stopTurns(conversationId) {
  */
 export async function* runTurn(opts = {}) {
   opts = { ...opts };
-  // Unattended work (a scheduled task's or a webhook's run, the heartbeat, BOOT.md) says so to Tarsee's tools, by its
+  // Unattended work (a scheduled task's or a webhook's run, the heartbeat, BOOT.md) says so to Atlas's tools, by its
   // source: both engines hand the tools this context (Claude Code's in-process MCP server gets it as it is, Codex's
   // grant copies it), and schedule_task refuses in it (lib/tools.js), so background work never schedules more.
   if (opts.background && !opts.toolCtx?.background) opts.toolCtx = { ...(opts.toolCtx || {}), background: opts.liveSource || "background" };
@@ -496,7 +496,7 @@ export async function* runTurn(opts = {}) {
     resolved = await resolveTarget(opts, store);
   } catch (err) {
     console.error("[turn] could not work out which AI to use:", err);
-    resolved = { refusal: { subtype: "error", message: `Tarsee couldn't work out which AI to use: ${err?.message || err}` } };
+    resolved = { refusal: { subtype: "error", message: `Atlas couldn't work out which AI to use: ${err?.message || err}` } };
   }
   state.target = resolved.target || null;
 
@@ -749,7 +749,7 @@ async function* runAttempt(ctx, a) {
       try {
         grant = await deps.grantMcp({ ...(opts.toolCtx || {}), turnId: ctx.turnId, provider: target.provider }, { turnId: ctx.turnId, signal: ctl.signal });
       } catch (err) {
-        throw new Error(`Tarsee's tools couldn't be opened for this turn: ${err?.message || err}`);
+        throw new Error(`Atlas's tools couldn't be opened for this turn: ${err?.message || err}`);
       }
     }
     const systemParts = opts.systemParts && typeof opts.systemParts === "object"
@@ -775,7 +775,7 @@ async function* runAttempt(ctx, a) {
       thinkingSummaries: !!opts.thinkingSummaries && !!target.caps?.thinkingSummaries,
       queuedNote: false,
       turnId: ctx.turnId,
-      // Tarsee's tools over loopback MCP, for Codex (providers/codex-options.js reads it as ctx.mcp).
+      // Atlas's tools over loopback MCP, for Codex (providers/codex-options.js reads it as ctx.mcp).
       mcp: grant ? { url: grant.url, token: grant.token } : undefined,
       mcpGrant: grant ? { url: grant.url, token: grant.token } : undefined,
       liveSource: opts.liveSource,
@@ -901,7 +901,7 @@ async function* runAttempt(ctx, a) {
     res.kind = "failed";
     res.done = { type: "done", stopReason: "error" };
     if (!res.failure) {
-      res.failure = { type: "error", message: "The AI stopped halfway through using a tool. This is a fault in Tarsee, not in your message; try again.", subtype: "tool_use", recoverable: false };
+      res.failure = { type: "error", message: "The AI stopped halfway through using a tool. This is a fault in Atlas, not in your message; try again.", subtype: "tool_use", recoverable: false };
       res.tail.push(res.failure);
     }
   } else if (stopReason !== SUCCESS || res.failure) {

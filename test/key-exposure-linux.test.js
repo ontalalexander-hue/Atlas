@@ -5,7 +5,7 @@
 // commands run as the same user as the engine that holds the key, so the engine's own /proc/<pid>/environ still has
 // it. These tests run the REAL engines (the bundled Claude Code CLI, the pinned codex binary) against loopback fakes,
 // have the agent's shell read its ancestors' environ, and assert the key IS there while its own environment is clean.
-// If real isolation is added one day (a separate user, or a sandbox with its own process namespace and Tarsee's data
+// If real isolation is added one day (a separate user, or a sandbox with its own process namespace and Atlas's data
 // folder masked), they fail: then revisit what the owner is told (docs/providers.md, README.md, the deploy files, the
 // cards in routes/ai.js and js/provider-guides-core.js), which says a command the agent runs can still read the key.
 // Linux only: there is no /proc to read elsewhere. Every key and token is an obvious fake; nothing leaves the machine.
@@ -165,7 +165,7 @@ describe("Codex on Linux: a command the agent runs can still read the key and th
     for await (const e of lib.run({
       target: { provider, model: provider === "openrouter" ? "openai/gpt-5.5" : "gpt-5.5" },
       messages: [{ role: "user", content: "check the environment" }],
-      systemParts: { stable: "You are Tarsee, under test.", volatile: "Today is a test day." },
+      systemParts: { stable: "You are Atlas, under test.", volatile: "Today is a test day." },
       toolCtx: { settingsStore: store, conversationId: `conv-exposure-${n}` },
       mcpGrant: { url: mcp.url, token: MCP_TOKEN },
       turnId: `exposure-${provider}`,

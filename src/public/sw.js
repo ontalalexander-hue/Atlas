@@ -1,6 +1,6 @@
-// Tarsee Service Worker — PWA install, offline shell, network-first for code.
+// Atlas Service Worker — PWA install, offline shell, network-first for code.
 // Bump CACHE_NAME when shipping SW behavior changes to force old caches out.
-const CACHE_NAME = "tarsee-v26";   // (v26: a scheduled task's Switch on and Delete wrap together on a narrow screen; Local AI's Railway tip. v25:Scheduled tasks: switching one on carries what its row showed, a waiting task reads on a phone; HEARTBEAT.md and BOOT.md changed outside Settings wait for the owner (Let it run); the context meter fills from the turn. v24: Call <name> replaces voice mode (call.js, call-capture-worklet.js); dictation fills the box and explains a failure; Settings > Voice installs faster-whisper and its models; the Local AI card reads the server's context size and offers llama.cpp. v23: Settings → Automation → Scheduled tasks: cron-core.js, each task's state, who made it, its whole prompt, and Switch on / Pause; a task the AI sets up waits for the owner's OK. v22: each AI has its own color in the model list, the composer's button, the header chip ("Default: …"), Settings > AI and the wizard; Fable's weekly-allowance note only on the Claude plan. v21:setup never sends a message by itself: the welcome tour leaves its first message in the box, and a page with an AI ready and no personality yet asks first. v20:a model button in the OpenRouter and Local AI lists keeps the focus when the list comes in again. v19: focus goes back to the very button it was on when a card is drawn again. v18: a Model list that had the focus keeps its models when its card is drawn again, and a Copy chip clicked twice goes back to Copy. v17: Settings → AI keeps the box someone is in, its caret and a click under way when the cards are drawn again. v16: the OpenAI card checks a model id its list lacks, and Security never puts the captcha key back in its box. v15: the working line names the AI answering and notes a reply that comes when each step finishes, the model button follows a chat's model chosen before Tarsee had other AIs, Voice saves the OpenAI key through Settings → AI, the audit log shows entries as text. v14: the ChatGPT guide names the device code switch as ChatGPT does. v13: choose your AI: provider-guides-core.js, Settings → AI, the wizard's first step and the header chip. v12: how to connect each channel: channel-guides-core.js. v11: the chat's files and their viewer: chat-files.js, file-viewer.js and its core, chat-files.css and file-viewer.css. v10: the Usage page and the model picker; usage-core.js, usage.js, usage.css, model-picker-core.js and model-picker.js join the shell. v8: the dashboard chat rebuilt like claude.ai)
+const CACHE_NAME = "tarsee-v26";   // (v26: a scheduled task's Switch on and Delete wrap together on a narrow screen; Local AI's Railway tip. v25:Scheduled tasks: switching one on carries what its row showed, a waiting task reads on a phone; HEARTBEAT.md and BOOT.md changed outside Settings wait for the owner (Let it run); the context meter fills from the turn. v24: Call <name> replaces voice mode (call.js, call-capture-worklet.js); dictation fills the box and explains a failure; Settings > Voice installs faster-whisper and its models; the Local AI card reads the server's context size and offers llama.cpp. v23: Settings → Automation → Scheduled tasks: cron-core.js, each task's state, who made it, its whole prompt, and Switch on / Pause; a task the AI sets up waits for the owner's OK. v22: each AI has its own color in the model list, the composer's button, the header chip ("Default: …"), Settings > AI and the wizard; Fable's weekly-allowance note only on the Claude plan. v21:setup never sends a message by itself: the welcome tour leaves its first message in the box, and a page with an AI ready and no personality yet asks first. v20:a model button in the OpenRouter and Local AI lists keeps the focus when the list comes in again. v19: focus goes back to the very button it was on when a card is drawn again. v18: a Model list that had the focus keeps its models when its card is drawn again, and a Copy chip clicked twice goes back to Copy. v17: Settings → AI keeps the box someone is in, its caret and a click under way when the cards are drawn again. v16: the OpenAI card checks a model id its list lacks, and Security never puts the captcha key back in its box. v15: the working line names the AI answering and notes a reply that comes when each step finishes, the model button follows a chat's model chosen before Atlas had other AIs, Voice saves the OpenAI key through Settings → AI, the audit log shows entries as text. v14: the ChatGPT guide names the device code switch as ChatGPT does. v13: choose your AI: provider-guides-core.js, Settings → AI, the wizard's first step and the header chip. v12: how to connect each channel: channel-guides-core.js. v11: the chat's files and their viewer: chat-files.js, file-viewer.js and its core, chat-files.css and file-viewer.css. v10: the Usage page and the model picker; usage-core.js, usage.js, usage.css, model-picker-core.js and model-picker.js join the shell. v8: the dashboard chat rebuilt like claude.ai)
 
 const APP_SHELL = [
   "/",
@@ -56,7 +56,7 @@ const APP_SHELL = [
   "/favicon.ico",
 ];
 
-// Tarsee's icon and the manifest that names it (src/lib/brand-icon.js): an uploaded icon is served at these same
+// Atlas's icon and the manifest that names it (src/lib/brand-icon.js): an uploaded icon is served at these same
 // addresses, so kept here cache-first they would show the old picture forever. They come from the network first, and
 // from the cache only when there is no network.
 const ICON_ADDRESSES = new Set([
@@ -186,7 +186,7 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: "Tarsee", body: event.data.text() };
+    payload = { title: "Atlas", body: event.data.text() };
   }
 
   const options = {
@@ -195,13 +195,13 @@ self.addEventListener("push", (event) => {
     badge: payload.badge || "/icon-192.png",
     tag: payload.tag || "tarsee",
     data: { url: payload.url || "/" },
-    // Coalesce multiple messages with the same tag so Tarsee doesn't
+    // Coalesce multiple messages with the same tag so Atlas doesn't
     // spam the notification tray when a cron fires several in a row.
     renotify: true,
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title || "Tarsee", options),
+    self.registration.showNotification(payload.title || "Atlas", options),
   );
 });
 
@@ -210,7 +210,7 @@ self.addEventListener("notificationclick", (event) => {
   const targetUrl = event.notification.data?.url || "/";
 
   event.waitUntil((async () => {
-    // Focus an existing Tarsee tab if any is open; otherwise open a new one.
+    // Focus an existing Atlas tab if any is open; otherwise open a new one.
     const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of allClients) {
       // Same-origin tabs only.

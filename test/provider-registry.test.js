@@ -81,7 +81,7 @@ describe("provider registry: entries", () => {
     assert.deepEqual(shippedProviders().map((p) => p.id), ALL_IDS);
     assert.equal(isShipped("claude"), true);
     assert.equal(isShipped("claude-code"), true);
-    assert.equal(isShipped("gemini"), false, "a provider Tarsee doesn't know");
+    assert.equal(isShipped("gemini"), false, "a provider Atlas doesn't know");
     assert.equal(isShipped("nope"), false);
   });
 
@@ -517,7 +517,7 @@ describe("contextTokensFor", () => {
   });
 
   it("Local AI: the server's own size when it says one, the smaller of it and the card's, never past what the model was trained for", () => {
-    // The owner's case: LM Studio loaded the model at 32,768 while Tarsee assumed 128,000.
+    // The owner's case: LM Studio loaded the model at 32,768 while Atlas assumed 128,000.
     registry.setLocalModels([{ id: "spark-4b", serverContext: 32_768 }, { id: "qwen3:8b" }, { id: "tiny", maxContext: 8192 }]);
     assert.equal(contextTokensFor("local", "spark-4b"), 32_768, "the server's size, not the 128K default");
     assert.equal(contextTokensFor("local", "spark-4b", store({ "ai.local.context": 128_000 })), 32_768, "min(the owner's, the server's)");
@@ -560,7 +560,7 @@ describe("effortsFor", () => {
     assert.deepEqual(effortsFor("openrouter", "meta-llama/llama-4-maverick", s), ["low", "high"]);
   });
 
-  it("only lists effort ids Tarsee knows", () => {
+  it("only lists effort ids Atlas knows", () => {
     for (const id of ALL_IDS) {
       for (const m of [null, "sonnet", "deepseek-flash", "gpt-6.1-sol", "gpt-5.5"]) {
         for (const e of effortsFor(id, m)) assert.ok(EFFORT_IDS.includes(e), `${id} ${m} ${e}`);

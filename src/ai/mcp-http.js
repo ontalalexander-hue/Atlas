@@ -1,8 +1,8 @@
 /**
- * mcp-http.js: Tarsee's own tools for the Codex engine, on a loopback MCP endpoint (design 4.9, rule R12).
+ * mcp-http.js: Atlas's own tools for the Codex engine, on a loopback MCP endpoint (design 4.9, rule R12).
  *
- * Claude Code takes Tarsee's tools as an in-process MCP server (tarsee-mcp.js). Codex runs as a child process and can
- * only reach an MCP server it starts itself or one over HTTP, so Tarsee serves the very same tools (createTarseeMcp, so
+ * Claude Code takes Atlas's tools as an in-process MCP server (tarsee-mcp.js). Codex runs as a child process and can
+ * only reach an MCP server it starts itself or one over HTTP, so Atlas serves the very same tools (createTarseeMcp, so
  * the same executeTool path, Tool Permissions, SSRF checks and audit log) over streamable HTTP, from inside the main
  * process:
  *
@@ -91,7 +91,7 @@ export function startMcpHttp(opts = {}) {
     const server = http.createServer((req, res) => {
       handle(req, res).catch((err) => {
         warnOnce("internal", `a request failed: ${err?.message || err}`);
-        if (!res.headersSent) reply(res, 500, "Tarsee's tool endpoint failed on this request.");
+        if (!res.headersSent) reply(res, 500, "Atlas's tool endpoint failed on this request.");
         else res.destroy();
       });
     });
@@ -107,7 +107,7 @@ export function startMcpHttp(opts = {}) {
       running = { server, port, url: `http://${HOST}:${port}${MCP_PATH}`, stateDir, pruneTimer };
       starting = null;
       setImmediate(() => safePrune(stateDir));
-      console.log(`[mcp-http] Tarsee's tools for Codex listening on ${HOST}:${port}`);
+      console.log(`[mcp-http] Atlas's tools for Codex listening on ${HOST}:${port}`);
       resolve(endpointInfo());
     });
   });
@@ -129,7 +129,7 @@ export async function stopMcpHttp() {
 }
 
 /**
- * Grant one turn the use of Tarsee's tools: {url, token, expiresAt, revoke()}. The token goes to Codex as
+ * Grant one turn the use of Atlas's tools: {url, token, expiresAt, revoke()}. The token goes to Codex as
  * TARSEE_MCP_TOKEN (codexEnvFor's mcpToken) and the url as the tarsee MCP server's url.
  *
  * ctx is the turn's tool context ({db, settingsStore, channelManager, conversationId, channel, ...}), exactly what
@@ -209,7 +209,7 @@ function endpointInfo() {
 
 async function handle(req, res) {
   const port = running?.port;
-  if (!port) return reply(res, 503, "Tarsee's tool endpoint is shutting down.");
+  if (!port) return reply(res, 503, "Atlas's tool endpoint is shutting down.");
 
   // Only this machine. The server listens on 127.0.0.1 only; this is the second lock.
   if (!isLoopbackAddress(req.socket?.remoteAddress)) {
@@ -258,7 +258,7 @@ async function handle(req, res) {
 }
 
 /**
- * Run one stateless MCP exchange for the grant's turn: Tarsee's tool server around that turn's context, on a transport
+ * Run one stateless MCP exchange for the grant's turn: Atlas's tool server around that turn's context, on a transport
  * made for this request. A turn's requests come one after another (initialize, tools/list, each call), so the server
  * goes back to the grant when its request is answered in full and the next request reuses it: it is built about once
  * per turn, as on Claude Code, instead of once per request. One whose client went away mid-call is dropped, so a late

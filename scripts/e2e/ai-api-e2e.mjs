@@ -11,7 +11,7 @@
  *
  * For every shipped provider it saves a fake key through PUT /api/ai/keys/:id (a wrong-slot key first, which must be
  * refused with a helpful message), makes it the default (PUT /api/ai/active), runs a web chat turn over SSE in which
- * the fake scripts a call to Tarsee's calculator tool, checks the usage row, switches the default AI mid-conversation
+ * the fake scripts a call to Atlas's calculator tool, checks the usage row, switches the default AI mid-conversation
  * and looks for the handoff, presses Stop mid-reply, answers 401 and looks for the provider's own words, reads the
  * cards, and deletes the key. Then the real ChatGPT device sign-in (POST/GET/DELETE /api/ai/chatgpt/login with the
  * real codex binary against auth.openai.com: no account is involved), "API keys only", GET /api/models and
@@ -20,7 +20,7 @@
  *
  * What the fakes have to know about the pinned codex 0.167: its own newest models (gpt-6.1-*, the OpenAI key's default,
  * and OpenRouter's openai/gpt-6.1-*) get their tools as `additional_tools` input items in "code mode": only `exec`
- * (JavaScript in a V8 isolate) and a few others at the top, with Tarsee's tools nested inside it as
+ * (JavaScript in a V8 isolate) and a few others at the top, with Atlas's tools nested inside it as
  * tools.mcp__tarsee__<name>(); other models get them listed outright, or behind tool_search. And a ChatGPT sign-in
  * first asks ChatGPT's backend which workspace the account routes to (GET /backend-api/wham/accounts/check), taking
  * only an HTTPS origin: the ChatGPT front is an HTTPS mux with a throwaway authority (test/fixtures/test-tls.js) that
@@ -225,7 +225,7 @@ function responsesHandler(body, info) {
       return { calls: [{ name: "tarsee_calculator", namespace: "mcp__tarsee", arguments: { expression: "6*7" } }] };
     }
     if (names.includes("tool_search") && !searched.length) return { calls: [{ type: "tool_search", query: "tarsee calculator math expression" }] };
-    // Codex's code mode (its newest models): Tarsee's tools are nested tools, reached only from inside `exec`.
+    // Codex's code mode (its newest models): Atlas's tools are nested tools, reached only from inside `exec`.
     if (names.includes("functions.exec") || names.includes("exec")) {
       const js = [
         "const r = await tools.mcp__tarsee__tarsee_calculator({ expression: \"6*7\" });",
@@ -484,7 +484,7 @@ const AUTH_WORDS = {
   deepseek: /Your DeepSeek key was rejected/,
   openrouter: /Your OpenRouter key was rejected/,
   openai: /Your OpenAI key was rejected/,
-  local: /Your Local AI turned down Tarsee's key/,
+  local: /Your Local AI turned down Atlas's key/,
   chatgpt: /ChatGPT sign-in has expired/,
   claude: /Claude's sign-in has expired/,
 };
@@ -704,7 +704,7 @@ try {
     const turnStart = Date.now();
     const question = `[e2e:${step.tag}] What is 6*7? Use the calculator tool.`;
     let turn = null;
-    await check(name("a web chat turn streams the reply, runs Tarsee's calculator tool and returns its result"), async () => {
+    await check(name("a web chat turn streams the reply, runs Atlas's calculator tool and returns its result"), async () => {
       turn = await chat({ conversationId: RELAY, message: question });
       const ev = turn.events;
       expect(turn.status === 200, `HTTP ${turn.status}`, turn.raw);

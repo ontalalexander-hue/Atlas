@@ -176,7 +176,7 @@ describe("GET /providers: one card per provider", () => {
     recordDirect({ turnId: "tPlan", conversationId: "convSpend", provider: "chatgpt", engine: "codex", endedAt: Date.now(), costUsd: 9, input: 10, output: 10 }, db);
     let { body } = await api("GET", "/providers");
     assert.equal(body.spend.monthUsd, 1.25);
-    assert.equal(body.spend.costNote, "est", "OpenAI's cost is Tarsee's estimate from the price table");
+    assert.equal(body.spend.costNote, "est", "OpenAI's cost is Atlas's estimate from the price table");
     assert.equal(body.spend.capUsd, null, "no cap set");
     store.set("ai.spendCap.monthlyUsd", "$20");
     ({ body } = await api("GET", "/providers"));
@@ -214,7 +214,7 @@ describe("GET /providers: one card per provider", () => {
     assert.equal(a.state, "ready");
     assert.equal(a.keySource, "settings");
     assert.equal(a.keyHint, `…${KEYS.anthropic.slice(-4)}`);
-    assert.equal(a.keySourceText, "Saved in Tarsee (encrypted)");
+    assert.equal(a.keySourceText, "Saved in Atlas (encrypted)");
     const o = card(body, "openai");
     assert.equal(o.keySource, "env:OPENAI_API_KEY");
     assert.equal(o.keySourceText, "Railway variable OPENAI_API_KEY");
@@ -500,7 +500,7 @@ describe("PUT /active and PUT /keys-only", () => {
     assert.equal(store.get("ai.activeProvider"), null);
   });
 
-  it("an OpenRouter model from a maker Tarsee hasn't verified must be verified first", async () => {
+  it("an OpenRouter model from a maker Atlas hasn't verified must be verified first", async () => {
     store.set("ai.openrouter.apiKey", KEYS.openrouter);
     let r = await api("PUT", "/active", { provider: "openrouter", model: "qwen/qwen3-coder" });
     assert.equal(r.status, 409);
@@ -605,7 +605,7 @@ describe("PUT /providers/:id and GET /models/:id", () => {
     assert.equal(status, 200);
     assert.deepEqual(body.models.map((m) => m.id), ["gpt-6-luna"]);
     assert.equal(listCalls[0].codexHome, path.join(tmp, ".codex-home"));
-    assert.ok(!Object.keys(listCalls[0].env).some((k) => /^(ENCRYPTION_KEY|SETUP_PASSWORD|ANTHROPIC_|OPENAI_API_KEY)/.test(k)), "Codex gets no Tarsee secret or key");
+    assert.ok(!Object.keys(listCalls[0].env).some((k) => /^(ENCRYPTION_KEY|SETUP_PASSWORD|ANTHROPIC_|OPENAI_API_KEY)/.test(k)), "Codex gets no Atlas secret or key");
     assert.equal(listCalls[0].env.CODEX_HOME, path.join(tmp, ".codex-home"));
     assert.deepEqual(catalogModels("chatgpt-models").map((m) => m.id), ["gpt-6-luna"]);
   });
@@ -664,7 +664,7 @@ describe("PUT /providers/:id and GET /models/:id", () => {
     assert.equal((await api("PUT", "/providers/openai", { model: "gpt-7-nano" })).status, 400, "not before it is verified");
   });
 
-  it("GET /models/deepseek checks the table against DeepSeek's own list with the key, and names a model Tarsee doesn't know yet", async () => {
+  it("GET /models/deepseek checks the table against DeepSeek's own list with the key, and names a model Atlas doesn't know yet", async () => {
     store.set("ai.deepseek.apiKey", KEYS.deepseek);
     respond("https://api.deepseek.com/models", { json: { object: "list", data: [{ id: "deepseek-flash" }, { id: "deepseek-v5-preview" }] } });
     const { status, body } = await api("GET", "/models/deepseek");
@@ -718,7 +718,7 @@ describe("POST /verify/:id", () => {
 
   it("a model that fails is an answer with what failed; nothing is recorded", async () => {
     store.set("ai.openrouter.apiKey", KEYS.openrouter);
-    verifyAnswer = { ok: false, engine: null, checks: { reply: true, tool: false }, efforts: [], error: "It couldn't use Tarsee's tools." };
+    verifyAnswer = { ok: false, engine: null, checks: { reply: true, tool: false }, efforts: [], error: "It couldn't use Atlas's tools." };
     const { status, body } = await api("POST", "/verify/openrouter", { model: "someone/tiny-model" });
     assert.equal(status, 200);
     assert.equal(body.ok, false);

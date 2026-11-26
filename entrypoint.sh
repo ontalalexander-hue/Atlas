@@ -1,5 +1,5 @@
 #!/bin/sh
-# Tarsee entrypoint: fix /data permissions, set up each AI's sign-in folder, then start as the node user.
+# Atlas entrypoint: fix /data permissions, set up each AI's sign-in folder, then start as the node user.
 #
 # The functions come first and the start-up (main) runs last, only when this file is run (tini runs
 # /app/entrypoint.sh). Sourcing it (`. entrypoint.sh`, as test/deploy-image.test.js does) only defines them.
@@ -10,7 +10,7 @@
 #   .claude-home-<id>   Anthropic, DeepSeek and OpenRouter on Claude Code (their keys come from Settings or Railway)
 #   .codex-home         the ChatGPT plan (Codex's own sign-in); <user home>/.codex links here, and CODEX_HOME
 #   .codex-home-keys    every Codex turn on an API key (OpenAI, OpenRouter, DeepSeek, Local AI); never a sign-in
-# Each Codex home gets a config.toml with Tarsee's settings (seed_codex_config). No key or token is written to any
+# Each Codex home gets a config.toml with Atlas's settings (seed_codex_config). No key or token is written to any
 # file here: keys stay in Settings (encrypted) or Railway variables, and only a turn's own process sees one.
 # usage: setup_provider_homes <state dir> <user home> [owner, e.g. node:node; empty leaves ownership as it is]
 PROVIDER_HOMES=".claude-code-home .claude-home-anthropic .claude-home-deepseek .claude-home-openrouter .codex-home .codex-home-keys"
@@ -118,17 +118,17 @@ move_missing() (
   return 0
 )
 
-# seed_codex_config <config.toml> <chatgpt|api>: the settings Tarsee wants in a Codex home's config.toml, and nothing
+# seed_codex_config <config.toml> <chatgpt|api>: the settings Atlas wants in a Codex home's config.toml, and nothing
 # secret: keep the sign-in in this folder's auth.json (never an OS keyring), don't check for updates, and take only
 # this home's kind of sign-in (the plan home a ChatGPT sign-in, the keys home an API key). What Codex wrote there
 # itself (a model chosen in the Terminal, project trust) stays. A setting already at the top level is set to
-# Tarsee's value where it is; a missing one goes at the top, because a line added at the end could land inside a
+# Atlas's value where it is; a missing one goes at the top, because a line added at the end could land inside a
 # [table]. Codex's guard (src/ai/engine-env.js CODEX_CONFIG_ALLOWED) allows exactly these.
 seed_codex_config() {
   _file=$1
   _method=$2
   if [ ! -f "$_file" ]; then
-    echo "# Set by Tarsee on every boot. Never put a key or token in this file." > "$_file" || return 1
+    echo "# Set by Atlas on every boot. Never put a key or token in this file." > "$_file" || return 1
   fi
   _tmp="$_file.tarsee-tmp"
   awk -v method="$_method" '
@@ -159,7 +159,7 @@ seed_codex_config() {
 }
 
 # report_sign_ins <state dir>: one line per engine on whether its plan sign-in is there, and a warning when an API-key
-# folder holds a sign-in (Tarsee refuses turns there until it's removed). API keys are reported by Settings > AI,
+# folder holds a sign-in (Atlas refuses turns there until it's removed). API keys are reported by Settings > AI,
 # which knows where each one comes from. Never prints a token.
 report_sign_ins() {
   _state=$1
@@ -170,20 +170,20 @@ report_sign_ins() {
   elif [ -n "${CLAUDE_CODE_OAUTH_REFRESH_TOKEN:-}" ]; then
     echo "[entrypoint] Claude Code: Claude plan signs in with the CLAUDE_CODE_OAUTH_REFRESH_TOKEN variable"
   else
-    echo "[entrypoint] Claude Code: no Claude plan sign-in (to use the Claude plan, run claude auth login in Tarsee's Terminal)"
+    echo "[entrypoint] Claude Code: no Claude plan sign-in (to use the Claude plan, run claude auth login in Atlas's Terminal)"
   fi
   if [ -f "$_state/.codex-home/auth.json" ]; then
     echo "[entrypoint] Codex: ChatGPT plan signed in (on the volume)"
   else
-    echo "[entrypoint] Codex: no ChatGPT plan sign-in (to use the ChatGPT plan, sign in from Settings > AI, or run codex login --device-auth in Tarsee's Terminal)"
+    echo "[entrypoint] Codex: no ChatGPT plan sign-in (to use the ChatGPT plan, sign in from Settings > AI, or run codex login --device-auth in Atlas's Terminal)"
   fi
   for _d in "$_state"/.claude-home-*; do
     if [ -f "$_d/.credentials.json" ]; then
-      echo "[entrypoint] warning: $_d holds a Claude plan sign-in (.credentials.json). Tarsee runs no turns there until it is removed."
+      echo "[entrypoint] warning: $_d holds a Claude plan sign-in (.credentials.json). Atlas runs no turns there until it is removed."
     fi
   done
   if [ -f "$_state/.codex-home-keys/auth.json" ]; then
-    echo "[entrypoint] warning: $_state/.codex-home-keys holds a sign-in (auth.json). Tarsee runs no Codex turns on an API key until it is removed."
+    echo "[entrypoint] warning: $_state/.codex-home-keys holds a sign-in (auth.json). Atlas runs no Codex turns on an API key until it is removed."
   fi
 }
 

@@ -39,7 +39,7 @@ const BRIDGE = { url: "http://127.0.0.1:45999/t/bridge-test-turn-01234/v1", toke
 const build = (id, target = {}, ctx = {}) => buildCodexOptions(
   { providerId: id, engine: "codex", ...target },
   {
-    env: SERVER, vaultEnv: VAULT, stateDir: STATE, workspace: WS, mcp: MCP, key: KEYS[id], developerInstructions: "You are Tarsee.",
+    env: SERVER, vaultEnv: VAULT, stateDir: STATE, workspace: WS, mcp: MCP, key: KEYS[id], developerInstructions: "You are Atlas.",
     localUrl: id === "local" ? "http://ollama.railway.internal:11434/v1" : undefined, localBridge: id === "local" ? BRIDGE : undefined, ...ctx,
   },
 );
@@ -66,7 +66,7 @@ describe("buildCodexOptions: per provider", () => {
     assert.equal(o.threadOptions.model, "gpt-6.1-sol");
   });
 
-  it("chatgpt: Codex's own sign-in in .codex-home, no key at all, ChatGPT login only, no host of Tarsee's", () => {
+  it("chatgpt: Codex's own sign-in in .codex-home, no key at all, ChatGPT login only, no host of Atlas's", () => {
     const o = build("chatgpt", {}, { accountModels: [] });
     assert.equal(o.apiKey, undefined);
     assert.equal(o.env.CODEX_HOME, path.join(STATE, ".codex-home"));
@@ -78,19 +78,19 @@ describe("buildCodexOptions: per provider", () => {
   });
 
   it("openrouter: a custom Responses provider on OpenRouter's host, the key as TARSEE_PROVIDER_KEY, the attribution header", () => {
-    const o = build("openrouter", { model: "openai/gpt-6.1-sol" }, { appTitle: "My Tarsee", referer: "https://example.com" });
+    const o = build("openrouter", { model: "openai/gpt-6.1-sol" }, { appTitle: "My Atlas", referer: "https://example.com" });
     assert.equal(o.apiKey, undefined);
     assert.equal(o.env.TARSEE_PROVIDER_KEY, KEYS.openrouter);
     assert.equal(o.env.OPENROUTER_API_KEY, undefined);
     assert.equal(o.config.model_provider, "tarsee_openrouter");
     assert.deepEqual(o.config.model_providers.tarsee_openrouter, {
       name: "OpenRouter", base_url: "https://openrouter.ai/api/v1", env_key: "TARSEE_PROVIDER_KEY", wire_api: "responses",
-      http_headers: { "X-OpenRouter-Title": "My Tarsee", "HTTP-Referer": "https://example.com" },
+      http_headers: { "X-OpenRouter-Title": "My Atlas", "HTTP-Referer": "https://example.com" },
     });
     assert.equal(o.config.forced_login_method, "api");
     assert.equal(o.threadOptions.model, "openai/gpt-6.1-sol");
     // The default title, and no referer unless the owner set one.
-    assert.deepEqual(build("openrouter", { model: "openai/x" }).config.model_providers.tarsee_openrouter.http_headers, { "X-OpenRouter-Title": "Tarsee" });
+    assert.deepEqual(build("openrouter", { model: "openai/x" }).config.model_providers.tarsee_openrouter.http_headers, { "X-OpenRouter-Title": "Atlas" });
   });
 
   it("deepseek (the alternative engine): DeepSeek's Responses host, the key as TARSEE_PROVIDER_KEY", () => {
@@ -160,7 +160,7 @@ describe("buildCodexOptions: what every Codex turn gets", () => {
     }
   });
 
-  it("Tarsee's tools as a streamable-HTTP MCP server: the grant's url, the token by env name, tool calls approved", () => {
+  it("Atlas's tools as a streamable-HTTP MCP server: the grant's url, the token by env name, tool calls approved", () => {
     for (const id of ALL) {
       const m = build(id).config.mcp_servers;
       assert.deepEqual(Object.keys(m), ["tarsee"], id);
@@ -186,13 +186,13 @@ describe("buildCodexOptions: what every Codex turn gets", () => {
   it("the fixed settings: instructions, no AGENTS.md, no history file, sign-in kept in a file, no update check", () => {
     for (const id of ALL) {
       const c = build(id).config;
-      assert.equal(c.developer_instructions, "You are Tarsee.", id);
+      assert.equal(c.developer_instructions, "You are Atlas.", id);
       assert.equal(c.project_doc_max_bytes, 0, id);
       assert.deepEqual(c.history, { persistence: "none" }, id);
       assert.equal(c.cli_auth_credentials_store, "file", id);
       assert.equal(c.check_for_update_on_startup, false, id);
       assert.equal(c.tool_output_token_limit, 3000, id);
-      // ChatGPT's apps, plugins, extra agents and goals stay off: Tarsee's own tools do those jobs. Hooks too: a hook is
+      // ChatGPT's apps, plugins, extra agents and goals stay off: Atlas's own tools do those jobs. Hooks too: a hook is
       // a program Codex would run with the turn's whole environment, the engine's own key included.
       for (const f of ["apps", "plugins", "multi_agent", "goals", "hooks"]) assert.equal(c.features[f], false, `${id} ${f}`);
       // No project root above the workspace: Codex would otherwise load a .codex/config.toml from every folder between
@@ -246,7 +246,7 @@ describe("models and effort", () => {
     const list = [{ id: "gpt-6-luna", default: true, efforts: ["low", "medium"] }, { id: "gpt-6-luna-mini", efforts: ["low"] }];
     assert.equal(codexModelFor("chatgpt", "gpt-6-luna-mini", { accountModels: list }), "gpt-6-luna-mini");
     // The account's default is named too: left out, a `model` in the home's config.toml (the Terminal's /model writes
-    // one there, and the guard allows it) would run instead of the one Tarsee shows and records.
+    // one there, and the guard allows it) would run instead of the one Atlas shows and records.
     assert.equal(codexModelFor("chatgpt", "gpt-6-luna", { accountModels: list }), "gpt-6-luna");
     assert.equal(codexModelFor("chatgpt", "default", { accountModels: list }), undefined);
     assert.equal(codexModelFor("chatgpt", "gpt-6.1-sol", { accountModels: list }), undefined, "not on this account's list");
@@ -267,7 +267,7 @@ describe("models and effort", () => {
     assert.equal(codexModelFor("openai", null), undefined);
   });
 
-  it("effort: Tarsee's levels go through, anything else is dropped, and a model's own list is respected", () => {
+  it("effort: Atlas's levels go through, anything else is dropped, and a model's own list is respected", () => {
     for (const e of ["low", "medium", "high", "xhigh", "max"]) assert.equal(codexEffort(e), e);
     assert.equal(codexEffort("turbo"), undefined);
     assert.equal(codexEffort(undefined), undefined);

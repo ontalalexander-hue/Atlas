@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * scripts/e2e/live-smoke.mjs: a live test of every connected AI on a RUNNING Tarsee, over HTTP only, with real keys
- * (docs/live-testing.md has the steps). It never touches Tarsee's files or database: it does what the owner would do
+ * scripts/e2e/live-smoke.mjs: a live test of every connected AI on a RUNNING Atlas, over HTTP only, with real keys
+ * (docs/live-testing.md has the steps). It never touches Atlas's files or database: it does what the owner would do
  * in the browser, one AI at a time.
  *
  * It signs in with the password (POST /api/auth/login, then GET /api/auth/csrf, as the page does), reads Settings >
@@ -10,12 +10,12 @@
  *   models   ChatGPT only: the account's own models as the chat's model picker lists them (GET /api/models)
  *   verify   with --verify: POST /api/ai/verify/:id for the OpenRouter and Local AI models it is about to chat with
  *   turn     a fresh chat set to that AI and model (PUT /api/models/picker), one message through the real chat route
- *            (POST /api/chat/send, read to the end), asking for a product only Tarsee's calculator tool should work out
+ *            (POST /api/chat/send, read to the end), asking for a product only Atlas's calculator tool should work out
  *   tool     tarsee_calculator ran, returned the right number, and the reply carries it
  *   usage    the chat's usage row (GET /api/analytics/usage/chat/:id): provider, model, engine, tokens, cost
  *   cleanup  a turn that wasn't seen to end (the time ran out, the connection broke, the stream ended with no "done")
  *            is stopped first (POST /api/chat/stop, the chat's Stop) and waited for until the chat shows no turn at
- *            work; then the test chat is deleted (--keep keeps it). Tarsee keeps a turn running when the page that
+ *            work; then the test chat is deleted (--keep keeps it). Atlas keeps a turn running when the page that
  *            sent it goes away, so a chat deleted under it would leave it running on the key with no Stop to press.
  * OpenRouter gets two chats, one on each engine (a Claude model on Claude Code, an OpenAI model on Codex), unless
  * --model names its own. ChatGPT's chat names no model: the account's default runs, as a new chat would.
@@ -45,7 +45,7 @@ import { pathToFileURL } from "node:url";
 const SECRETS = new Set();
 
 /**
- * The shortest value redact() blanks out wherever it appears. Tarsee's cookie values are 40 characters and more. A
+ * The shortest value redact() blanks out wherever it appears. Atlas's cookie values are 40 characters and more. A
  * shorter secret, like a 4-digit SETUP_PASSWORD, is left out: the script never puts the password in a line, and a
  * short value blanked out of the dates, sums and model ids it prints shows exactly what it was ("[redacted]-11-10" is
  * the year; "worked out [redacted]7 * 3917 = 180796969" gives it to anyone who divides).
@@ -72,7 +72,7 @@ const KEY_SHAPES = [
   [/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{6,}/gi, "$1 [redacted]"],
   // A key, token, password or cookie after its label: x-api-key: ..., "refresh_token": "...", password=...
   [/((?:x-api-key|api[_-]?key|apikey|authorization|access[_-]?token|refresh[_-]?token|id[_-]?token|token|password|passwd|secret|client[_-]?secret|cookie|set-cookie)["']?\s*[:=]\s*["']?)[^\s"',;&]{4,}/gi, "$1[redacted]"],
-  // Tarsee's own cookies
+  // Atlas's own cookies
   [/\b(tarsee_session|tarsee_csrf)=[^;\s"',]+/g, "$1=[redacted]"],
   // Refresh tokens, GitHub, Slack, Google, AWS
   [/\brt[-_][A-Za-z0-9_-]{16,}/g, "[redacted]"],
@@ -98,7 +98,7 @@ export function redact(text, secrets = SECRETS) {
 export const PROVIDER_IDS = ["claude", "anthropic", "chatgpt", "openai", "openrouter", "deepseek", "local"];
 
 const USAGE = `Usage: node scripts/e2e/live-smoke.mjs [--only a,b] [--model id=model,...] [--verify [list]] [--keep] [--timeout <s>]
-Set TARSEE_URL (for example http://localhost:3000) and TARSEE_PASSWORD (Tarsee's SETUP_PASSWORD) in the shell first.
+Set TARSEE_URL (for example http://localhost:3000) and TARSEE_PASSWORD (Atlas's SETUP_PASSWORD) in the shell first.
 AIs: ${PROVIDER_IDS.join(" ")}. See docs/live-testing.md.`;
 
 /** The options, and what was wrong with them (never echoing a value that isn't an option: it could be a key). */
@@ -113,8 +113,8 @@ export function parseArgs(argv, { password = "" } = {}) {
   const knownId = (id, flag) => {
     if (PROVIDER_IDS.includes(id)) return true;
     o.errors.push(showable(id)
-      ? `${flag}: "${id}" isn't an AI Tarsee knows (use ${PROVIDER_IDS.join(", ")})`
-      : `${flag}: a value that isn't an AI Tarsee knows was given (it isn't shown; use ${PROVIDER_IDS.join(", ")})`);
+      ? `${flag}: "${id}" isn't an AI Atlas knows (use ${PROVIDER_IDS.join(", ")})`
+      : `${flag}: a value that isn't an AI Atlas knows was given (it isn't shown; use ${PROVIDER_IDS.join(", ")})`);
     return false;
   };
   const pair = (item, flag) => {
@@ -216,9 +216,9 @@ export function table(rows) {
   return [fmt(head), fmt(width.map((w) => "-".repeat(w)).concat("-----")), ...body.map(fmt)].join("\n");
 }
 
-// --- HTTP: Tarsee only ---------------------------------------------------------------------------------------------
+// --- HTTP: Atlas only ---------------------------------------------------------------------------------------------
 
-class Tarsee {
+class Atlas {
   constructor(origin) {
     this.origin = origin;
     this.jar = new Map();
@@ -404,16 +404,16 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   try { base = new URL(rawUrl); } catch { base = null; }
   if (!base || !/^https?:$/.test(base.protocol)) { say("FAIL", "setup", null, "TARSEE_URL must be an http:// or https:// address, for example http://localhost:3000"); return 1; }
   if (base.username || base.password) { say("FAIL", "setup", null, "TARSEE_URL has a user name or password in it: take it out (the password goes in TARSEE_PASSWORD only)"); return 1; }
-  const tarsee = new Tarsee(base.origin);
+  const tarsee = new Atlas(base.origin);
   const api = (method, p, body, opts) => tarsee.request(method, p, body, opts);
   const timeoutMs = o.timeoutSec * 1000;
 
-  /** A request again after the wait Tarsee asks for (a per-minute limit), when it says how long and that is short. */
+  /** A request again after the wait Atlas asks for (a per-minute limit), when it says how long and that is short. */
   async function patient(what, who, fn, maxWaitSec = 90) {
     let r = await fn();
     const wait = Number(r.headers?.["retry-after"]);
     if (r.status === 429 && Number.isFinite(wait) && wait <= maxWaitSec) {
-      say("INFO", who, what, `Tarsee allows only a few of these a minute; waiting ${wait} s, then trying again`);
+      say("INFO", who, what, `Atlas allows only a few of these a minute; waiting ${wait} s, then trying again`);
       await sleep((wait + 1) * 1000);
       r = await fn();
     }
@@ -435,12 +435,12 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   // --- Sign in, as the page does ---
   say("INFO", "tarsee", null, `${base.origin} (live test, ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC)`);
   const health = await api("GET", "/healthz", undefined, { timeoutMs: 15_000 });
-  if (health.status !== 200) { say("FAIL", "tarsee", "reach", `Tarsee didn't answer at ${base.origin} (${whyNot(health)}). Is it running?`); return 1; }
+  if (health.status !== 200) { say("FAIL", "tarsee", "reach", `Atlas didn't answer at ${base.origin} (${whyNot(health)}). Is it running?`); return 1; }
   const status = await api("GET", "/api/auth/status");
-  if (status.json && status.json.needsPassword === false) say("INFO", "tarsee", "sign in", "this Tarsee has no SETUP_PASSWORD set");
+  if (status.json && status.json.needsPassword === false) say("INFO", "tarsee", "sign in", "this Atlas has no SETUP_PASSWORD set");
   const login = await patient("sign in", "tarsee", () => api("POST", "/api/auth/login", { password }));
   if (login.status !== 200 || !tarsee.jar.has("tarsee_session")) {
-    const why = login.status === 401 ? "TARSEE_PASSWORD was turned down (it is Tarsee's SETUP_PASSWORD)" : whyNot(login);
+    const why = login.status === 401 ? "TARSEE_PASSWORD was turned down (it is Atlas's SETUP_PASSWORD)" : whyNot(login);
     say("FAIL", "tarsee", "sign in", why);
     return 1;
   }
@@ -467,7 +467,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   for (const id of providers) {
     const card = cards[id];
     const who = id;
-    if (!card) { say("FAIL", who, "card", "this Tarsee has no card for it"); rows.push(row(id, null, `${id}`)); continue; }
+    if (!card) { say("FAIL", who, "card", "this Atlas has no card for it"); rows.push(row(id, null, `${id}`)); continue; }
 
     // --- Test ---
     const t = await patient("test", who, () => api("POST", `/api/ai/test/${id}`, {}, { timeoutMs: 60_000 }));
@@ -586,7 +586,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     const a = crypto.randomInt(1000, 99_999);
     const b = crypto.randomInt(100, 9999);
     const product = a * b;
-    const message = `Live test: use Tarsee's tarsee_calculator tool to work out ${a} * ${b}, then reply with just the number the tool gives you.`;
+    const message = `Live test: use Atlas's tarsee_calculator tool to work out ${a} * ${b}, then reply with just the number the tool gives you.`;
     const created = await api("POST", "/api/chat/conversations", { title: TEST_CHAT_TITLE });
     const conv = created.json?.id;
     if (!(created.status === 200 || created.status === 201) || !conv) {
@@ -616,12 +616,12 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       const secs = ((Date.now() - started) / 1000).toFixed(1);
       const ev = s.events;
       const sel = all(ev, "model_selected")[0]?.data || null;
-      // (Tarsee's error words carry the chat's Markdown bold, which a terminal shows as asterisks.)
+      // (Atlas's error words carry the chat's Markdown bold, which a terminal shows as asterisks.)
       const errors = all(ev, "error").map((e) => String(e.data?.message || e.data || "").replace(/\*\*/g, ""));
       const dones = all(ev, "done");
-      // Seen to end: Tarsee sent its "done" (it comes once the turn is over), or turned the message down with a 4xx
+      // Seen to end: Atlas sent its "done" (it comes once the turn is over), or turned the message down with a 4xx
       // before any turn began. Anything else (the time running out, the connection cut, a stream that ended with no
-      // "done", a proxy's 5xx, no answer at all) may have left the turn running on Tarsee.
+      // "done", a proxy's 5xx, no answer at all) may have left the turn running on Atlas.
       unfinished = !dones.length && !(s.status >= 400 && s.status < 500);
       const text = all(ev, "text").map((e) => e.data?.content ?? "").join("");
       const problems = [];
@@ -629,7 +629,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
       else {
         if (s.timedOut) problems.push(`no full reply in ${o.timeoutSec} s`);
         if (s.error) problems.push(`the reply broke off: ${s.error}`);
-        if (!sel) problems.push("Tarsee never said which AI answered");
+        if (!sel) problems.push("Atlas never said which AI answered");
         else if (sel.provider !== r.provider) problems.push(`${sel.label || sel.provider} answered, not ${r.provider}${sel.backup ? " (the backup model)" : ""}`);
         if (errors.length) problems.push(errors[0]);
         if (dones.length !== 1 && !s.timedOut && !s.error) problems.push(`${dones.length} "done" events, not 1`);
@@ -651,7 +651,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
           r.tool = calls.length ? "wrong answer" : "none";
           const why = calls.length
             ? `${calls[0].data?.name} ran, but its result wasn't ${product}: ${clip(resultFor(calls[0])?.data?.result || "(no result)", 120)}`
-            : `the AI didn't use Tarsee's calculator${others.length ? ` (it used ${[...new Set(others)].join(", ")})` : ""}`;
+            : `the AI didn't use Atlas's calculator${others.length ? ` (it used ${[...new Set(others)].join(", ")})` : ""}`;
           say("FAIL", who, "tool", why);
           r.notes.push(why);
         }
@@ -695,7 +695,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
         }
       }
     } finally {
-      // Stopped first, --keep or not: Tarsee keeps a turn running when the page that sent it goes away (a cut
+      // Stopped first, --keep or not: Atlas keeps a turn running when the page that sent it goes away (a cut
       // connection is one), and a deleted chat leaves no Stop to press while it runs on, on the owner's key.
       let leftRunning = false;
       if (unfinished) {
@@ -704,7 +704,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
           say("INFO", who, "cleanup", st.stopped ? `the reply didn't finish, so its turn was stopped first; it was over in ${st.secs.toFixed(1)} s` : "the reply didn't finish; its turn had already ended");
         } else {
           leftRunning = true;
-          say("FAIL", who, "cleanup", `the unfinished turn couldn't be stopped (${st.error})${o.keep ? "" : ", so the test chat is kept"}: open "${TEST_CHAT_TITLE}" in Tarsee and press Stop`);
+          say("FAIL", who, "cleanup", `the unfinished turn couldn't be stopped (${st.error})${o.keep ? "" : ", so the test chat is kept"}: open "${TEST_CHAT_TITLE}" in Atlas and press Stop`);
           r.notes.push("a turn left running in the test chat");
         }
       }

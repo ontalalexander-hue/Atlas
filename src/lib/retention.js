@@ -1,7 +1,7 @@
 /**
  * Retention — auto-prune old conversations and checkpoint archives.
  *
- * Tarsee accumulates conversation rows fast (each channel message = a
+ * Atlas accumulates conversation rows fast (each channel message = a
  * row, and every edit/reply in a long session too). This module runs
  * a daily sweep at ~03:00 local server time to:
  *

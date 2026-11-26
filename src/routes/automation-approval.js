@@ -32,10 +32,10 @@ automationApprovalRouter.get("/", (req, res) => {
 
 automationApprovalRouter.post("/approve", (req, res) => {
   // The owner's signed-in dashboard only, as for switching on a scheduled task the AI made: the API token (Bearer)
-  // also drives Tarsee from scripts, and it sits on the same disk the AI's own shell can read, so an OK given with it
+  // also drives Atlas from scripts, and it sits on the same disk the AI's own shell can read, so an OK given with it
   // wouldn't be the owner's. The dashboard sends this without the token (js/settings.js _ownerPost).
   if (req.auth?.method !== "session") {
-    return res.status(403).json({ error: "Only you can OK this, from Tarsee's dashboard while signed in. The API token can't." });
+    return res.status(403).json({ error: "Only you can OK this, from Atlas's dashboard while signed in. The API token can't." });
   }
   const { name, text, via } = req.body || {};
   if (!isAutomationFile(name)) {

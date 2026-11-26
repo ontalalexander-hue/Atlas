@@ -1,5 +1,5 @@
 /**
- * Advanced security manager for Tarsee.
+ * Advanced security manager for Atlas.
  * Tool permissions, dangerous command detection, SSRF protection, rate limiting.
  */
 

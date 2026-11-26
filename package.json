@@ -1,18 +1,18 @@
 {
-  "name": "tarsee",
+  "name": "atlas",
   "version": "0.2.0",
   "private": true,
   "author": "Tony Herrera <tony@opusautomations.com>",
   "license": "SEE LICENSE IN LICENSE",
-  "homepage": "https://github.com/projectservan8n/Tarsee",
+  "homepage": "https://github.com/ontalalexander-hue/Atlas",
   "bugs": {
-    "url": "https://github.com/projectservan8n/Tarsee/issues"
+    "url": "https://github.com/ontalalexander-hue/Atlas/issues"
   },
   "bin": {
     "tarsee": "./src/cli/index.js"
   },
   "type": "module",
-  "description": "Tarsee — AI Gateway & Chat Platform with voice calls, multi-provider support, and channel integrations",
+  "description": "Atlas — AI Gateway & Chat Platform with voice calls, multi-provider support, and channel integrations",
   "engines": {
     "node": ">=22"
   },

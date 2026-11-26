@@ -174,7 +174,7 @@ describe("tool steps: from the SDK's messages", () => {
     assert.deepEqual(toolResultsFromSdkMessage(assistant([{ type: "text", text: "x" }])), []);
   });
 
-  it("names Tarsee's MCP tools plainly and summarises the common tools", () => {
+  it("names Atlas's MCP tools plainly and summarises the common tools", () => {
     assert.equal(displayToolName("mcp__tarsee__tarsee_send_message"), "tarsee_send_message");
     assert.equal(displayToolName("Read"), "Read");
     assert.equal(summarizeToolInput("Grep", { pattern: "TODO", path: "src" }), "TODO in src");

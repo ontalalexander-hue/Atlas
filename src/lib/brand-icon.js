@@ -1,4 +1,4 @@
-// Tarsee's own icon, replaceable from Settings → Appearance ("Tarsee's icon").
+// Atlas's own icon, replaceable from Settings → Appearance ("Atlas's icon").
 //
 // The dashboard (src/public/js/brand-icon.js) lets the owner pick a picture, crop it square in the browser, and send
 // two things to POST /api/settings/brand-icon: a 1024x1024 PNG of the crop (the "master") and the file that was

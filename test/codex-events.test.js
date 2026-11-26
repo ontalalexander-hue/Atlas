@@ -1,7 +1,7 @@
 // The Codex engine's event mapping (src/ai/providers/codex-events.js, design 4.8 "Event mapping"): what the Codex SDK
-// streams becomes Tarsee's events, with Claude Code's tool names so the live view, the tool status lines and the loop
+// streams becomes Atlas's events, with Claude Code's tool names so the live view, the tool status lines and the loop
 // guard need nothing new. Most cases replay JSONL captured from the real pinned codex binary
-// (test/fixtures/codex/, made by capture.mjs against the fake Responses server); the few item kinds a Tarsee turn
+// (test/fixtures/codex/, made by capture.mjs against the fake Responses server); the few item kinds a Atlas turn
 // can't make Codex 0.167 produce (a to-do list, a web search) are written out from the SDK's own types.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";

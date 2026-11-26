@@ -10,7 +10,7 @@
  * the signed-in account and caches it in ~/.claude/cache/model-catalog/<org>-<account>-cc.json, and every CLI build
  * carries a signed copy of its own. lib/model-catalog.js reads both (the newer wins) and hands the models here; this
  * file turns them into the picker's list. Nothing here names a model: a new release reaches the list through the
- * CLI's catalog, or through Tarsee's own model table (a newer version of a family than the catalog lists goes on top).
+ * CLI's catalog, or through Atlas's own model table (a newer version of a family than the catalog lists goes on top).
  *
  * Page-free and side-effect free, so the tests run it on catalogs of their own.
  */
@@ -29,7 +29,7 @@ const MAX_TIP = "May use a great many tokens, take long and hit token limits. Us
 /** Fable on a subscription: included up to a share of the weekly limit, then it wants usage credits. Without them
  *  the turn falls back down the model ladder (the provider's fallbackModel). Never a default. */
 export const FABLE_NOTE = "Uses usage credits past your weekly allowance";
-const FABLE_TIP = "Fable is included up to part of the weekly plan limit. Past that it needs usage credits; without them Tarsee answers on the next model down.";
+const FABLE_TIP = "Fable is included up to part of the weekly plan limit. Past that it needs usage credits; without them Atlas answers on the next model down.";
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -64,13 +64,13 @@ function effortFrom(o) {
   };
 }
 
-/** The levels a model has no catalog entry for: Claude Code's five, Tarsee's default marked. */
+/** The levels a model has no catalog entry for: Claude Code's five, Atlas's default marked. */
 function fallbackEfforts(defaultEffort) {
   return EFFORT_IDS.map((id) => ({ id, name: EFFORT_NAMES[id], recommended: id === defaultEffort, badge: null, tip: id === "max" ? MAX_TIP : null }));
 }
 
 function finishEntry(entry, defaultEffort) {
-  // Medium is marked Recommended only where the CLI says so; with no word from the CLI, Tarsee's default is.
+  // Medium is marked Recommended only where the CLI says so; with no word from the CLI, Atlas's default is.
   if (entry.efforts.length && !entry.efforts.some((e) => e.recommended)) {
     const d = entry.efforts.find((e) => e.id === defaultEffort);
     if (d) d.recommended = true;
@@ -122,7 +122,7 @@ function entryFromId(id, template, defaultEffort) {
 /**
  * The picker's list.
  *   catalog   the CLI's catalog config ({ models, provider_alias_targets }) or null
- *   knownIds  model ids known some other way (lib/model-catalog.js: Tarsee's model table): used in full
+ *   knownIds  model ids known some other way (lib/model-catalog.js: Atlas's model table): used in full
  *             when there is no catalog, and otherwise only for a version newer than the catalog's newest of a family
  *   aliases   the family words the CLI takes for "the newest" ({ opus: true, ... }): a main entry picks its family's
  *             word, so a chat stays on the newest when a new version comes out (Claude Code does the same)

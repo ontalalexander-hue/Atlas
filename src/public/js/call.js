@@ -1,5 +1,5 @@
 /**
- * Call: a hands-free voice call with the AI, on Tarsee's own speech stack.
+ * Call: a hands-free voice call with the AI, on Atlas's own speech stack.
  *
  *   microphone ─▶ voice detection in this page ─▶ 16 kHz WAV ─▶ speech-to-text (Settings > Voice: faster-whisper on
  *   the server, or the OpenAI Whisper API when that is chosen) ─▶ a turn in the "Calls with <name>" chat (its own AI
@@ -64,7 +64,7 @@ const Call = {
     this.paintButton();
   },
 
-  name() { return (typeof Chat !== "undefined" && Chat.botName) || "Tarsee"; },
+  name() { return (typeof Chat !== "undefined" && Chat.botName) || "Atlas"; },
   isOn() { return ["connecting", "listening", "thinking", "speaking"].includes(this.state); },
   el(id) { return document.getElementById(id); },
   working() { return this.turns.some((t) => !t.done && !t.stopped); },
@@ -277,7 +277,7 @@ const Call = {
     this.setState("connecting");
     if (!navigator.mediaDevices?.getUserMedia || typeof AudioWorkletNode === "undefined") {
       this.failStart(window.isSecureContext === false
-        ? "The microphone only works when Tarsee is opened over https (or on this computer). Open it that way and call again."
+        ? "The microphone only works when Atlas is opened over https (or on this computer). Open it that way and call again."
         : "This browser can't use the microphone for a call. Try a current Chrome, Edge, Safari or Firefox.");
       return;
     }

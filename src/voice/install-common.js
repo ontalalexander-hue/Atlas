@@ -1,5 +1,5 @@
 /**
- * What Tarsee's installers share: Phonon (phonon-install.js), faster-whisper and its models (stt-install.js,
+ * What Atlas's installers share: Phonon (phonon-install.js), faster-whisper and its models (stt-install.js,
  * whisper-models.js) and the standalone Python they can run on (python-runtime.js).
  *
  *   - Downloads come only from fixed official hosts, over https. Redirects (the hosts send big files to their CDNs)
@@ -8,7 +8,7 @@
  *     then renamed into place (downloadFile). A file never appears half written.
  *   - A lock file keeps two installs (the server and a terminal run) from racing (acquireLock).
  *
- * Nothing here imports Tarsee's config: the Docker build runs whisper-models.js (and so this file) on its own, to put
+ * Nothing here imports Atlas's config: the Docker build runs whisper-models.js (and so this file) on its own, to put
  * the default speech-to-text model in the image.
  */
 

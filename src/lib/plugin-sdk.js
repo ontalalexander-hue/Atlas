@@ -1,6 +1,6 @@
 /**
- * Plugin SDK for Tarsee.
- * Provides a registry for plugins that extend Tarsee with new channels, tools, and hooks.
+ * Plugin SDK for Atlas.
+ * Provides a registry for plugins that extend Atlas with new channels, tools, and hooks.
  */
 
 class PluginRegistry {

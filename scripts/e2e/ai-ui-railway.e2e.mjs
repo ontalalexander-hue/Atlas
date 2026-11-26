@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// End-to-end: "Choose your AI" and Settings > AI when Railway variables already hold provider keys, on a REAL Tarsee
+// End-to-end: "Choose your AI" and Settings > AI when Railway variables already hold provider keys, on a REAL Atlas
 // server, in a browser. Companion of scripts/e2e/ai-ui.e2e.mjs (same rules).
 //
 //   node scripts/e2e/ai-ui-railway.e2e.mjs [--shots <dir>] [--out <results.json>]

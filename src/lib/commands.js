@@ -178,7 +178,7 @@ async function modelCommand(args, ctx) {
   }
   if (provider) {
     const p = getProvider(provider);
-    if (!d.isShipped(p.id)) return `${p.label} can't be used in this version of Tarsee.`;
+    if (!d.isShipped(p.id)) return `${p.label} can't be used in this version of Atlas.`;
     const s = await readiness(p.id, ctx);
     if (!s.ready) return `**${p.label}** isn't ready.${s.detail ? ` ${s.detail}` : ""}${s.fix ? `\n\n${s.fix}` : ""}`;
     if (p.id === "chatgpt") await chatgptModels(ctx);
@@ -321,7 +321,7 @@ const COMMANDS = {
     description: "Show available commands",
     usage: "/help",
     handler: () => {
-      const lines = ["**Tarsee Commands**", ""];
+      const lines = ["**Atlas Commands**", ""];
       for (const [name, cmd] of Object.entries(COMMANDS)) {
         lines.push(`\`${cmd.usage}\` — ${cmd.description}`);
       }
@@ -461,7 +461,7 @@ const COMMANDS = {
       if (!messages.length) return "No messages to forward.";
 
       const lines = messages.map((m) => {
-        const role = m.role === "user" ? "You" : "Tarsee";
+        const role = m.role === "user" ? "You" : "Atlas";
         const text = m.content.length > 300 ? m.content.slice(0, 300) + "..." : m.content;
         return `**${role}:** ${text}`;
       });
@@ -827,7 +827,7 @@ Keep it concise — 5-10 bullet points max. Be direct and useful.`;
       return `__PLAYBOOK__
 You're about to be restarted with a container wipe (Railway redeploy).
 Write a COMPREHENSIVE handoff document to \`${CHECKPOINT_FILE_PATH}\` so
-the next Tarsee instance can pick up exactly where we left off.
+the next Atlas instance can pick up exactly where we left off.
 
 Use the \`tarsee_write_file\` tool with filename = "CHECKPOINT.md".
 
@@ -835,7 +835,7 @@ The document MUST cover every section below. Be specific, concrete, and
 include code/commands/IDs where they exist. No vague summaries.
 
 \`\`\`markdown
-# Tarsee Session Checkpoint
+# Atlas Session Checkpoint
 *Written: <ISO timestamp you generate>*
 *Session context: <1-2 sentence framing of what this session was about>*
 
@@ -935,7 +935,7 @@ artifact. Just confirm.`;
       const mins = Math.floor((uptime % 3600) / 60);
 
       const lines = [
-        "**Tarsee Status**",
+        "**Atlas Status**",
         "",
         `⏱ **Uptime:** ${hrs}h ${mins}m | **RAM:** ${Math.round(mem.rss / 1024 / 1024)}MB`,
       ];
@@ -1021,7 +1021,7 @@ artifact. Just confirm.`;
 
       const lines = [`# ${conv.title || "Untitled"}`, `Exported: ${new Date().toISOString()}`, ""];
       for (const msg of messages) {
-        const role = msg.role === "user" ? "You" : "Tarsee";
+        const role = msg.role === "user" ? "You" : "Atlas";
         lines.push(`**${role}:**`);
         lines.push(msg.content);
         lines.push("");
@@ -1184,14 +1184,14 @@ artifact. Just confirm.`;
   },
 
   version: {
-    description: "Show the Tarsee version, the AI and model, and the engines",
+    description: "Show the Atlas version, the AI and model, and the engines",
     usage: "/version",
     handler: async (_args, ctx) => {
       try {
-        // package.json beside src/ (/app/package.json in the image), wherever Tarsee is installed.
+        // package.json beside src/ (/app/package.json in the image), wherever Atlas is installed.
         const pkg = JSON.parse(fs.readFileSync(path.join(APP_ROOT, "package.json"), "utf8"));
         const commit = process.env.TARSEE_COMMIT_SHA?.slice(0, 7) || "unknown";
-        const lines = [`**Tarsee** v${pkg.version} (${commit})`];
+        const lines = [`**Atlas** v${pkg.version} (${commit})`];
         if (ctx?.settingsStore) {
           const def = defaultPick(ctx.settingsStore, aiDeps(ctx));
           lines.push(`**AI:** ${aiLabel(def.provider, def.model, ctx.settingsStore)}`);
@@ -1279,12 +1279,12 @@ const OWNER_ID_ON = {
 const OWNER_ONLY_WHY = {
   cron: "scheduled tasks run the AI with nobody asking at the time, and each run can cost money",
   briefing: "the briefing runs the AI and can be scheduled every day, and each run can cost money",
-  webhook: "it shows Tarsee's API token and sets up webhooks that run the AI",
+  webhook: "it shows Atlas's API token and sets up webhooks that run the AI",
 };
 
 /** What someone who isn't the owner gets for an owner's command. */
 function notTheOwner(cmdName, ctx) {
-  const why = OWNER_ONLY_WHY[cmdName] || "it changes what Tarsee does on its own";
+  const why = OWNER_ONLY_WHY[cmdName] || "it changes what Atlas does on its own";
   const where = cmdName === "webhook"
     ? "Use it in the dashboard's chat"
     : "Use Settings > Automation > Scheduled tasks on the dashboard, or this command in the dashboard's chat";

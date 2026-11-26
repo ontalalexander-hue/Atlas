@@ -1,5 +1,5 @@
 /**
- * codex-cli.js: running the pinned Codex CLI for the jobs Tarsee does outside a chat turn: the ChatGPT sign-in
+ * codex-cli.js: running the pinned Codex CLI for the jobs Atlas does outside a chat turn: the ChatGPT sign-in
  * (codex-device-login.js) and the signed-in account's model list (codex-models.js). Turns themselves go through the
  * Codex SDK (providers/codex.js); this is the small part both of those other jobs share:
  *
@@ -11,9 +11,9 @@
  *   killTree()          stop it and everything it started: taskkill /T /F on Windows, the process group elsewhere
  *   runCodex()          run one command to the end with a time limit and capped output
  *
- * CODEX_BASE_ARGS keep the sign-in in $CODEX_HOME/auth.json (never an OS keyring Tarsee can't see), skip the update
+ * CODEX_BASE_ARGS keep the sign-in in $CODEX_HOME/auth.json (never an OS keyring Atlas can't see), skip the update
  * check and switch off the project root search (project_root_markers=[]), as every Codex turn does (design 4.8): these
- * jobs run in the Codex home, inside Tarsee's state folder, and without it Codex would take the nearest folder above
+ * jobs run in the Codex home, inside Atlas's state folder, and without it Codex would take the nearest folder above
  * with .git as a project root and load a .codex/config.toml from each folder between, which no guard reads.
  */
 import { spawn } from "node:child_process";
@@ -38,7 +38,7 @@ export class CodexCliError extends Error {
   }
 }
 
-const MISSING_MESSAGE = "Codex isn't installed here (the @openai/codex package or its program for this system is missing). Reinstall Tarsee's dependencies.";
+const MISSING_MESSAGE = "Codex isn't installed here (the @openai/codex package or its program for this system is missing). Reinstall Atlas's dependencies.";
 
 /** The platform packages @openai/codex installs, as the Codex SDK maps them. */
 const TARGETS = {
@@ -54,7 +54,7 @@ function isFile(p) {
   try { return fs.statSync(p).isFile(); } catch { return false; }
 }
 
-/** The @openai/codex package.json: hoisted next to Tarsee, or under the SDK that depends on it. */
+/** The @openai/codex package.json: hoisted next to Atlas, or under the SDK that depends on it. */
 function codexPackageJson() {
   const req = createRequire(import.meta.url);
   try { return req.resolve("@openai/codex/package.json"); } catch {}
@@ -104,7 +104,7 @@ export function requireCodexHome(codexHome) {
 }
 
 /**
- * The environment a codex job runs with: the server's env minus every credential, Tarsee secret and Railway provider
+ * The environment a codex job runs with: the server's env minus every credential, Atlas secret and Railway provider
  * key (so no OPENAI_API_KEY, CODEX_API_KEY or OPENAI_BASE_URL can steer it), plus CODEX_HOME and any `extra`.
  */
 export function codexChildEnv(env, codexHome, extra = {}) {

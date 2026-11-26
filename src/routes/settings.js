@@ -120,8 +120,8 @@ settingsRouter.post("/channel", (req, res) => {
     const payload = {
       enabled: !!enabled,
       tarseeEmailAddress: tarseeEmailAddress || prev.tarseeEmailAddress || imap?.user || "",
-      fromName: fromName || prev.fromName || "Tarsee",
-      defaultSubject: defaultSubject || prev.defaultSubject || "Tarsee",
+      fromName: fromName || prev.fromName || "Atlas",
+      defaultSubject: defaultSubject || prev.defaultSubject || "Atlas",
       mentionKeyword: mentionKeyword || prev.mentionKeyword || "tarsee",
       replyAllMarker: replyAllMarker || prev.replyAllMarker || "[reply-all]",
       allowlistFromAddresses: Array.isArray(allowlistFromAddresses)
@@ -350,7 +350,7 @@ settingsRouter.get("/setup-status", async (req, res) => {
   res.json({
     needsSetup: !configured,
     needsPersonality: !hasPersonality,
-    botName: botName || "Tarsee",
+    botName: botName || "Atlas",
     provider: configured ? target.provider : null,
     hasKey: configured,
     ai: {
@@ -436,7 +436,7 @@ settingsRouter.post("/general", (req, res) => {
   }
 
   // The saved scheduled tasks change only through /cron below, which keeps the owner's OK: written here, the API token
-  // could save a task switched on that the owner never saw, and it would start with Tarsee's next restart.
+  // could save a task switched on that the owner never saw, and it would start with Atlas's next restart.
   if (key === "cron.jobs") {
     return res.status(400).json({ error: "Add, switch on or delete scheduled tasks in Settings > Automation > Scheduled tasks." });
   }
@@ -535,7 +535,7 @@ settingsRouter.get("/cron", async (_req, res) => {
  *   "signed-out"  the dashboard after its sign-in ran out: the sign-in's cookie, no longer on (signInEnded), and the API
  *                 token the page still sends. Not the owner, but told to sign in again rather than of the token.
  *   "token"       anything else, the API token alone above all.
- * The API token is never enough. Tarsee saves it in the state folder (api.token) unless TARSEE_API_TOKEN is set, and the
+ * The API token is never enough. Atlas saves it in the state folder (api.token) unless TARSEE_API_TOKEN is set, and the
  * AI's shell runs as the same user, so with the token alone the AI could OK the task it has just scheduled. The
  * dashboard sends the token too (js/api.js), and sessionAuth names a request by its token first (req.auth.method
  * "bearer"), so a token request is checked here for the sign-in and the CSRF token, which csrfProtect skips for it. A
@@ -556,7 +556,7 @@ function hasPageCsrfToken(req) {
   try {
     csrfProtect(asSignedIn, refused, () => { passed = true; });
   } catch {
-    // a token that isn't one Tarsee made
+    // a token that isn't one Atlas made
   }
   return passed;
 }
@@ -632,7 +632,7 @@ settingsRouter.patch("/cron/:id", async (req, res) => {
       const saved = loadCronJobs().find((j) => j.id === id);
       if (!saved) return res.status(404).json({ error: `No scheduled task ${id}` });
       if (seen == null) {
-        return res.status(400).json({ error: "Tarsee can't tell which version of this task you looked at. Reload the page, look at the task again, then switch it on." });
+        return res.status(400).json({ error: "Atlas can't tell which version of this task you looked at. Reload the page, look at the task again, then switch it on." });
       }
       if (!sameAsSeen(saved, seen)) {
         return res.status(409).json({ error: "This task changed after your list was drawn: when it runs or what it does is different now. Look at it again, then switch it on if you still want it." });
@@ -694,7 +694,7 @@ settingsRouter.get("/skills-status", async (_req, res) => {
 });
 
 /**
- * Tarsee's icon (Settings → Appearance; src/lib/brand-icon.js makes and serves the files).
+ * Atlas's icon (Settings → Appearance; src/lib/brand-icon.js makes and serves the files).
  * GET    /api/settings/brand-icon  { custom, version, updatedAt }
  * POST   /api/settings/brand-icon  Body: { master: base64 PNG (square, 64 to 2048 px), original?: { name, type, data: base64 } }
  * DELETE /api/settings/brand-icon  back to the default icon

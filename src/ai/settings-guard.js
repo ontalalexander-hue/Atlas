@@ -74,7 +74,7 @@ export function settingsGuardFindings(opts = {}) {
 export function fixSettingsFile(file, opts = {}) {
   if (typeof file !== "string" || !file.trim()) return { ok: false, status: 400, error: "Say which file to fix." };
   const finding = settingsGuardFindings(opts).find((f) => path.resolve(f.file) === path.resolve(file));
-  if (!finding) return { ok: false, status: 404, error: "That file has nothing Tarsee needs to remove." };
+  if (!finding) return { ok: false, status: 404, error: "That file has nothing Atlas needs to remove." };
   try {
     if (finding.unreadable) return setAside(finding);
     const text = fs.readFileSync(finding.file, "utf8");
@@ -82,7 +82,7 @@ export function fixSettingsFile(file, opts = {}) {
     fs.writeFileSync(finding.file, fixed.text);
     return { ok: true, file: finding.file, kind: finding.kind, removed: fixed.removed };
   } catch (err) {
-    return { ok: false, status: 500, error: `Tarsee couldn't change ${finding.file}: ${err?.message || err}. Edit it by hand in the Terminal.` };
+    return { ok: false, status: 500, error: `Atlas couldn't change ${finding.file}: ${err?.message || err}. Edit it by hand in the Terminal.` };
   }
 }
 

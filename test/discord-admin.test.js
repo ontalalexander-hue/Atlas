@@ -1,4 +1,4 @@
-// tarsee_discord_admin (src/lib/discord-admin.js): channels and webhooks done by Tarsee's own logged-in bot, so the
+// tarsee_discord_admin (src/lib/discord-admin.js): channels and webhooks done by Atlas's own logged-in bot, so the
 // agent never needs DISCORD_BOT_TOKEN in a command. Discord is never reached: the client is a stand-in (or a real
 // discord.js Client that never logs in, with its REST calls stubbed), and the vault is a stand-in or a temporary one.
 import { describe, it, before, after } from "node:test";
@@ -563,7 +563,7 @@ function realClient({ botRolePerms = P.ManageChannels | P.ManageWebhooks | P.Vie
   const joined = new Date().toISOString();
   client.guilds._add({
     id: G, name: "Acme Server", owner_id: ALEX,
-    roles: [role(G, "@everyone", P.ViewChannel | P.SendMessages, 0), role(OPS, "Ops", 0n, 1), role("400000000000000009", "Tarsee", botRolePerms, 2)],
+    roles: [role(G, "@everyone", P.ViewChannel | P.SendMessages, 0), role(OPS, "Ops", 0n, 1), role("400000000000000009", "Atlas", botRolePerms, 2)],
     channels: [
       { id: CAT, type: ChannelType.GuildCategory, name: "Clients", position: 0, permission_overwrites: [] },
       { id: PROD, type: ChannelType.GuildText, name: "client-prod", parent_id: CAT, position: 0, permission_overwrites: [{ id: G, type: 0, allow: "0", deny: String(P.ViewChannel) }, { id: OPS, type: 0, allow: String(P.ViewChannel), deny: "0" }] },

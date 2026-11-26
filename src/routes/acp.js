@@ -1,5 +1,5 @@
 /**
- * ACP (Agent Control Protocol) HTTP routes for Tarsee.
+ * ACP (Agent Control Protocol) HTTP routes for Atlas.
  */
 import { Router } from "express";
 import { getACPServer } from "../lib/acp.js";

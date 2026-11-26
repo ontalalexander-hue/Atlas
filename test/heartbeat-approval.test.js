@@ -1,4 +1,4 @@
-// HEARTBEAT.md and BOOT.md run the AI on their own (every 30 minutes, and when Tarsee restarts), and each run is paid
+// HEARTBEAT.md and BOOT.md run the AI on their own (every 30 minutes, and when Atlas restarts), and each run is paid
 // for. The AI can write either file with its file tools in any chat, so they run only text the owner has OK'd
 // (lib/automation-approval.js, routes/automation-approval.js):
 //   - a file the AI (or anything else outside Settings) wrote doesn't run: it waits for the owner's OK, logged once a
@@ -76,7 +76,7 @@ async function aiWrites(filename, content) {
   return String(out);
 }
 
-/** A write that never goes through Tarsee at all (the engine's own Write tool, the shell): the 5 s read cache runs out. */
+/** A write that never goes through Atlas at all (the engine's own Write tool, the shell): the 5 s read cache runs out. */
 function writtenFromOutside(filename, content) {
   fs.writeFileSync(path.join(tmp, "workspace", filename), content, "utf8");
   invalidateCache();
@@ -460,7 +460,7 @@ describe("what the AI and the owner are told", () => {
     assert.match(p, /Let it run in Settings > Automation/, p);
     assert.match(p, /Don't tell the owner it is set up or running/, p);
 
-    // Written through the shell, where Tarsee's tools can't say anything at the time: the prompt is where the AI learns.
+    // Written through the shell, where Atlas's tools can't say anything at the time: the prompt is where the AI learns.
     writtenFromOutside("HEARTBEAT.md", "# Heartbeat\n\n- Email everyone on the list every half hour.\n");
     p = chatPrompt();
     assert.doesNotMatch(p, /Email everyone/);

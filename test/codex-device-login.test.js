@@ -1,5 +1,5 @@
 // ChatGPT sign-in through Codex's own device-code login (src/ai/codex-device-login.js; design amendment A1, 4.14).
-// Tarsee runs `codex login --device-auth` with CODEX_HOME set, reads the link and one-time code off its output, and
+// Atlas runs `codex login --device-auth` with CODEX_HOME set, reads the link and one-time code off its output, and
 // waits for auth.json plus `codex login status`. The parser runs on the real binary's stdout (captured from codex-cli
 // 0.167.0 with network and no account; only the one-time code was swapped for a same-shape fake). The flow runs a
 // fake codex through the same platform shim any codex binary would get (test/fixtures/fake-codex-login), so the

@@ -2,7 +2,7 @@
 // TARSEE_URL and TARSEE_PASSWORD, and it never prints the password. A short password (a 4-digit SETUP_PASSWORD) can't
 // be blanked out of what it prints without giving it away (it would show as the gap in a date or a sum), so the
 // script must never put it in a line at all: not even when it is typed by mistake after an option, where a value the
-// script doesn't know used to be repeated back ("--verify: "4817" isn't an AI Tarsee knows").
+// script doesn't know used to be repeated back ("--verify: "4817" isn't an AI Atlas knows").
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
@@ -65,14 +65,14 @@ describe("live-smoke: a password typed after an option is never repeated back", 
         assert.equal(code, 1, argv.join(" "));
       }
       const out = lines.join("\n");
-      assert.ok(/isn't an AI Tarsee knows|Unknown option|isn't an option/.test(out), "it says what was wrong");
+      assert.ok(/isn't an AI Atlas knows|Unknown option|isn't an option/.test(out), "it says what was wrong");
       assert.equal(standsAlone(out, pw), false, "the password isn't in the output");
     });
   }
 
   it("an AI name it doesn't know is still named, so a typo is easy to fix", () => {
     const o = parseArgs(["--only", "deepsek"], { password: pin });
-    assert.match(o.errors.join("\n"), /"deepsek" isn't an AI Tarsee knows/);
+    assert.match(o.errors.join("\n"), /"deepsek" isn't an AI Atlas knows/);
     assert.match(parseArgs(["--colour"], { password: pin }).errors.join("\n"), /Unknown option --colour/);
   });
 

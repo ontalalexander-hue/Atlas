@@ -228,7 +228,7 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
     const r = await probeProvider("local", { store: store(LLAMA), fetch: llama({ ctx: 8192 }).fetch, env: {} });
     assert.equal(r.ok, false);
     assert.equal(r.state, "needs-setup");
-    assert.equal(r.message, "llama.cpp was started with room for only 8,192 tokens. Tarsee needs at least 32,768. Start it again with -c 65536.");
+    assert.equal(r.message, "llama.cpp was started with room for only 8,192 tokens. Atlas needs at least 32,768. Start it again with -c 65536.");
   });
 
   it("a llama.cpp build before b11768: Test says to update it", async () => {
@@ -251,7 +251,7 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
     assert.equal(r.message, "Your Local AI is still loading its model. Click Test again in a minute.");
   });
 
-  it("started with --api-key and no key (or the wrong one) in Tarsee: the key hint, from /models or from /responses", async () => {
+  it("started with --api-key and no key (or the wrong one) in Atlas: the key hint, from /models or from /responses", async () => {
     const denied = { status: 401, json: { error: { code: 401, message: "Invalid API Key", type: "authentication_error" } } };
     for (const net of [
       server("http://127.0.0.1:9931", { "GET /v1/models": denied, "POST /v1/responses": denied }),
@@ -260,7 +260,7 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
       const s = store(LLAMA);
       const r = await probeProvider("local", { store: s, fetch: net.fetch, env: {} });
       assert.equal(r.ok, false);
-      assert.equal(r.message, "Your Local AI turned down Tarsee's key. Check it in Settings > AI.");
+      assert.equal(r.message, "Your Local AI turned down Atlas's key. Check it in Settings > AI.");
       assert.equal(failureFlag(s, "local")?.state, "auth", "the card shows the rejected key");
     }
   });
@@ -268,7 +268,7 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
   it("a model named after its file path, with spaces in it: Test says to start llama-server with --alias", async () => {
     const r = await probeProvider("local", { store: store(LLAMA), fetch: llama({ id: "E:/models/My Model Q4.gguf" }).fetch, env: {} });
     assert.equal(r.ok, false);
-    assert.match(r.message, /with spaces in it, which Tarsee can't use\. Start llama-server with --alias and a short name/);
+    assert.match(r.message, /with spaces in it, which Atlas can't use\. Start llama-server with --alias and a short name/);
   });
 
   it("LM Studio: its embedding models aren't chat models, and a loaded model's context is the one it was loaded with", async () => {
@@ -298,7 +298,7 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
     });
     const r2 = await probeProvider("local", { store: s, fetch: small.fetch, env: {} });
     assert.equal(r2.ok, false);
-    assert.equal(r2.message, "LM Studio loaded spark-4b with room for only 4,096 tokens. Tarsee needs at least 32,768. Load it again with a longer context length (65536 is a good choice).");
+    assert.equal(r2.message, "LM Studio loaded spark-4b with room for only 4,096 tokens. Atlas needs at least 32,768. Load it again with a longer context length (65536 is a good choice).");
   });
 
   it("Ollama: its capabilities leave the embedding models out; a loaded model's context comes from /api/ps", async () => {
@@ -318,6 +318,6 @@ describe("Test on Local AI: what the server really runs (llama.cpp, LM Studio, O
     const r = await probeProvider("local", { store: s, fetch: net.fetch, env: {} });
     assert.deepEqual(r.models, ["qwen3:8b"]);
     assert.equal(r.ok, false, "16,384 is too little room");
-    assert.match(r.message, /^Ollama runs qwen3:8b with room for only 16,384 tokens\. Tarsee needs at least 32,768\. Set OLLAMA_CONTEXT_LENGTH=65536/);
+    assert.match(r.message, /^Ollama runs qwen3:8b with room for only 16,384 tokens\. Atlas needs at least 32,768\. Set OLLAMA_CONTEXT_LENGTH=65536/);
   });
 });

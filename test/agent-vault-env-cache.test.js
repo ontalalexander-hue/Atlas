@@ -1,5 +1,5 @@
 // agentVaultEnv's one-minute cache (src/ai/agent-env.js) holds the answer for the default call only: the live turn's
-// agentVaultEnv() against Tarsee's own environment. A call that passes its own `env` (engine-env's handoff,
+// agentVaultEnv() against Atlas's own environment. A call that passes its own `env` (engine-env's handoff,
 // agentVaultEnv({ env: baseEnv(process.env) })) compares the vault against a different environment, so it must neither
 // read that cache nor write it; and the owner denying get_key in Tool Permissions applies at once, cache or not.
 // Uses the real vault in a temporary data folder, with obvious fake keys.

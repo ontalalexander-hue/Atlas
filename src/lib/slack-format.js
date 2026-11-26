@@ -6,7 +6,7 @@
  *
  * Out: Slack draws standard markdown itself now (the `markdown_text` field on chat.postMessage / chat.update and the
  * markdown chunks of chat.startStream, tables and code fences included, since 2026-03). So unlike discord-format.js
- * nothing is redrawn: the answer goes out as the model wrote it, minus Tarsee's own markers.
+ * nothing is redrawn: the answer goes out as the model wrote it, minus Atlas's own markers.
  */
 import { parseReactions } from "./reaction-parser.js";
 import { splitMessageFenceSafe } from "./discord-format.js";

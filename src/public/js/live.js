@@ -512,7 +512,7 @@ const Live = {
     if (!input) return;
     const busy = !!this.activeTurnId || [...this.turns.values()].some((t) => t.queued && !t.ended);
     if (!input.dataset.idlePlaceholder) input.dataset.idlePlaceholder = input.placeholder || "";
-    input.placeholder = busy ? `${Chat.botName || "Tarsee"} is working. Send to queue.` : input.dataset.idlePlaceholder;
+    input.placeholder = busy ? `${Chat.botName || "Atlas"} is working. Send to queue.` : input.dataset.idlePlaceholder;
   },
 
   // ── Sending ────────────────────────────────────────────────────────

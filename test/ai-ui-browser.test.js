@@ -109,7 +109,7 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
         ...(state.guard ? [{
           id: "settings-guard-1",
           level: "error",
-          message: `${GUARD_FILE} has settings that could send an AI key or its requests somewhere else (env.ANTHROPIC_BASE_URL), so Tarsee won't run Claude plan and DeepSeek turns until they're removed.`,
+          message: `${GUARD_FILE} has settings that could send an AI key or its requests somewhere else (env.ANTHROPIC_BASE_URL), so Atlas won't run Claude plan and DeepSeek turns until they're removed.`,
           action: { label: "Remove these entries", kind: "settings-guard", file: GUARD_FILE },
         }] : []),
       ],
@@ -156,7 +156,7 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
 
     if (p === "/api/auth/status") return json(200, { authenticated: true, needsPassword: true });
     if (p === "/api/auth/api-token") return json(200, { apiToken: null });
-    if (p === "/api/settings/setup-status") return json(200, { needsSetup, needsPersonality, botName: "Tarsee", provider: needsSetup ? null : "claude-code", hasKey: !needsSetup });
+    if (p === "/api/settings/setup-status") return json(200, { needsSetup, needsPersonality, botName: "Atlas", provider: needsSetup ? null : "claude-code", hasKey: !needsSetup });
     if (p === "/api/settings" && method === "GET") return json(200, { settings: state.settings });
     if (p === "/api/settings/general" && method === "POST") {
       // As routes/settings.js and db/settings.js do: a secret sent empty is deleted, and a secret is read back only as
@@ -238,7 +238,7 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
     }
     if (p.startsWith("/api/ai/keys/") && method === "PUT") {
       if (body?.apiKey !== FAKE_KEY) return json(400, { error: "That isn't a DeepSeek key." });
-      ready(state.cards[id], { keySource: "settings", keyHint: "…ry42", keySourceText: "Saved in Tarsee (encrypted)", balance: { text: "Balance $4.20" } });
+      ready(state.cards[id], { keySource: "settings", keyHint: "…ry42", keySourceText: "Saved in Atlas (encrypted)", balance: { text: "Balance $4.20" } });
       return json(200, { ok: true, id, keySource: "settings", keyHint: "…ry42", encrypted: true });
     }
     if (p === "/api/ai/active" && method === "PUT") {
@@ -249,7 +249,7 @@ function fakeApi({ needsSetup = true, needsPersonality = false, active = "claude
       return json(200, { ok: true, provider: body.provider, model: c.model });
     }
     if (p === "/api/ai/settings-guard/fix" && method === "POST") {
-      if (!state.guard || body?.file !== GUARD_FILE) return json(404, { error: "That file has nothing Tarsee needs to remove." });
+      if (!state.guard || body?.file !== GUARD_FILE) return json(404, { error: "That file has nothing Atlas needs to remove." });
       state.guard = false;
       return json(200, { ok: true, file: GUARD_FILE, removed: ["env.ANTHROPIC_BASE_URL"], setAside: null });
     }
@@ -527,7 +527,7 @@ describe("the AI pages in a browser", { skip }, () => {
       await page.locator('#deepseekAiCard [data-ai-action="save-key"]').click();
       await page.locator("#deepseekAiStatus", { hasText: "Ready, using DeepSeek Flash · Balance $4.20" }).waitFor();
       assert.match(await page.locator('#deepseekAiCard [data-ai-test]').innerText(), /Key works · Balance \$4\.20/);
-      assert.match(await page.locator("#deepseekAiCard .ai-keysource").innerText(), /Saved in Tarsee \(encrypted\) …ry42/);
+      assert.match(await page.locator("#deepseekAiCard .ai-keysource").innerText(), /Saved in Atlas \(encrypted\) …ry42/);
       assert.ok(!(await page.content()).includes(FAKE_KEY), "the key is never on the page after saving");
 
       await page.locator('#deepseekAiCard [data-ai-action="use"]').click();
@@ -932,7 +932,7 @@ describe("the AI pages in a browser: what a change reaches", { skip }, () => {
       // Failed after the code was shown: Codex finished but no sign-in came of it, which the switch can't cause
       // (no code would have been shown), and a poll whose code is still the one shown is no reason at all.
       api.state.loginFail = null;
-      api.state.pollFail = { state: "failed", error: "Codex finished, but Tarsee couldn't confirm the sign-in. Try again.", code: "not-confirmed" };
+      api.state.pollFail = { state: "failed", error: "Codex finished, but Atlas couldn't confirm the sign-in. Try again.", code: "not-confirmed" };
       assert.doesNotMatch(await attempt(/couldn't confirm/), STEP1);
       api.state.pollFail = { state: "failed", error: "The sign-in stopped.", code: "ABCD-1234" };
       assert.doesNotMatch(await attempt(/The sign-in stopped/), STEP1);
@@ -1047,7 +1047,7 @@ describe("the AI pages in a browser: what a change reaches", { skip }, () => {
 describe("the pages in a browser: what they show and save", { skip }, () => {
   const STOPPED = /The sign-in stopped/;
 
-  it("ChatGPT sign-in that Tarsee no longer follows (a restart, another window): the card says so and how to start again", async () => {
+  it("ChatGPT sign-in that Atlas no longer follows (a restart, another window): the card says so and how to start again", async () => {
     const { page, api, errors, context } = await openPage({ needsSetup: false });
     try {
       await page.locator("#aiHeaderChip:not([hidden])").click();
@@ -1136,7 +1136,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
       ],
     });
     try {
-      Object.assign(api.state.cards.openai, { shipped: true, state: "ready", ready: true, detail: "Ready.", fix: null, keySource: "settings", keyHint: "…wxyz", keySourceText: "Saved in Tarsee (encrypted)" });
+      Object.assign(api.state.cards.openai, { shipped: true, state: "ready", ready: true, detail: "Ready.", fix: null, keySource: "settings", keyHint: "…wxyz", keySourceText: "Saved in Atlas (encrypted)" });
       await page.locator("#aiHeaderChip:not([hidden])").waitFor();
       await page.evaluate(() => Settings.open());
       await page.locator('.settings-tab[data-tab="voice"]').click();
@@ -1188,7 +1188,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
         current: "base.en",
         runtime: {
           state: "not-installed", ready: false, fasterWhisper: null, python: null, source: null, where: null,
-          summary: "Not installed, and there is no Python on this computer. Install downloads Tarsee's own copy of Python (about 47 MB) and faster-whisper (about 120 MB) into Tarsee's folder.",
+          summary: "Not installed, and there is no Python on this computer. Install downloads Atlas's own copy of Python (about 47 MB) and faster-whisper (about 120 MB) into Atlas's folder.",
           installFolder: "C:\\Users\\someone\\.tarsee\\python", needsPythonDownload: true, canInstall: true, downloadMB: 167, error: null,
         },
         models: [
@@ -1235,7 +1235,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
       assert.equal(await rows.first().getByRole("button", { name: /Download/ }).isDisabled(), true, "one job at a time");
       await shot(page, "voice-stt-installing");
       api.state.stt.job = null;
-      api.state.stt.runtime = { ...api.state.stt.runtime, state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.12.16 (Tarsee's own copy, in C:\\Users\\someone\\.tarsee\\python\\stt-venv)." };
+      api.state.stt.runtime = { ...api.state.stt.runtime, state: "ready", ready: true, canInstall: false, summary: "Ready: faster-whisper 1.2.1 on Python 3.12.16 (Atlas's own copy, in C:\\Users\\someone\\.tarsee\\python\\stt-venv)." };
       api.state.stt.models = api.state.stt.models.map((m) => (m.name === "base.en" ? { ...m, state: "downloaded", downloaded: true, deletable: true, where: "C:\\x\\base.en" } : m));
       await page.locator("#sttRuntimeStatus", { hasText: "Ready: faster-whisper 1.2.1" }).waitFor({ timeout: 5000 });
       await page.getByText("Speech-to-text is ready.").waitFor();
@@ -1277,7 +1277,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
       await page.locator("#aiHeaderChip:not([hidden])").waitFor();
       await page.evaluate(() => Settings.open());
       await page.locator('.settings-tab[data-tab="voice"]').click();
-      await page.locator(".stt-model-row", { hasText: "Comes with Tarsee" }).waitFor();
+      await page.locator(".stt-model-row", { hasText: "Comes with Atlas" }).waitFor();
       assert.equal(await page.locator(".stt-model-row", { hasText: "base.en" }).getByRole("button", { name: /Delete/ }).count(), 0, "the image's model can't be deleted");
       await page.locator("#sttModelList").scrollIntoViewIfNeeded();
       await shot(page, "voice-stt-phone");
@@ -1291,7 +1291,7 @@ describe("the pages in a browser: what they show and save", { skip }, () => {
   it("Settings → AI → OpenAI: a model id the list lacks is verified from the card, and can then be chosen", async () => {
     const { page, api, errors, context } = await openPage({ needsSetup: false });
     try {
-      Object.assign(api.state.cards.openai, { shipped: true, state: "ready", ready: true, detail: "Ready.", fix: null, keySource: "settings", keyHint: "…wxyz", keySourceText: "Saved in Tarsee (encrypted)", model: "gpt-6.1-sol" });
+      Object.assign(api.state.cards.openai, { shipped: true, state: "ready", ready: true, detail: "Ready.", fix: null, keySource: "settings", keyHint: "…wxyz", keySourceText: "Saved in Atlas (encrypted)", model: "gpt-6.1-sol" });
       await page.locator("#aiHeaderChip:not([hidden])").waitFor();
       await page.locator("#aiHeaderChip").click();
       await page.locator('.settings-tab-panel[data-tab="ai"].active').waitFor();

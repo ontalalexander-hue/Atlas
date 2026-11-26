@@ -1,4 +1,4 @@
-// Where Tarsee's bundled skills (src/skills) are found. Both places used new URL(import.meta.url).pathname, which on
+// Where Atlas's bundled skills (src/skills) are found. Both places used new URL(import.meta.url).pathname, which on
 // Windows is "/E:/AGENTIC%20SCALE%20AI/...": Settings → Skills answered 500. And the provider joined one ".." too few,
 // so the folder it gave Claude Code (src/ai/skills) does not exist anywhere.
 import { describe, it, before, after } from "node:test";

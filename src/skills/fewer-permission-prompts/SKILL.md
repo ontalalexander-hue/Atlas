@@ -1,6 +1,6 @@
 ---
 name: fewer-permission-prompts
-description: Scan recent tool usage in the audit log and propose an allowlist for Tarsee's security manager so the user stops seeing permission prompts for routine actions.
+description: Scan recent tool usage in the audit log and propose an allowlist for Atlas's security manager so the user stops seeing permission prompts for routine actions.
 metadata:
   {
     "tarsee":

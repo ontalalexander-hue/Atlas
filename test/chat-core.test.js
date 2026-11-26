@@ -132,9 +132,9 @@ describe("chat core: a chat's own address", () => {
     assert.deepEqual(C.parseChatPath("/chat/<script>"), { kind: "other" });
   });
   it("the tab's title", () => {
-    assert.equal(C.pageTitle("#ask-agent", "Tarsee"), "#ask-agent · Tarsee");
-    assert.equal(C.pageTitle("", "Tarsee"), "Tarsee");
-    assert.equal(C.pageTitle("Tarsee", "Tarsee"), "Tarsee");
+    assert.equal(C.pageTitle("#ask-agent", "Atlas"), "#ask-agent · Atlas");
+    assert.equal(C.pageTitle("", "Atlas"), "Atlas");
+    assert.equal(C.pageTitle("Atlas", "Atlas"), "Atlas");
   });
 });
 
@@ -162,7 +162,7 @@ describe("chat core: one line for each step", () => {
     assert.equal(L("Write", "/a/new.md", true), "Writing new.md");
     assert.equal(L("Grep", "cookie in src/pages"), 'Searched for "cookie"');
     assert.equal(L("WebSearch", "burgman seat 44K10"), "Searched the web: burgman seat 44K10");
-    assert.equal(L("web_search", "Tarsee Railway template", true), "Searching the web: Tarsee Railway template");
+    assert.equal(L("web_search", "Atlas Railway template", true), "Searching the web: Atlas Railway template");
     assert.equal(L("WebFetch", "https://www.shopee.ph/burgman-seat"), "Read shopee.ph");
     assert.equal(L("Agent", "Build cookie consent + policy, both sites"), "Asked a helper: Build cookie consent + policy, both sites");
     assert.equal(L("TodoWrite", "updating the task list", true), "Updating the plan");
@@ -184,7 +184,7 @@ describe("chat core: the line in the answer's place", () => {
     assert.equal(C.turnLine({ state: "done", tools: 0 }).title, "", "no tools: no line, the answer says it all");
     assert.equal(C.turnLine({ state: "stopped", tools: 2, ms: 9000 }).title, "Stopped after 9s");
     assert.equal(C.turnLine({ state: "failed", error: "The model refused" }).detail, "The model refused");
-    assert.equal(C.turnLine({ state: "interrupted" }).detail, "Tarsee restarted during this turn");
+    assert.equal(C.turnLine({ state: "interrupted" }).detail, "Atlas restarted during this turn");
   });
   it("a turn waiting behind the running one says so: not Working, not Thinking, no time", () => {
     assert.deepEqual(C.turnLine({ state: "queued", tools: 0, ms: 12_000, last: "Thinking" }), { title: "Queued", detail: "after the reply above", tone: "muted" });

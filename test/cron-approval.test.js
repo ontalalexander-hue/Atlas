@@ -1,8 +1,8 @@
 // Switching on a scheduled task is the owner's OK, and only the owner gives it: routes/settings.js (/api/settings/cron),
-// js/cron-core.js, js/settings.js (the Switch on button) and css/style.css (the list on a phone). The rule: Tarsee calls
+// js/cron-core.js, js/settings.js (the Switch on button) and css/style.css (the list on a phone). The rule: Atlas calls
 // an AI model, or spends on an API key, only when the owner sent a message, clicked a button that clearly does that, or
 // set the job up themselves. So:
-//   - the API token can't switch a task on. Tarsee saves it in the state folder (api.token), where the AI's own shell
+//   - the API token can't switch a task on. Atlas saves it in the state folder (api.token), where the AI's own shell
 //     can read it, so with the token alone the AI could approve the task it has just scheduled. Switching on takes the
 //     owner's dashboard: its sign-in (the session cookie) and the page's CSRF token; the dashboard sends the API token
 //     too. Pausing with the token is fine: it only stops runs;
@@ -25,7 +25,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-cron-approval-"));
 process.env.TARSEE_STATE_DIR = tmp;
 process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
 process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-// No TARSEE_API_TOKEN: Tarsee makes one and saves it in the state folder, as on most installs.
+// No TARSEE_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
 delete process.env.TARSEE_API_TOKEN;
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -131,8 +131,8 @@ async function seenOnTheRow(id) {
   return CronCore.seenOf((await res.json()).jobs.find((j) => j.id === id));
 }
 /**
- * A task changed where it is saved, keeping its id, as anything that writes Tarsee's database could (the AI's shell
- * runs as the same user); Tarsee itself never gives a deleted task's id to another one.
+ * A task changed where it is saved, keeping its id, as anything that writes Atlas's database could (the AI's shell
+ * runs as the same user); Atlas itself never gives a deleted task's id to another one.
  */
 function changeSaved(id, change) {
   const jobs = cron.loadCronJobs();

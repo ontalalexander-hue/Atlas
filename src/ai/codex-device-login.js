@@ -1,7 +1,7 @@
 /**
  * codex-device-login.js: signing in to ChatGPT through Codex's own device-code login (design amendment A1, 4.14).
  *
- * Settings > AI starts it: Tarsee runs the pinned `codex login --device-auth` with CODEX_HOME pointing at the ChatGPT
+ * Settings > AI starts it: Atlas runs the pinned `codex login --device-auth` with CODEX_HOME pointing at the ChatGPT
  * home (.codex-home, created owner-only), reads OpenAI's sign-in link and the one-time code off its output, and shows
  * them. The person opens the link on any device, signs in to ChatGPT and types the code. Codex then writes
  * $CODEX_HOME/auth.json and exits; the sign-in counts once that file is new and `codex login status` agrees.
@@ -32,7 +32,7 @@ import {
 } from "./codex-cli.js";
 import { redactSecrets } from "../lib/redact.js";
 
-/** OpenAI's device sign-in page, the only link Tarsee passes on. */
+/** OpenAI's device sign-in page, the only link Atlas passes on. */
 export const DEVICE_LOGIN_URL = "https://auth.openai.com/codex/device";
 
 /** What the person is told when ChatGPT has device-code sign-in switched off. */
@@ -47,7 +47,7 @@ const MESSAGES = {
   network: "Couldn't reach OpenAI to start the sign-in. Check this server's internet connection and try again.",
   "no-code": "Codex didn't show a sign-in code in time. Check this server's internet connection and try again.",
   "not-confirmed": "Codex finished without signing in. Start again for a new code.",
-  "unexpected-output": "Codex didn't show OpenAI's sign-in page, so Tarsee stopped it. Try again, or sign in from the Terminal with: codex login --device-auth",
+  "unexpected-output": "Codex didn't show OpenAI's sign-in page, so Atlas stopped it. Try again, or sign in from the Terminal with: codex login --device-auth",
   failed: "Codex couldn't sign in",
 };
 
@@ -209,7 +209,7 @@ function statusMethod(text) {
  * Who this Codex home is signed in as. By default `codex login status` decides (it only reads auth.json; it never goes
  * online) and auth.json supplies the email, plan and last refresh for display. cli:false reads the file alone. When
  * codex can't be run or its answer can't be read, the file's answer comes back with checked:false. method is
- * 'chatgpt', 'api', null, or 'other' for a sign-in Tarsee doesn't use (an access token, a cloud account).
+ * 'chatgpt', 'api', null, or 'other' for a sign-in Atlas doesn't use (an access token, a cloud account).
  */
 export async function loginStatus({ codexHome, codexBin, env, cli = true, timeoutMs = 15_000 } = {}) {
   const home = requireCodexHome(codexHome);
@@ -291,7 +291,7 @@ async function begin(session, { home, codexBin, env, timeoutMs, startTimeoutMs, 
   try {
     ensureHome(home);
   } catch (err) {
-    throw new DeviceLoginError("home-failed", `Tarsee couldn't create the folder that keeps the ChatGPT sign-in (${err.code || err.message}).`);
+    throw new DeviceLoginError("home-failed", `Atlas couldn't create the folder that keeps the ChatGPT sign-in (${err.code || err.message}).`);
   }
   const guard = codexConfigGuard(codexConfigFilesFor({ home, workspace: home }));
   if (!guard.ok) throw new DeviceLoginError("unsafe-config", guard.message);

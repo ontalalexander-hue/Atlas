@@ -12,12 +12,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Tarsee">
+  <meta name="apple-mobile-web-app-title" content="Atlas">
   <meta name="format-detection" content="telephone=no">
   <!-- After sign-in, js/brand-icon.js adds the icon's version to these links, so a new icon from Settings is fetched
        at once instead of the one the browser kept. -->
   <link rel="manifest" href="/manifest.json">
-  <title>Tarsee</title>
+  <title>Atlas</title>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
@@ -57,8 +57,8 @@
   <div id="loginScreen" class="login-screen" style="display:none">
     <!-- Desktop: classic card login -->
     <div class="login-card desktop-only">
-      <div class="logo-large"><img src="/icon-192.png" alt="Tarsee" class="avatar-img"></div>
-      <h1>Tarsee</h1>
+      <div class="logo-large"><img src="/icon-192.png" alt="Atlas" class="avatar-img"></div>
+      <h1>Atlas</h1>
       <p>AI Gateway & Chat Platform</p>
       <div id="loginError" class="error"></div>
       <form id="loginForm">
@@ -74,8 +74,8 @@
 
     <!-- Mobile: iOS-style PIN pad -->
     <div class="pin-pad mobile-only" id="pinPad">
-      <div class="pin-logo"><img src="/icon-192.png" alt="Tarsee" class="avatar-img"></div>
-      <div class="pin-title">Tarsee</div>
+      <div class="pin-logo"><img src="/icon-192.png" alt="Atlas" class="avatar-img"></div>
+      <div class="pin-title">Atlas</div>
       <div id="pinError" class="pin-error"></div>
       <div class="pin-dots" id="pinDots">
         <span class="pin-dot"></span>
@@ -117,9 +117,9 @@
          renderChannelList, rules in js/chat-core.js), Usage, Settings and Sign out at the bottom. A drawer on a phone. -->
     <aside class="sidebar" id="sidebar" aria-label="Chats">
       <div class="sidebar-header">
-        <a class="brand" href="/chat/new" id="brandLink" aria-label="Tarsee: a new chat">
+        <a class="brand" href="/chat/new" id="brandLink" aria-label="Atlas: a new chat">
           <img src="/icon-32.png" alt="" class="brand-icon" width="24" height="24">
-          <span class="brand-name">Tarsee</span>
+          <span class="brand-name">Atlas</span>
         </a>
         <button type="button" class="topbar-icon-btn mobile-only" id="sidebarCloseBtn" aria-label="Close the menu">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -154,7 +154,7 @@
           </button>
           <!-- The chat's name; its menu (rename, a fresh session, delete) opens from it. -->
           <button type="button" class="chat-heading" id="chatMenuBtn" aria-haspopup="menu" aria-expanded="false" title="Chat options">
-            <span class="topbar-title" id="topbarTitle">Tarsee</span>
+            <span class="topbar-title" id="topbarTitle">Atlas</span>
             <span class="topbar-where" id="topbarWhere"></span>
             <svg class="chat-heading-caret" width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
@@ -185,7 +185,7 @@
             </svg>
           </button>
           <!-- A voice call with the AI (js/call.js): "Call <name>", the name from Settings > Identity. -->
-          <button class="topbar-icon-btn" id="callBtn" title="Call Tarsee" aria-label="Call Tarsee">
+          <button class="topbar-icon-btn" id="callBtn" title="Call Atlas" aria-label="Call Atlas">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a2 2 0 01-2 2A16 16 0 013 6a2 2 0 012-2" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -220,7 +220,7 @@
 
           <div class="input-row input-row-top">
             <label for="messageInput" class="sr-only">Message</label>
-            <textarea id="messageInput" placeholder="Message Tarsee" rows="1" spellcheck="false" aria-label="Message"></textarea>
+            <textarea id="messageInput" placeholder="Message Atlas" rows="1" spellcheck="false" aria-label="Message"></textarea>
           </div>
 
           <div class="input-row input-row-bottom">
@@ -325,7 +325,7 @@
             <div class="settings-section">
               <h3>SOUL.md <span class="settings-label">Personality & Vibe</span></h3>
               <div class="form-group">
-                <textarea id="settingsSoulMd" rows="12" spellcheck="false" placeholder="# Soul & Personality&#10;&#10;You are Tarsee, a helpful AI assistant..." class="textarea-mono"></textarea>
+                <textarea id="settingsSoulMd" rows="12" spellcheck="false" placeholder="# Soul & Personality&#10;&#10;You are Atlas, a helpful AI assistant..." class="textarea-mono"></textarea>
                 <span class="save-status" id="statusSoulMd"></span>
                 <div class="hint">The bot's soul. Injected into every conversation. Edit to change personality, tone, and behavior.</div>
               </div>
@@ -334,7 +334,7 @@
             <div class="settings-section">
               <h3>IDENTITY.md <span class="settings-label">Name, Emoji, Creature, Vibe</span></h3>
               <div class="form-group">
-                <textarea id="settingsIdentityMd" rows="8" spellcheck="false" placeholder="# Identity&#10;&#10;- **Name:** Tarsee&#10;- **Emoji:** &#x1F440;&#10;- **Creature:** Tarsier&#10;- **Vibe:** Helpful and sharp" class="textarea-mono"></textarea>
+                <textarea id="settingsIdentityMd" rows="8" spellcheck="false" placeholder="# Identity&#10;&#10;- **Name:** Atlas&#10;- **Emoji:** &#x1F440;&#10;- **Creature:** Tarsier&#10;- **Vibe:** Helpful and sharp" class="textarea-mono"></textarea>
                 <span class="save-status" id="statusIdentityMd"></span>
                 <div class="hint">Agent metadata in key-value format. Parsed as <code>- **Label:** value</code>.</div>
               </div>
@@ -388,7 +388,7 @@
             <h2>AI</h2>
             <div class="hint mb-3">
               Choose the AI that answers you. Connect one or more below: follow a card's steps, and its line turns to
-              <em>Ready</em>. Keys are stored encrypted in your Tarsee database and never shown again (only their last
+              <em>Ready</em>. Keys are stored encrypted in your Atlas database and never shown again (only their last
               4 characters).
             </div>
             <div id="aiBanners" class="ai-banners" aria-live="polite"></div>
@@ -403,18 +403,18 @@
                   <input type="checkbox" id="aiKeysOnly">
                   <span>Only use API keys</span>
                 </label>
-                <div class="hint" id="aiKeysOnlyNote">Turns off the Claude and ChatGPT plan sign-ins, so every message is billed to an API key. Switch it on when other people talk to this Tarsee.</div>
+                <div class="hint" id="aiKeysOnlyNote">Turns off the Claude and ChatGPT plan sign-ins, so every message is billed to an API key. Switch it on when other people talk to this Atlas.</div>
               </div>
               <div class="form-group">
                 <label for="aiBackupModel">Backup if the default AI can't answer <span class="settings-label">optional</span></label>
                 <select id="aiBackupModel"><option value="">Off</option></select>
-                <div class="hint">When the default AI is out of credit, signed out or down, Tarsee tries this one instead. Only ready AIs are listed.</div>
+                <div class="hint">When the default AI is out of credit, signed out or down, Atlas tries this one instead. Only ready AIs are listed.</div>
               </div>
               <div class="form-group">
                 <label for="aiMonthlyCap">Monthly spending cap, in US dollars <span class="settings-label">optional</span></label>
                 <input type="number" id="aiMonthlyCap" min="1" step="1" inputmode="decimal" placeholder="Off">
                 <div class="hint" id="aiMonthSpend" hidden></div>
-                <div class="hint">Counts what API-key AIs cost this month (plans aren't counted); at the cap Tarsee stops using them until next month. Leave it empty for no cap. A spending limit set at the provider (see each card's steps) is the surest cap.</div>
+                <div class="hint">Counts what API-key AIs cost this month (plans aren't counted); at the cap Atlas stops using them until next month. Leave it empty for no cap. A spending limit set at the provider (see each card's steps) is the surest cap.</div>
               </div>
               <button type="button" class="btn btn-sm" id="aiSaveExtrasBtn">Save backup and cap</button>
             </div>
@@ -475,15 +475,15 @@
           <div class="settings-tab-panel" data-tab="channels">
             <h2>Channels</h2>
             <div class="hint mb-3">
-              Talk to Tarsee from the apps you already use. Pick one below, follow its steps, paste what it gives you,
+              Talk to Atlas from the apps you already use. Pick one below, follow its steps, paste what it gives you,
               and save: the line next to its name says when it's connected. Tokens and passwords are stored encrypted
-              in your Tarsee database and never shown again.
+              in your Atlas database and never shown again.
             </div>
             <nav class="channel-jump" id="channelJump" aria-label="Channels"></nav>
 
             <div class="settings-section channel-section" id="telegramChannelSection" data-channel="telegram">
               <div class="channel-head"><h3>Telegram</h3><span class="channel-status" id="telegramChannelStatus"></span></div>
-              <div class="hint mb-3">Chat with Tarsee in Telegram, one to one or in groups. Voice notes, pictures and files work too.</div>
+              <div class="hint mb-3">Chat with Atlas in Telegram, one to one or in groups. Voice notes, pictures and files work too.</div>
               <div data-guide-slot="telegram"></div>
 
               <div class="form-group">
@@ -503,7 +503,7 @@
 
             <div class="settings-section channel-section" id="discordChannelSection" data-channel="discord">
               <div class="channel-head"><h3>Discord</h3><span class="channel-status" id="discordChannelStatus"></span></div>
-              <div class="hint mb-3">Chat with Tarsee in your Discord server or in DMs. It can also make channels and webhooks for you.</div>
+              <div class="hint mb-3">Chat with Atlas in your Discord server or in DMs. It can also make channels and webhooks for you.</div>
               <div data-guide-slot="discord"></div>
 
               <div class="form-group">
@@ -520,7 +520,7 @@
               </div>
               <div class="form-group" id="discordInviteGroup" hidden>
                 <a class="btn btn-sm btn-secondary" id="discordInviteLink" href="#" target="_blank" rel="noopener noreferrer">Add the bot to a server</a>
-                <div class="hint">Opens Discord: pick your server and click Authorize. The link already asks for the permissions Tarsee needs.</div>
+                <div class="hint">Opens Discord: pick your server and click Authorize. The link already asks for the permissions Atlas needs.</div>
               </div>
               <button class="btn btn-primary" id="saveDiscordBtn">Save Discord</button>
             </div>
@@ -528,7 +528,7 @@
             <div class="settings-section channel-section" id="slackChannelSection" data-channel="slack">
               <div class="channel-head"><h3>Slack</h3><span class="channel-status" id="slackChannelStatus"></span></div>
               <div class="hint mb-3">
-                DM Tarsee in Slack, or @mention it in a channel it's in. Every reply goes in a thread, and replies stream
+                DM Atlas in Slack, or @mention it in a channel it's in. Every reply goes in a thread, and replies stream
                 live with a card for each tool it runs. It connects out to Slack, so there is no URL to set up.
               </div>
               <div data-guide-slot="slack"></div>
@@ -568,7 +568,7 @@
             <div class="settings-section channel-section" id="whatsappChannelSection" data-channel="whatsapp">
               <div class="channel-head"><h3>WhatsApp</h3><span class="channel-status" id="whatsappChannelStatus"></span></div>
               <div class="hint mb-3">
-                Chat with Tarsee on WhatsApp through <a href="https://panel.whapi.cloud" target="_blank" rel="noopener noreferrer">WHAPI.Cloud</a>.
+                Chat with Atlas on WhatsApp through <a href="https://panel.whapi.cloud" target="_blank" rel="noopener noreferrer">WHAPI.Cloud</a>.
                 Direct messages only: group messages are ignored. Voice notes are transcribed; pictures and PDFs are read.
               </div>
               <div data-guide-slot="whatsapp"></div>
@@ -604,7 +604,7 @@
             <div class="settings-section channel-section" id="emailChannelSection" data-channel="email">
               <div class="channel-head"><h3>Email</h3><span class="channel-status" id="emailChannelStatus"></span></div>
               <div class="hint mb-3">
-                Email Tarsee with <code id="emailMentionHint">@tarsee</code> in the message and it answers. Other mail is read and remembered, so later questions can draw on it. Works with any mailbox that offers IMAP and SMTP with an app password.
+                Email Atlas with <code id="emailMentionHint">@tarsee</code> in the message and it answers. Other mail is read and remembered, so later questions can draw on it. Works with any mailbox that offers IMAP and SMTP with an app password.
               </div>
               <div data-guide-slot="email"></div>
 
@@ -616,9 +616,9 @@
               </div>
 
               <div class="form-group">
-                <label>Tarsee's email address</label>
+                <label>Atlas's email address</label>
                 <input type="email" id="settingsEmailAddress" placeholder="tarsee@example.com" autocomplete="off">
-                <div class="hint">Whichever mailbox you've created for Tarsee. This is what inbound mail is sent to and outbound mail is sent from.</div>
+                <div class="hint">Whichever mailbox you've created for Atlas. This is what inbound mail is sent to and outbound mail is sent from.</div>
               </div>
 
               <div class="form-group">
@@ -635,7 +635,7 @@
                 <div class="hint channel-provider-note" id="emailPresetHint" hidden></div>
               </div>
 
-              <h4 style="margin-top:18px; margin-bottom:8px;">IMAP (inbound: Tarsee reads mail)</h4>
+              <h4 style="margin-top:18px; margin-bottom:8px;">IMAP (inbound: Atlas reads mail)</h4>
               <div class="form-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                 <div class="form-group">
                   <label>Host</label>
@@ -658,7 +658,7 @@
                 <div class="hint">An <strong>app password</strong>, not the account's normal password: most providers refuse the normal one. Click your provider above to see where to make one.</div>
               </div>
 
-              <h4 style="margin-top:18px; margin-bottom:8px;">SMTP (outbound: Tarsee replies)</h4>
+              <h4 style="margin-top:18px; margin-bottom:8px;">SMTP (outbound: Atlas replies)</h4>
               <div class="form-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                 <div class="form-group">
                   <label>Host</label>
@@ -685,24 +685,24 @@
               <div class="form-group">
                 <label>Mention keyword</label>
                 <input type="text" id="settingsEmailMentionKeyword" placeholder="@tarsee" autocomplete="off">
-                <div class="hint">Tarsee only replies if this keyword appears in the email body (after quote-strip). Swap for <code>@jarvis</code>, <code>@bot</code>, or anything else.</div>
+                <div class="hint">Atlas only replies if this keyword appears in the email body (after quote-strip). Swap for <code>@jarvis</code>, <code>@bot</code>, or anything else.</div>
               </div>
               <div class="form-group">
                 <label>Reply-all subject marker</label>
                 <input type="text" id="settingsEmailReplyAllMarker" placeholder="[reply-all]" autocomplete="off">
-                <div class="hint">If this appears in the subject, Tarsee replies to everyone in To + CC. Otherwise reply-to-sender only.</div>
+                <div class="hint">If this appears in the subject, Atlas replies to everyone in To + CC. Otherwise reply-to-sender only.</div>
               </div>
               <div class="form-group">
                 <label>Display name (optional)</label>
-                <input type="text" id="settingsEmailFromName" placeholder="Tarsee" autocomplete="off">
-                <div class="hint">The name shown on outbound mail, e.g. <code>Tarsee &lt;tarsee@example.com&gt;</code>.</div>
+                <input type="text" id="settingsEmailFromName" placeholder="Atlas" autocomplete="off">
+                <div class="hint">The name shown on outbound mail, e.g. <code>Atlas &lt;tarsee@example.com&gt;</code>.</div>
               </div>
 
               <h4 style="margin-top:18px; margin-bottom:8px;">Sender allowlist</h4>
               <div class="form-group">
                 <label>Only respond to emails from these addresses</label>
                 <textarea id="settingsEmailAllowlist" rows="4" placeholder="one address per line&#10;you@example.com&#10;teammate@example.com" spellcheck="false" class="textarea-mono"></textarea>
-                <div class="hint"><strong>Strongly recommended.</strong> Leave empty to allow all senders (dev mode only: not safe for production mailboxes). Tarsee will still drop newsletters and auto-reply loops regardless.</div>
+                <div class="hint"><strong>Strongly recommended.</strong> Leave empty to allow all senders (dev mode only: not safe for production mailboxes). Atlas will still drop newsletters and auto-reply loops regardless.</div>
               </div>
 
               <button class="btn btn-primary" id="saveEmailChannelBtn">Save Email</button>
@@ -738,7 +738,7 @@
 
             <div class="settings-section">
               <h3>Bot Behavior</h3>
-              <div class="hint mb-3">Whether allowed users have to @mention the bot for it to respond. Allowlist still controls who can talk to the bot. This only changes whether they need to tag Tarsee.</div>
+              <div class="hint mb-3">Whether allowed users have to @mention the bot for it to respond. Allowlist still controls who can talk to the bot. This only changes whether they need to tag Atlas.</div>
 
               <div class="form-group">
                 <label>Discord: Mention mode</label>
@@ -764,7 +764,7 @@
                   <option value="required">Require @mention (default)</option>
                   <option value="off">Respond to every message in channels it's in (lazy)</option>
                 </select>
-                <div class="hint">DMs, and threads Tarsee is already in, always respond regardless of this setting.</div>
+                <div class="hint">DMs, and threads Atlas is already in, always respond regardless of this setting.</div>
               </div>
 
               <button class="btn btn-sm btn-primary" id="saveMentionModeBtn">Save Bot Behavior</button>
@@ -846,7 +846,7 @@
                 <select id="callHandoffChannel">
                   <option value="">Off (it stays in the call's chat)</option>
                 </select>
-                <div class="hint">If you hang up while <span class="call-bot-name">Tarsee</span> is still working on something you asked on a call, its answer is sent here. Off leaves it in the call's chat only. A call hears you through the speech-to-text and speaks with the voice set below.</div>
+                <div class="hint">If you hang up while <span class="call-bot-name">Atlas</span> is still working on something you asked on a call, its answer is sent here. Off leaves it in the call's chat only. A call hears you through the speech-to-text and speaks with the voice set below.</div>
                 <div class="hint" id="callHandoffNone" hidden>No channel is connected yet. Connect one in Settings &gt; Channels to list it here.</div>
               </div>
             </div>
@@ -873,7 +873,7 @@
                   <button type="button" class="btn btn-sm" id="phononInstallBtn" style="display:none">Install Phonon</button>
                 </div>
                 <progress id="phononInstallProgress" max="100" value="0" style="display:none;width:100%;max-width:400px;accent-color:var(--accent)" aria-label="Phonon download progress"></progress>
-                <div class="hint" id="phononInstallHint">About 70 MB (model and English voices), downloaded once to the data volume. On a computer without Python, Install also downloads Tarsee's own copy of Python (about 45 MB), the one speech-to-text uses too.</div>
+                <div class="hint" id="phononInstallHint">About 70 MB (model and English voices), downloaded once to the data volume. On a computer without Python, Install also downloads Atlas's own copy of Python (about 45 MB), the one speech-to-text uses too.</div>
                 <label for="settingsPhononVoice" class="mt-3">Phonon voice</label>
                 <select id="settingsPhononVoice"></select>
                 <label for="settingsPhononSpeed" class="mt-3">Phonon speed: <span id="phononSpeedValue">1.0</span>×</label>
@@ -929,7 +929,7 @@
             </div>
             <div class="settings-section" id="sttSection">
               <h3>Speech-to-text</h3>
-              <div class="hint mb-3">Turns what people say into text: voice messages from your channels, and talking to Tarsee.</div>
+              <div class="hint mb-3">Turns what people say into text: voice messages from your channels, and talking to Atlas.</div>
               <div class="form-group">
                 <label for="settingsSTTProvider">Where speech becomes text</label>
                 <select id="settingsSTTProvider">
@@ -1031,10 +1031,10 @@
             <div class="settings-section">
               <h3>Tool Permissions</h3>
               <div class="hint mb-3" id="toolPermissionsNote">
-                Choose what Tarsee's own tools may do, on every AI: <strong>Allow</strong>, <strong>Warn</strong> (it runs,
+                Choose what Atlas's own tools may do, on every AI: <strong>Allow</strong>, <strong>Warn</strong> (it runs,
                 and every use goes in the Console and the Audit Log) or <strong>Deny</strong>. The tools built into the AI itself (running commands,
                 reading and writing files) can't be limited here: every AI has them, so only let people you trust talk
-                to this Tarsee.
+                to this Atlas.
               </div>
               <div id="toolPermissionsList" class="tool-perms"></div>
             </div>
@@ -1119,10 +1119,10 @@
             </div>
 
             <div class="settings-section" id="brandIconSection">
-              <h3>Tarsee's icon</h3>
+              <h3>Atlas's icon</h3>
               <div class="hint mb-3">The picture on the browser tab, the installed app and in chat. Upload a PNG, JPG, WebP or SVG (10 MB at most), then pick the square to keep.</div>
               <div class="brand-icon-row">
-                <img class="brand-icon-current" id="brandIconCurrent" src="/icon-192.png" alt="Tarsee's icon now" width="72" height="72">
+                <img class="brand-icon-current" id="brandIconCurrent" src="/icon-192.png" alt="Atlas's icon now" width="72" height="72">
                 <div class="brand-icon-actions">
                   <button type="button" class="btn btn-primary btn-sm" id="brandIconUploadBtn">Upload a new icon</button>
                   <button type="button" class="btn btn-ghost btn-sm" id="brandIconResetBtn" disabled>Reset to default</button>
@@ -1135,7 +1135,7 @@
 
             <div class="settings-section">
               <h3>Push Notifications</h3>
-              <div class="hint mb-3">Let Tarsee wake this device when cron jobs, webhooks, or channel messages fire while the app is in the background. Per-device: enable on every device you want pings on.</div>
+              <div class="hint mb-3">Let Atlas wake this device when cron jobs, webhooks, or channel messages fire while the app is in the background. Per-device: enable on every device you want pings on.</div>
               <div class="form-group">
                 <button class="btn btn-primary btn-sm" id="enablePushBtn">Enable on this device</button>
                 <button class="btn btn-ghost btn-sm" id="disablePushBtn" style="display:none">Disable on this device</button>

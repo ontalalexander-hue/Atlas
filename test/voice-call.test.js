@@ -77,11 +77,11 @@ describe("a call's message", () => {
 });
 
 describe("the call's chat", () => {
-  it("is made once, named after the name in Settings > Identity (Tarsee when none is set)", () => {
+  it("is made once, named after the name in Settings > Identity (Atlas when none is set)", () => {
     const first = call.callConversation({ settingsStore: settings, convStore: convs });
     assert.equal(first.created, true);
-    assert.equal(first.title, "Calls with Tarsee");
-    assert.equal(convs.get(first.id).title, "Calls with Tarsee");
+    assert.equal(first.title, "Calls with Atlas");
+    assert.equal(convs.get(first.id).title, "Calls with Atlas");
     assert.equal(settings.get(`channel_conv.${call.CALL_CHANNEL_KEY}`), first.id);
     const again = call.callConversation({ settingsStore: settings, convStore: convs });
     assert.equal(again.id, first.id);
@@ -98,8 +98,8 @@ describe("the call's chat", () => {
 
   it("a blank name is no name", () => {
     settings.set("identity.name", "   ");
-    assert.equal(call.botNameOf(settings), "Tarsee");
-    assert.equal(call.callTitle(""), "Calls with Tarsee");
+    assert.equal(call.botNameOf(settings), "Atlas");
+    assert.equal(call.callTitle(""), "Calls with Atlas");
   });
 });
 
@@ -131,7 +131,7 @@ describe("a reply's words", () => {
 
 describe("the hang-up handoff", () => {
   it("sends the next reply's words (not its saved JSON) to the chosen channel, once", async () => {
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     const sent = [];
     assert.equal(call.startHandoff({ conversationId: conv, channel: "telegram", send: async (ch, text) => { sent.push({ ch, text }); return { ok: true }; } }), true);
     assert.equal(call.handoffPending(conv), true);
@@ -145,7 +145,7 @@ describe("the hang-up handoff", () => {
   });
 
   it("skips the person's own words, other chats' replies and a reply with no words yet", async () => {
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     const other = convs.create({ title: "elsewhere" }).id;
     const sent = [];
     call.startHandoff({ conversationId: conv, channel: "discord", send: async (ch, text) => { sent.push(text); return { ok: true }; } });
@@ -161,7 +161,7 @@ describe("the hang-up handoff", () => {
   });
 
   it("two things said before the hang-up: both answers go", async () => {
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     const sent = [];
     call.startHandoff({ conversationId: conv, channel: "telegram", send: async (ch, text) => { sent.push(text); return { ok: true }; } });
     // The second message waits behind the first (lib/conversation-lock.js puts it on the timeline as queued).
@@ -178,7 +178,7 @@ describe("the hang-up handoff", () => {
   });
 
   it("a new call cancels it, and so does the end of its window", async () => {
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     const sent = [];
     const send = async (ch, text) => { sent.push(text); return { ok: true }; };
     call.startHandoff({ conversationId: conv, channel: "telegram", send });
@@ -193,7 +193,7 @@ describe("the hang-up handoff", () => {
     assert.deepEqual(sent, []);
   });
 
-  it("Tarsee's send path: the send_message tool, to the channel's latest chat; a failure is said, not thrown", async () => {
+  it("Atlas's send path: the send_message tool, to the channel's latest chat; a failure is said, not thrown", async () => {
     const mgr = channels(["telegram"]);
     const old = convs.create({ title: "old" }).id;
     const recent = convs.create({ title: "recent" }).id;
@@ -237,7 +237,7 @@ describe("the deep ask: the call AI's top tier, only when it has one", () => {
   it("DeepSeek runs Flash and has Pro on top", async () => {
     settings.set("ai.activeProvider", "deepseek");
     settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     const deep = await call.deepAsk({ settingsStore: settings, conversationId: conv });
     assert.equal(deep?.model, "top");
     assert.match(deep.label, /pro/i);
@@ -246,14 +246,14 @@ describe("the deep ask: the call AI's top tier, only when it has one", () => {
   it("a chat already on its top model, or an AI with no tiers (the ChatGPT plan), has none", async () => {
     settings.set("ai.activeProvider", "deepseek");
     settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
-    const conv = convs.create({ title: "Calls with Tarsee" }).id;
+    const conv = convs.create({ title: "Calls with Atlas" }).id;
     settings.set(`session.${conv}.provider`, "deepseek");
     settings.set(`session.${conv}.model`, "deepseek:deepseek-v4-pro");
     assert.equal(await call.deepAsk({ settingsStore: settings, conversationId: conv }), null);
 
     for (const { key } of settings.getByPrefix("ai.")) settings.delete(key);
     settings.set("ai.activeProvider", "chatgpt");
-    const plain = convs.create({ title: "Calls with Tarsee" }).id;
+    const plain = convs.create({ title: "Calls with Atlas" }).id;
     assert.equal(await call.deepAsk({ settingsStore: settings, conversationId: plain }), null);
   });
 });

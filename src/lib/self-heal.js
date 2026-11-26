@@ -6,7 +6,7 @@ import { PROVIDER_IDS, getProvider, isShipped, resolveModelFor } from "../ai/pro
 import { providerStatus, credentialPresence, activeTarget, chosenModel } from "../ai/provider-status.js";
 
 /**
- * Self-healing engine for Tarsee.
+ * Self-healing engine for Atlas.
  *
  * Runs diagnostics, detects issues, and attempts automatic repairs.
  * Can be triggered by:
@@ -267,7 +267,7 @@ export async function checkProvider(settingsStore, deps = {}) {
     const env = deps.env ?? process.env;
     const target = activeTarget(settingsStore, { env, isShipped: deps.isShipped });
     const p = deps.providerId ? getProvider(deps.providerId) : getProvider(target.provider);
-    if (!p) return { check: "ai_provider", status: "error", detail: `Tarsee doesn't know an AI called "${deps.providerId}"` };
+    if (!p) return { check: "ai_provider", status: "error", detail: `Atlas doesn't know an AI called "${deps.providerId}"` };
     const s = await providerStatus(p.id, { ...deps, store: settingsStore, env });
     if (!s.ready) {
       return {
@@ -415,7 +415,7 @@ export function formatDiagnostics(diagnostics, repairs = []) {
   const icons = { ok: "●", warn: "▲", error: "✗" };
   const colors = { ok: "green", warn: "yellow", error: "red" };
 
-  const lines = ["**Tarsee Doctor**", ""];
+  const lines = ["**Atlas Doctor**", ""];
 
   for (const d of diagnostics) {
     const icon = icons[d.status] || "?";
@@ -489,8 +489,8 @@ function getDirSizeRecursive(dirPath) {
 
 function getDefaultFileContent(filename) {
   const defaults = {
-    "SOUL.md": "# Soul & Personality\n\nYou are Tarsee, a helpful AI assistant.\nBe concise, direct, and helpful. Adapt your communication style to match the user.\n\n<!-- Edit this file to change your bot's personality and behavior -->\n",
-    "IDENTITY.md": "# Identity\n\n- **Name:** Tarsee\n- **Emoji:** 🐒\n- **Creature:** Tarsier\n- **Vibe:** Sees everything, forgets nothing\n\n<!-- Metadata about the agent — parsed as key-value pairs -->\n",
+    "SOUL.md": "# Soul & Personality\n\nYou are Atlas, a helpful AI assistant.\nBe concise, direct, and helpful. Adapt your communication style to match the user.\n\n<!-- Edit this file to change your bot's personality and behavior -->\n",
+    "IDENTITY.md": "# Identity\n\n- **Name:** Atlas\n- **Emoji:** 🐒\n- **Creature:** Tarsier\n- **Vibe:** Sees everything, forgets nothing\n\n<!-- Metadata about the agent — parsed as key-value pairs -->\n",
     "AGENTS.md": "# Agent Rules & Conventions\n\n<!-- Define rules, workspace conventions, and how the agent should behave -->\n<!-- This is always injected into the system prompt -->\n",
     "USER.md": "# About the User\n\n<!-- Preferences and info about your human go here -->\n<!-- This gets injected into every conversation so the bot knows you -->\n",
     "TOOLS.md": "# Tools & Capabilities\n\n<!-- Available tools, local setup notes, capabilities -->\n<!-- This is injected into the system prompt so the tool knows what it can do -->\n",

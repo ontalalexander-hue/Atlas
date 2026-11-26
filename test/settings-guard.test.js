@@ -129,7 +129,7 @@ describe("POST /settings-guard/fix", () => {
     assert.equal(row?.target, files.workspaceClaude);
   });
 
-  it("removes a Codex config's refused root entries and tables, keeping what Codex and Tarsee wrote", async () => {
+  it("removes a Codex config's refused root entries and tables, keeping what Codex and Atlas wrote", async () => {
     const r = await call("POST", "/settings-guard/fix", { file: files.codexKeys });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.deepEqual(r.body.removed, ["openai_base_url", "mcp_servers"]);

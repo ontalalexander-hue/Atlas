@@ -39,12 +39,12 @@ externalApiRouter.post("/message", async (req, res) => {
   if (!message || typeof message !== "string") {
     return res.status(400).json({ error: "message is required" });
   }
-  // The AI asked for, if any: one Tarsee knows and can use, and a model ref that agrees with it.
+  // The AI asked for, if any: one Atlas knows and can use, and a model ref that agrees with it.
   let provider;
   if (reqProvider != null && reqProvider !== "") {
     provider = typeof reqProvider === "string" ? normalizeProviderId(reqProvider) : null;
     if (!provider) return res.status(400).json({ error: `Unknown AI provider ${JSON.stringify(reqProvider)}` });
-    if (!isShipped(provider)) return res.status(400).json({ error: `This Tarsee can't use the ${getProvider(provider).label}` });
+    if (!isShipped(provider)) return res.status(400).json({ error: `This Atlas can't use the ${getProvider(provider).label}` });
   }
   let model;
   if (reqModel != null && reqModel !== "") {
@@ -53,7 +53,7 @@ externalApiRouter.post("/message", async (req, res) => {
     if (ref.provider && provider && ref.provider !== provider) {
       return res.status(400).json({ error: `model ${JSON.stringify(reqModel)} belongs to ${ref.provider}, not ${provider}` });
     }
-    if (ref.provider && !isShipped(ref.provider)) return res.status(400).json({ error: `This Tarsee can't use the ${getProvider(ref.provider).label}` });
+    if (ref.provider && !isShipped(ref.provider)) return res.status(400).json({ error: `This Atlas can't use the ${getProvider(ref.provider).label}` });
     model = reqModel.trim();
   }
 
@@ -114,7 +114,7 @@ externalApiRouter.post("/message", async (req, res) => {
         model,
         messages: history,
         systemParts,
-        // The engine gives Tarsee's tools this context (db, settings,
+        // The engine gives Atlas's tools this context (db, settings,
         // channels) and the turn shows on the dashboard's live timeline.
         toolCtx,
         liveSource: "api",

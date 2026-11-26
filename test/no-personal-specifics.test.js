@@ -1,4 +1,4 @@
-// Tarsee is open source: what ships (the code, the web UI, the workspace files a new install starts with, the image
+// Atlas is open source: what ships (the code, the web UI, the workspace files a new install starts with, the image
 // and its boot script, the README and docs/providers.md) stays generic. No one owner's name, company, email address or
 // key, and no real-looking credential (fixtures use obvious fakes such as "sk-test-canary-..."). The repository's own
 // home (its GitHub address) is fine: that is where the project lives.

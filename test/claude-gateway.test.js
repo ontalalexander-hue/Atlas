@@ -140,7 +140,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     const usage = raw.find((m) => m.type === "result").modelUsage["deepseek-flash[1m]"];
     assert.equal(usage.contextWindow, 1_000_000, "the CLI read [1m] as a 1M window");
     const cost = events.find((e) => e.type === "usage").costUsd;
-    assert.equal(typeof cost, "number", "DeepSeek's cost comes from Tarsee's price table");
+    assert.equal(typeof cost, "number", "DeepSeek's cost comes from Atlas's price table");
   });
 
   it("the tier pins carry [1m] too: an alias the CLI resolves goes out as DeepSeek's own model with a 1M window", async () => {
@@ -162,7 +162,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     assert.deepEqual(dones(events), [{ type: "done", stopReason: "end_turn" }]);
     for (const r of fake.messages()) {
       assert.equal(r.headers.authorization, `Bearer ${KEYS.openrouter}`);
-      assert.equal(r.headers["x-openrouter-title"], "Tarsee");
+      assert.equal(r.headers["x-openrouter-title"], "Atlas");
       assert.ok(ALLOWED_MODELS.openrouter.has(r.body.model), r.body.model);
       for (const b of EXPERIMENTAL_BETAS) assert.ok(!String(r.headers["anthropic-beta"] || "").includes(b), b);
     }
@@ -172,7 +172,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     assert.equal(usage.contextWindow, 200_000, "CLAUDE_CODE_MAX_CONTEXT_TOKENS sets a gateway model's window");
   });
 
-  it("a scripted mcp__tarsee__tarsee_datetime call runs in Tarsee's tool server and its result goes back to the model", async () => {
+  it("a scripted mcp__tarsee__tarsee_datetime call runs in Atlas's tool server and its result goes back to the model", async () => {
     reset((req) => (toolNames(req.body).includes("mcp__tarsee__tarsee_datetime") && !hasToolResult(req.body))
       ? { toolUse: { id: "toolu_datetime_1", name: "mcp__tarsee__tarsee_datetime", input: { timezone: "UTC" } } }
       : { text: "The time is noted." });
@@ -188,7 +188,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     const block = lastUserBlocks(second.body).find((b) => b.type === "tool_result");
     assert.equal(block.tool_use_id, "toolu_datetime_1");
     assert.match(JSON.stringify(block.content), /20\d\d/);
-    assert.ok(toolNames(fake.messages()[0].body).includes("mcp__tarsee__tarsee_datetime"), "Tarsee's tools are offered");
+    assert.ok(toolNames(fake.messages()[0].body).includes("mcp__tarsee__tarsee_datetime"), "Atlas's tools are offered");
   });
 
   it("Stop in the middle of a streamed answer: done aborted, once", async () => {
@@ -224,7 +224,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     }
   });
 
-  it("the Tarsee budget guard stops a priced gateway turn that goes over its ceiling", async () => {
+  it("the Atlas budget guard stops a priced gateway turn that goes over its ceiling", async () => {
     reset(() => ({ hang: true, text: "expensive", usage: { input_tokens: 5_000_000 } }));
     const { events } = await turn("deepseek", fake, { maxBudgetUsd: 0.01 });
     const err = errorOf(events);
@@ -311,7 +311,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     }
   });
 
-  it("the Anthropic key: the key Tarsee approved in its own home, sent as x-api-key, the exact cost", async () => {
+  it("the Anthropic key: the key Atlas approved in its own home, sent as x-api-key, the exact cost", async () => {
     reset(() => ({ text: "Hello from Anthropic." }));
     const { events, raw } = await turn("anthropic", fake, { model: "claude-sonnet-4-5" });
     assert.deepEqual(dones(events), [{ type: "done", stopReason: "end_turn" }], JSON.stringify(errorOf(events)));

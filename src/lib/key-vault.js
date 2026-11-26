@@ -1,5 +1,5 @@
 /**
- * Key Vault for Tarsee.
+ * Key Vault for Atlas.
  * 
  * Encrypted JSON file storing API keys, tokens, and secrets that the bot
  * can access at runtime. Keys are encrypted at rest using the same 

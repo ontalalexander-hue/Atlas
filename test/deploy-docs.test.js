@@ -9,8 +9,8 @@
 // - docs/providers.md: a guide per AI that matches the in-app guides (js/provider-guides-core.js): every link,
 //   command and variable they give is in it.
 // - What an AI's key is exposed to (design 4.5 R7, R10): the engines keep a key out of the environment of the commands
-//   the agent runs, but on a Linux server those commands run as the same user as Tarsee and its engines, so they can
-//   still read it (/proc/<pid>/environ, Tarsee's data folder; test/key-exposure-linux.test.js shows it with the real
+//   the agent runs, but on a Linux server those commands run as the same user as Atlas and its engines, so they can
+//   still read it (/proc/<pid>/environ, Atlas's data folder; test/key-exposure-linux.test.js shows it with the real
 //   engines). Every place that tells the owner where keys go says so and calls a capped key the real guard.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -140,11 +140,11 @@ describe("README", () => {
     assert.match(text, /never (in|into|written to) (a |any )?files?/i);
     assert.doesNotMatch(text, KEY_SHAPED);
   });
-  it("no longer says Tarsee is only for Claude Max or needs no API key", () => {
-    assert.doesNotMatch(text, /built for Claude Max|Max required|Claude Max subscription\)|No API keys needed|Tarsee is Claude-only|Not multi-provider|Uses your Claude Max subscription/i);
+  it("no longer says Atlas is only for Claude Max or needs no API key", () => {
+    assert.doesNotMatch(text, /built for Claude Max|Max required|Claude Max subscription\)|No API keys needed|Atlas is Claude-only|Not multi-provider|Uses your Claude Max subscription/i);
     assert.doesNotMatch(text, OLD_ADVICE);
     const llm = lines(text).find((l) => /^\|\s*\*\*LLM support\*\*/.test(l));
-    if (llm) assert.doesNotMatch(llm.split("|")[2], /Claude only/i, "Tarsee's own cell in the comparison");
+    if (llm) assert.doesNotMatch(llm.split("|")[2], /Claude only/i, "Atlas's own cell in the comparison");
   });
   it("the docker run maps the port the server listens on (3000)", () => {
     const docker = section("Self-Hosting with Docker");
@@ -237,7 +237,7 @@ describe("docs/providers.md", () => {
   it("Local AI: llama.cpp as a server like the other two (its build, its ports, the Docker image), the context from the server, the bridge", () => {
     const s = part("Local AI");
     assert.match(s, /Ollama, LM Studio or llama\.cpp/);
-    assert.match(s, /b11768 \(v0\.8\.0\) or newer/, "the llama.cpp build Tarsee relies on");
+    assert.match(s, /b11768 \(v0\.8\.0\) or newer/, "the llama.cpp build Atlas relies on");
     assert.match(s, /http:\/\/localhost:9931\/v1/);
     assert.match(s, /port 8080/, "older builds and the Docker image");
     assert.match(s, /ghcr\.io\/ggml-org\/llama\.cpp:server/, "the optional Docker line");
@@ -245,7 +245,7 @@ describe("docs/providers.md", () => {
     assert.match(s, /-hf \S+:Q\d/, "a quant tag after the colon");
     assert.match(s, /read from your server/, "the card's context box");
     assert.match(s, /[Ee]mbedding models/, "why they aren't listed");
-    assert.match(s, /bridge/, "how Tarsee's tools reach every Local AI model");
+    assert.match(s, /bridge/, "how Atlas's tools reach every Local AI model");
     for (const where of ["README.md", ".env.example", "docker-compose.yml", "railway.toml"]) {
       assert.match(read(where), /Ollama, LM Studio or llama\.cpp/, `${where} names all three servers`);
     }
@@ -272,8 +272,8 @@ describe("what an AI's key is exposed to: the docs say a command the agent runs 
     assert.ok(at > 0, "a Tools on every AI section");
     const tools = doc.slice(at, at + doc.slice(at + 1).search(/^## /m) + 1);
     assert.match(tools, STATED);
-    assert.match(tools, /same user as Tarsee/i, "why: the commands run as the same user");
-    assert.match(tools, /\/proc\/<pid>\/environ/, "from the engine's or Tarsee's process");
+    assert.match(tools, /same user as Atlas/i, "why: the commands run as the same user");
+    assert.match(tools, /\/proc\/<pid>\/environ/, "from the engine's or Atlas's process");
     assert.match(tools, /data folder[^.]*encryption key/i, "and from the data folder, which holds the encryption key for keys saved in Settings");
     assert.match(tools, /credit limit or a small balance[^.]*real guard/i);
     assert.match(tools, /vault['’]s keys reach scripts by name, on purpose/i);

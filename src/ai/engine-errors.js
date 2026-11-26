@@ -2,7 +2,7 @@
  * engine-errors.js: what an engine's failure means, per provider, in words the owner can act on (design 4.7 "Errors").
  *
  * An engine reports a failure as an HTTP status, an error code (the Agent SDK's assistant `error`, a Codex error code,
- * or one of Tarsee's own refusal codes from engine-env.js) and/or the engine's own words. The same 401 means "Claude's
+ * or one of Atlas's own refusal codes from engine-env.js) and/or the engine's own words. The same 401 means "Claude's
  * sign-in ran out" on the Claude plan and "your DeepSeek key was rejected" on DeepSeek, so the meaning depends on the
  * provider. classifyEngineError() answers:
  *
@@ -23,7 +23,7 @@
  *                 moderated    the provider's moderation turned the message down (OpenRouter's 403 "requires
  *                              moderation ... flagged for ..."): the key is fine, no flag, no retry, no backup
  *                 credential-isolation, needs-key, needs-setup, bad-model, wrong-engine, needs-mcp-token
- *                              Tarsee's own refusals before a turn starts (engine-env.js CredentialError codes)
+ *                              Atlas's own refusals before a turn starts (engine-env.js CredentialError codes)
  *                 unknown      anything else
  *   recoverable true only for a failed session resume: the turn layer retries once with a fresh session
  *   state       the provider's failure flag to write (ai.<id>.status, provider-status.js), or null for none
@@ -38,12 +38,12 @@ export const ERROR_KINDS = Object.freeze([
   "credential-isolation", "needs-key", "needs-setup", "bad-model", "wrong-engine", "needs-mcp-token", "unknown",
 ]);
 
-/** Tarsee's own refusal codes (engine-env.js CredentialError), passed through as their own kind. */
+/** Atlas's own refusal codes (engine-env.js CredentialError), passed through as their own kind. */
 const REFUSAL_CODES = new Set(["credential-isolation", "needs-key", "needs-setup", "bad-model", "wrong-engine", "needs-mcp-token"]);
 
 /** The Claude plan's sign-in ran out: what to do instead. (Also re-exported by providers/claude-code.js.) */
 export const AUTH_EXPIRED_MESSAGE = "**Claude's sign-in has expired**, so I can't reach the model right now. This isn't a network problem, and retrying won't fix it.\n\n"
-  + "Open the Terminal in the Tarsee dashboard (the `>_` button at the top), run `claude auth login` and follow the link it prints. Then send your message again.";
+  + "Open the Terminal in the Atlas dashboard (the `>_` button at the top), run `claude auth login` and follow the link it prints. Then send your message again.";
 
 const CHATGPT_EXPIRED_MESSAGE = "**The ChatGPT sign-in has expired**, so I can't reach the model right now. Retrying won't fix it.\n\n"
   + "Sign in again in Settings > AI (it shows a link and a one-time code), or run `codex login --device-auth` in the Terminal. Then send your message again.";
@@ -70,7 +70,7 @@ const MODERATION_WORDS_RE = /requires moderation|input was flagged/i;
 /** OpenRouter's 403 for a key over the limit set on it ("Key limit exceeded (total limit)", "Budget limit exceeded (weekly limit)"). */
 const KEY_LIMIT_WORDS_RE = /\b(?:key|budget|spend(?:ing)?) limit\b/i;
 
-const ANTHROPIC_WORKSPACE_MESSAGE = "**Your Anthropic key isn't in a workspace**, so Anthropic turns it down for Tarsee. "
+const ANTHROPIC_WORKSPACE_MESSAGE = "**Your Anthropic key isn't in a workspace**, so Anthropic turns it down for Atlas. "
   + "In the Claude Console, create a new key and choose a workspace for it (Default is fine), then paste it in Settings > AI (the Anthropic guide's step 3).";
 
 /** The SDK's assistant error codes (and Codex's), by what they mean. */
@@ -161,14 +161,14 @@ export function authMessage(providerId) {
 }
 
 /**
- * A Local AI server with no Responses API, the one Tarsee talks to it through (Ollama before 0.13.3, LM Studio before
+ * A Local AI server with no Responses API, the one Atlas talks to it through (Ollama before 0.13.3, LM Studio before
  * 0.3.29, llama.cpp's llama-server before b7793, a chat-completions-only server): what to do. It names b11768 for
- * llama.cpp, the first build whose tool calls Tarsee can rely on. localUrl is the address the owner set (…/v1).
+ * llama.cpp, the first build whose tool calls Atlas can rely on. localUrl is the address the owner set (…/v1).
  */
 export function localNoResponsesMessage(localUrl) {
   const where = localUrl ? String(localUrl).trim().replace(/\/+$/, "") : "";
   return `**Your Local AI${where ? ` at ${where}` : ""} has no Responses API**: ${where ? `${where}/responses` : "its /responses address"} answered "not found". `
-    + "Tarsee talks to Local AI through that API. Update Ollama to 0.13.3 or newer, LM Studio to 0.3.29 or newer or llama.cpp to b11768 or newer, or use a server that has it.";
+    + "Atlas talks to Local AI through that API. Update Ollama to 0.13.3 or newer, LM Studio to 0.3.29 or newer or llama.cpp to b11768 or newer, or use a server that has it.";
 }
 
 /** The provider's own words for being out of credit, with its top-up link. */
@@ -183,7 +183,7 @@ function billingMessage(p, id) {
 
 /**
  * The words for a kind of failure on a provider. opts.detail is the engine's own words (shown for unknown failures and
- * Tarsee's refusals), opts.model the model that failed.
+ * Atlas's refusals), opts.model the model that failed.
  */
 export function friendly(providerId, kind, { detail = null, model = null } = {}) {
   const id = normalizeProviderId(providerId) || String(providerId || "");
@@ -232,7 +232,7 @@ export function friendly(providerId, kind, { detail = null, model = null } = {})
 
 /**
  * What an engine failure means on a provider. input: {status, code, message, model}. The first clear signal wins, in
- * this order: Tarsee's refusal codes, a moderation refusal, a failed session resume, an expired plan sign-in in the
+ * this order: Atlas's refusal codes, a moderation refusal, a failed session resume, an expired plan sign-in in the
  * words, the HTTP status (given or read from the words), the SDK's error code, the words.
  */
 export function classifyEngineError(providerId, engine, { status = null, code = null, message = null, model = null } = {}) {
@@ -264,7 +264,7 @@ export function classifyEngineError(providerId, engine, { status = null, code = 
   if (kind === "auth" && PLAN_IDS.has(id)) kind = "expired";
   if (kind === "expired" && id && !PLAN_IDS.has(id) && getProvider(id)) kind = "auth";
 
-  // An Anthropic key made outside a workspace needs a workspace header on every request, which Tarsee never sends:
+  // An Anthropic key made outside a workspace needs a workspace header on every request, which Atlas never sends:
   // the fix is a key made in a workspace (the guide's step 3), not a new copy of the same key.
   const noWorkspace = id === "anthropic" && (st === 400 || st === 401 || st === 403 || kind === "auth") && WORKSPACE_WORDS_RE.test(text);
   if (noWorkspace) kind = "auth";

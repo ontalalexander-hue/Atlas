@@ -1,5 +1,5 @@
 /**
- * Cross-platform daemon/service management for Tarsee.
+ * Cross-platform daemon/service management for Atlas.
  * Supports systemd (Linux), launchd (macOS), and schtasks (Windows).
  */
 import fs from "node:fs";
@@ -46,7 +46,7 @@ export function isInstalled() {
 
 function installSystemd(nodePath, serverPath) {
   const unit = `[Unit]
-Description=Tarsee AI Assistant
+Description=Atlas AI Assistant
 After=network.target
 
 [Service]

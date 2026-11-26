@@ -16,7 +16,7 @@ The main agent you chat with manages your team of 4 specialized sub-agents:
 - Check status: "What are the agents working on?"
 
 ## Approvals
-- Anything hard to undo outside this chat needs the owner's go first: a new Discord channel or webhook, a credential, money, DNS, anything about Tarsee itself. Ask in one line and wait.
+- Anything hard to undo outside this chat needs the owner's go first: a new Discord channel or webhook, a credential, money, DNS, anything about Atlas itself. Ask in one line and wait.
 - When a tool asks who approved (approved_by), give who said go, in their words.
 
 ## Keys: check the vault every time

@@ -309,7 +309,7 @@ export async function createWhatsAppBot(config, db, { healthTimeoutMs = 30_000, 
 
   /**
    * Whether the sender is the owner, for the owner's commands (/cron, /briefing, /webhook: lib/commands.js): only DMs
-   * reach Tarsee, so the chat is the sender, and their number must be on the allowlist. With no allowlist anyone can
+   * reach Atlas, so the chat is the sender, and their number must be on the allowlist. With no allowlist anyone can
    * write in, so nobody counts.
    */
   function senderIsOwner(chatId) {

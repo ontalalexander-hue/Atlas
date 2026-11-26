@@ -116,7 +116,7 @@ export function buildSystemPromptParts({
   }
 
   if (!stable) {
-    const identityName = settingsStore.get("identity.name") || "Tarsee";
+    const identityName = settingsStore.get("identity.name") || "Atlas";
     stable = `You are ${identityName}, a helpful AI assistant.`;
   }
 

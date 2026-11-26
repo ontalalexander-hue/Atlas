@@ -665,8 +665,8 @@ describe("dictation in the message box", { skip }, () => {
       assert.ok(await note.getByRole("button", { name: "Open Settings → Voice" }).isVisible());
 
       await dictate(page);
-      await page.waitForFunction(() => /reach Tarsee/.test(document.getElementById("micNote")?.textContent || ""));
-      assert.match(await note.textContent(), /Couldn't reach Tarsee.*Check the connection/);
+      await page.waitForFunction(() => /reach Atlas/.test(document.getElementById("micNote")?.textContent || ""));
+      assert.match(await note.textContent(), /Couldn't reach Atlas.*Check the connection/);
       assert.equal(await note.getByRole("button", { name: "Open Settings → Voice" }).count(), 0, "not a setting to change");
       await note.getByRole("button", { name: "Try again" }).click();
       await page.waitForFunction(() => document.getElementById("messageInput").value === "good to go");

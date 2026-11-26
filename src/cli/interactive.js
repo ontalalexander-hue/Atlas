@@ -1,5 +1,5 @@
 /**
- * Interactive TUI mode for Tarsee.
+ * Interactive TUI mode for Atlas.
  * Simple REPL-style chat in terminal.
  */
 
@@ -9,7 +9,7 @@ export async function startInteractive() {
   const port = process.env.PORT || 3000;
   const token = process.env.TARSEE_API_TOKEN || "";
 
-  console.log("\n  Tarsee Interactive Mode");
+  console.log("\n  Atlas Interactive Mode");
   console.log("  Type your message and press Enter. Ctrl+C to exit.\n");
 
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: "you > " });

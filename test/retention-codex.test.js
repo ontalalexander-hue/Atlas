@@ -126,7 +126,7 @@ describe("Codex's thread databases with the real codex binary", { skip: CODEX_TH
     for await (const ev of codex.run({
       target: { provider: "openrouter", model: "openai/gpt-5.5" },
       messages: [{ role: "user", content: `hello from ${conv}` }],
-      systemParts: { stable: "You are Tarsee, under test.", volatile: "Today is a test day." },
+      systemParts: { stable: "You are Atlas, under test.", volatile: "Today is a test day." },
       toolCtx: { settingsStore: store, conversationId: conv },
       mcpGrant: { url: mcp.url, token: MCP_TOKEN },
       sessionHandle,

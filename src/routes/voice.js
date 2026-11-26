@@ -219,7 +219,7 @@ voiceRouter.get("/phonon", async (req, res) => {
  * status at once; GET /api/voice/phonon reports progress. When it finishes,
  * the TTS engine is re-initialised so Phonon takes over from Edge TTS.
  * On a computer with no usable Python, the owner's click (a browser session)
- * also downloads Tarsee's own Python, the one speech-to-text uses too.
+ * also downloads Atlas's own Python, the one speech-to-text uses too.
  */
 voiceRouter.post("/phonon/install", async (req, res) => {
   const { installPhonon, getPhononInstallStatus, checkPhononInstall } = await import("../voice/phonon-install.js");

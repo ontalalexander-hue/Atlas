@@ -1,5 +1,5 @@
 {
-  "app.name": "Tarsee",
+  "app.name": "Atlas",
   "app.tagline": "Ang Iyong AI Assistant",
   "status.running": "Tumatakbo",
   "status.stopped": "Huminto",
@@ -9,7 +9,7 @@
   "error.auth_failed": "Hindi makapasok",
   "error.rate_limited": "Sobrang daming request. Maghintay muna.",
   "error.message_required": "Kailangan ng mensahe",
-  "boot.starting": "Nagsisimula ang Tarsee...",
-  "boot.ready": "Handa na ang Tarsee",
+  "boot.starting": "Nagsisimula ang Atlas...",
+  "boot.ready": "Handa na ang Atlas",
   "boot.shutdown": "Pinapatay..."
 }

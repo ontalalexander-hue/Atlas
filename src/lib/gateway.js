@@ -1,5 +1,5 @@
 /**
- * Enhanced gateway features for Tarsee.
+ * Enhanced gateway features for Atlas.
  * Connection pooling, presence tracking, flood guard, health snapshots,
  * cross-device event broadcast + short-horizon replay buffer.
  */

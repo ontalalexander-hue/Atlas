@@ -36,7 +36,7 @@ const SUPPORTED = new Set(["openai", "deepseek", "local"]);
 export async function listProviderModels(providerId, opts = {}) {
   const entry = getProvider(providerId);
   if (!entry || !SUPPORTED.has(entry.id)) {
-    return { ok: false, code: "not-supported", error: "Tarsee reads this AI's models another way." };
+    return { ok: false, code: "not-supported", error: "Atlas reads this AI's models another way." };
   }
   const label = entry.label;
   const key = cleanKey(opts.key);
@@ -75,7 +75,7 @@ export async function listProviderModels(providerId, opts = {}) {
     if (entry.id === "local") {
       return { ok: false, code: "unreachable", error: entry.errorHints.unreachable.replace("{url}", String(opts.localUrl ?? host).trim()) };
     }
-    return { ok: false, code: "unreachable", error: `Tarsee couldn't reach ${label} (${why}).` };
+    return { ok: false, code: "unreachable", error: `Atlas couldn't reach ${label} (${why}).` };
   }
 
   if (!res.ok) return { ok: false, status: res.status, ...statusError(entry, res.status, host) };

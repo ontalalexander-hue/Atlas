@@ -52,7 +52,7 @@ const CATALOG = {
   ],
   provider_alias_targets: { opus: { default: "claude-opus-5-5" }, fable: { default: "claude-fable-5-1" }, sonnet: { default: "claude-sonnet-5-5" }, haiku: { default: "claude-haiku-5-5" } },
 };
-// Tarsee offers no family words in the list: the SDK's bundled CLI would take one to an older model.
+// Atlas offers no family words in the list: the SDK's bundled CLI would take one to an older model.
 const NO_ALIASES = {};
 const names = (list) => list.map((e) => e.name);
 
@@ -96,7 +96,7 @@ describe("model picker: the list from Claude Code's catalog", () => {
     assert.deepEqual(p.more.find((e) => e.name === "Haiku 4.5").efforts, []);
   });
 
-  it("no word from the CLI on which level: Tarsee's default (Medium) is the recommended one", () => {
+  it("no word from the CLI on which level: Atlas's default (Medium) is the recommended one", () => {
     const bare = { models: [{ id: "claude-sonnet-5-5", name: "Sonnet 5.5", section: "main", thinking: { type: "effort", effort_options: [effort("low", "Low"), effort("medium", "Medium"), effort("high", "High")] } }] };
     const q = buildPicker({ catalog: bare, aliases: NO_ALIASES });
     assert.deepEqual(q.main[0].efforts.filter((e) => e.recommended).map((e) => e.id), ["medium"]);
@@ -194,7 +194,7 @@ describe("model picker: Claude Code's own files, the newer wins", () => {
     assert.equal(p.more[0].name, "Opus 5.5");
   });
 
-  it("no Claude Code files: Tarsee's own table, still with the newest on top", () => {
+  it("no Claude Code files: Atlas's own table, still with the newest on top", () => {
     catalog.__setForTests({ catalogDirs: [path.join(tmp, "none")], cli: null });
     const p = catalog.getModelPicker();
     assert.equal(p.source, "known models");

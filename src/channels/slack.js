@@ -20,10 +20,10 @@ import { refused } from "../lib/channel-errors.js";
 import { turnErrorNote, idleNote, errorStillToSay, sttProblem } from "./turn-notes.js";
 
 /**
- * Slack channel, over Socket Mode: Tarsee opens the connection to Slack, so there is no public URL to set up.
+ * Slack channel, over Socket Mode: Atlas opens the connection to Slack, so there is no public URL to set up.
  *
  * Every reply goes in a thread, and every thread is its own conversation (Slack's agent model: a new message to the
- * app starts a new thread). In a DM every message is answered. In channels and group DMs Tarsee answers when it is
+ * app starts a new thread). In a DM every message is answered. In channels and group DMs Atlas answers when it is
  * @mentioned, and follows up in a thread it is already in without one (mention mode "off" answers everything).
  * Replies stream natively with a task card per tool (lib/slack-stream.js), or by editing messages where the
  * workspace has no native streaming.
@@ -38,7 +38,7 @@ export const SLACK_FILE_CAP_MB = 100;
 /** Commands that act on the conversation they are sent in: in Slack that is a thread, which /tarsee cannot see. */
 const THREAD_COMMANDS = new Set(["clear", "new", "export", "send", "think"]);
 
-/** /help lists commands as the web app takes them; in Slack a "/clear" typed on its own goes to Slack, not to Tarsee. */
+/** /help lists commands as the web app takes them; in Slack a "/clear" typed on its own goes to Slack, not to Atlas. */
 function withSlackHowTo(helpText, handle) {
   const threadOnes = [...THREAD_COMMANDS].map((c) => `\`/${c}\``).join(", ");
   return `**In Slack**, start a command with /tarsee: \`/tarsee /model opus\` works anywhere, and only you see the answer. ` +
@@ -69,7 +69,7 @@ export function parseAllowlist(value) {
 
 /**
  * Whether to answer a message event: { handle, reason }.
- *   engaged: Tarsee already has a conversation for this message's thread.
+ *   engaged: Atlas already has a conversation for this message's thread.
  *   allowlist: user and channel ids; empty means no restriction, as on Discord.
  * People from another workspace (Slack Connect) are answered only when their own user id is on the allowlist: a
  * shared channel would otherwise hand a Bash-capable agent to strangers.
@@ -218,7 +218,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
 
   const botUserId = auth.user_id;
   const botTeamId = auth.team_id;
-  const botHandle = auth.user || "Tarsee";
+  const botHandle = auth.user || "Atlas";
 
   // Native streaming until Slack says this workspace cannot do it; then editing until the next restart.
   let nativeStreaming = config.streaming !== "edit";
@@ -421,7 +421,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
     return { media, notes, transcript, problems };
   }
 
-  /** The thread so far, for a mention in a thread Tarsee has not been part of. */
+  /** The thread so far, for a mention in a thread Atlas has not been part of. */
   async function threadContext(channel, threadTs, currentTs) {
     try {
       // Slack hands a thread over oldest first, a page at a time: read it all (up to 1,000 messages), then keep its
@@ -443,10 +443,10 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       for (const m of picked) {
         const text = (await plainText(m.text)).slice(0, 600);
         if (!text) continue;
-        // Who said it, marked when they are not someone Tarsee would take a request from: their words reach the
+        // Who said it, marked when they are not someone Atlas would take a request from: their words reach the
         // model all the same, so it should know which ones are a stranger's.
         let who;
-        if (m.user === botUserId) who = "Tarsee (you)";
+        if (m.user === botUserId) who = "Atlas (you)";
         else if (m.bot_id || !m.user) who = `${m.username || m.bot_profile?.name || "a bot"} (a bot)`;
         else {
           who = await userName(m.user);
@@ -713,7 +713,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
     if (notes.length) content = content ? `${content}\n\n${notes.join("\n")}` : notes.join("\n");
     if (!content && media.length === 0) return;
 
-    // Commands: "@Tarsee /clear" in a channel, " /clear" (Slack keeps a leading space) in a DM.
+    // Commands: "@Atlas /clear" in a channel, " /clear" (Slack keeps a leading space) in a DM.
     let aiPromptOverride = null;
     if (content.startsWith("/")) {
       // /stop stops the reply running in this thread; the turn says "⏹️ Stopped." itself.
@@ -734,7 +734,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       }
     }
 
-    // Mentioned in a thread Tarsee was not part of: it reads the thread first.
+    // Mentioned in a thread Atlas was not part of: it reads the thread first.
     let modelText = content;
     if (!engaged && event.thread_ts && event.thread_ts !== event.ts) {
       const earlier = await threadContext(event.channel, event.thread_ts, event.ts);
@@ -796,7 +796,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       const decision = decideSlackMessage(asEvent, { botUserId, botTeamId, allowlist: allowlistNow() });
       if (!decision.handle) {
         console.warn(`[slack] ignoring /tarsee from user ${command.user_id} in ${channel} (${decision.reason})`);
-        await tell("You're not on this Tarsee's Slack allowlist.");
+        await tell("You're not on this Atlas's Slack allowlist.");
         return;
       }
 
@@ -897,7 +897,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
     sendFile: async (chatId, filePath, caption, opts = {}) => {
       if (!fs.existsSync(filePath)) throw new Error(`sendFile: file not found at ${filePath}`);
       const sizeMb = fs.statSync(filePath).size / 1024 / 1024;
-      if (sizeMb > SLACK_FILE_CAP_MB) throw new Error(`sendFile: file is ${sizeMb.toFixed(1)} MB, over Tarsee's ${SLACK_FILE_CAP_MB} MB Slack upload cap`);
+      if (sizeMb > SLACK_FILE_CAP_MB) throw new Error(`sendFile: file is ${sizeMb.toFixed(1)} MB, over Atlas's ${SLACK_FILE_CAP_MB} MB Slack upload cap`);
       const channel = await resolveChannel(chatId);
       await app.client.filesUploadV2({
         channel_id: channel,

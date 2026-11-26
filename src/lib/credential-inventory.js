@@ -1,5 +1,5 @@
 /**
- * Credential inventory — one-shot snapshot of every credential Tarsee
+ * Credential inventory — one-shot snapshot of every credential Atlas
  * can reach, injected into the system prompt on session start so Claude
  * knows what's available without running a tool to find out.
  *
@@ -27,7 +27,7 @@ import { credentialPresence } from "../ai/provider-status.js";
 const VAULT_FILE = path.join(config.DATA_DIR, "vault.json");
 
 /**
- * Known env-only integrations — credentials Tarsee might have that
+ * Known env-only integrations — credentials Atlas might have that
  * don't live in the vault and don't belong to a specific AI provider.
  * Listed here so the inventory can report them as "available" even
  * when the vault is empty.

@@ -33,7 +33,7 @@ export function idleNote(route, idleMs, { plain = false } = {}) {
 
 /**
  * Whether an error still has to be said after the answer. Not when the answer already says it: the turn layer's
- * refusals ("Tarsee isn't connected to an AI yet...") are the reply and the error at once.
+ * refusals ("Atlas isn't connected to an AI yet...") are the reply and the error at once.
  */
 export function errorStillToSay(answer, message) {
   if (!message) return false;

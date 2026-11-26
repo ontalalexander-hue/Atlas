@@ -86,7 +86,7 @@ beforeEach(() => {
   db.prepare("DELETE FROM audit_log").run();
   // Set up, so the dashboard opens rather than the setup wizard (GET /api/settings/setup-status, the real one).
   store.set("ai.activeProvider", "deepseek");
-  store.set("identity.name", "Tarsee");
+  store.set("identity.name", "Atlas");
 });
 
 async function call(method, p, body) {

@@ -1,4 +1,4 @@
-# Tarsee — Multi-stage Docker build
+# Atlas — Multi-stage Docker build
 # Stage 1: Build native modules (better-sqlite3)
 FROM node:22-bookworm AS builder
 
@@ -30,7 +30,7 @@ FROM node:22-bookworm-slim
 # ffmpeg is installed separately as a static binary below — the apt
 # `ffmpeg` package on Bookworm pulls in ~200 transitive packages
 # (libllvm15, libicu72, Mesa, SDL2, PulseAudio, libpython3.11-stdlib,
-# libpocketsphinx, etc.) that Tarsee never uses. Static binary saves
+# libpocketsphinx, etc.) that Atlas never uses. Static binary saves
 # ~25–28 minutes of build time and several hundred MB of image size.
 RUN apt-get update \
   && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

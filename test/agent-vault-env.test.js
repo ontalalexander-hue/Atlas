@@ -1,5 +1,5 @@
 // The vault's keys in the agent's environment (src/ai/agent-env.js): every key named like an environment variable,
-// except what would change Claude's login or billing, how programs run, or what Tarsee already set; none at all when
+// except what would change Claude's login or billing, how programs run, or what Atlas already set; none at all when
 // get_key is denied in Tool Permissions or TARSEE_AGENT_ENV_KEYS is "off".
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";

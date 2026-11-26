@@ -1,4 +1,4 @@
-// Local AI on Railway: Railway has no GPUs, so a model server would have to live somewhere else; Tarsee doesn't offer
+// Local AI on Railway: Railway has no GPUs, so a model server would have to live somewhere else; Atlas doesn't offer
 // Local AI there (the setup wizard, Settings > AI, the model list, every route), unless an address is already set
 // (TARSEE_LOCAL_AI_URL, or one saved in Settings), so a setup that works keeps working. Self-hosted installs (Docker on
 // your own machine, npm start) offer it as before.

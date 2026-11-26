@@ -1,6 +1,6 @@
 /**
- * Tarsee Terminal UI
- * Web-based terminal for running commands on the Tarsee server.
+ * Atlas Terminal UI
+ * Web-based terminal for running commands on the Atlas server.
  */
 
 (function () {
@@ -102,7 +102,7 @@
       // Detect auth failure (server sends 401 before upgrade completes → code 1006)
       if (event.code === 1006 && !ws._wasOpen) {
         term.writeln("\r\n\x1b[31m[Connection rejected — not authenticated]\x1b[0m");
-        term.writeln("\x1b[33mPlease log in to Tarsee first, then reload this page.\x1b[0m");
+        term.writeln("\x1b[33mPlease log in to Atlas first, then reload this page.\x1b[0m");
         return; // Don't reconnect — auth won't magically fix itself
       }
 

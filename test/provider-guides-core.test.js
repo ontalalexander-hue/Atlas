@@ -1,5 +1,5 @@
 // How to set up each AI (src/public/js/provider-guides-core.js): Settings → AI and the setup wizard's "Choose your AI"
-// draw their steps, costs and status lines from it, so it has to cover every provider Tarsee knows (the registry,
+// draw their steps, costs and status lines from it, so it has to cover every provider Atlas knows (the registry,
 // src/ai/provider-registry.js) and match the cards on the page it fills.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
@@ -78,7 +78,7 @@ describe("provider guides: what they cover", () => {
     assert.match(local.pitch, /Ollama, LM Studio or llama\.cpp/);
   });
 
-  it("Local AI says which versions speak the Responses API Tarsee uses (Ollama 0.13.3, LM Studio 0.3.29, llama.cpp b11768)", () => {
+  it("Local AI says which versions speak the Responses API Atlas uses (Ollama 0.13.3, LM Studio 0.3.29, llama.cpp b11768)", () => {
     const text = allText(G.get("local"));
     assert.match(text, /Ollama 0\.13\.3 or newer/);
     assert.match(text, /LM Studio 0\.3\.29 or newer/);
@@ -97,7 +97,7 @@ describe("provider guides: what they cover", () => {
     assert.match(cmd, /-hf \S+\/\S+:Q\d\w*/, "always a quant tag after the colon");
     assert.match(cmd, /--alias \S+/);
     const ctx = Number(/-c (\d+)/.exec(cmd)?.[1]);
-    assert.ok(ctx >= 32_768, `-c ${ctx} leaves Tarsee room`);
+    assert.ok(ctx >= 32_768, `-c ${ctx} leaves Atlas room`);
     assert.match(steps, /at least 32768/);
     const tips = local.tips.join("\n");
     assert.match(tips, /--host 0\.0\.0\.0/);
@@ -106,7 +106,7 @@ describe("provider guides: what they cover", () => {
     assert.match(tips, /not an OpenAI model's name/);
   });
 
-  it("the Anthropic key is made in a workspace (a key outside one needs a header Tarsee doesn't send)", () => {
+  it("the Anthropic key is made in a workspace (a key outside one needs a header Atlas doesn't send)", () => {
     const a = G.get("anthropic");
     assert.match(a.steps.join("\n"), /<strong>Create key<\/strong>[\s\S]*workspace/i, "the step that makes the key picks a workspace");
     assert.match(a.tips.join("\n"), /workspace/i, "and the tip for when Test says so");
@@ -182,7 +182,7 @@ describe("provider guides: the page they fill", () => {
     const stepsOf = (html) => html.match(/<ol class="channel-guide-steps">([\s\S]*?)<\/ol>/)[1];
     for (const id of [...G.WIZARD.plans, ...G.WIZARD.keys]) {
       const steps = stepsOf(G.guideHtml(id, { wizard: true }));
-      // (Other companies' pages have buttons of their own, OpenAI's Save among them: only Tarsee's Settings words are out.)
+      // (Other companies' pages have buttons of their own, OpenAI's Save among them: only Atlas's Settings words are out.)
       assert.doesNotMatch(steps, /<strong>(Save key|Test|Use this AI|Verify)<\/strong>|<strong>Save<\/strong>, then|&gt;_/, id);
       // Read as text, as a person does: "click Test" would send them to a button the wizard doesn't have.
       assert.doesNotMatch(steps.replace(/<[^>]+>/g, ""), /click (Save key|Test|Use this AI|Verify)\b|\bTest (shows|lists)\b/, id);
@@ -208,7 +208,7 @@ describe("provider guides: the page they fill", () => {
 });
 
 describe("provider guides: status in words", () => {
-  const card = (over) => ({ id: "deepseek", label: "DeepSeek", state: "ready", ready: true, detail: "Key saved in Tarsee (…a1b2).", fix: null, model: "deepseek-flash", ...over });
+  const card = (over) => ({ id: "deepseek", label: "DeepSeek", state: "ready", ready: true, detail: "Key saved in Atlas (…a1b2).", fix: null, model: "deepseek-flash", ...over });
 
   it("a ready AI says what it uses, and its balance", () => {
     assert.deepEqual(G.statusLine(card(), { modelLabel: "DeepSeek Flash" }), { text: "Ready, using DeepSeek Flash", tone: "ok" });

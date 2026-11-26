@@ -1,5 +1,5 @@
 // Verify's Codex half, end to end (design 4.11): verifyModel through its own default runner, the turn layer's
-// verification mode (ai/turn.js runTurn with verify: true and engine: "codex"), the real pinned codex binary, Tarsee's
+// verification mode (ai/turn.js runTurn with verify: true and engine: "codex"), the real pinned codex binary, Atlas's
 // real loopback MCP endpoint (ai/mcp-http.js, so tarsee_datetime really runs through executeTool) and a fake OpenRouter
 // Responses server (test/fixtures/fake-responses.js) reached through engine-env's test-only base-URL seam. The fake
 // model does what it is asked: it repeats the code word, calls tarsee_datetime, runs the echo with Codex's shell, and
@@ -16,7 +16,7 @@ process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
 process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
 process.env.NODE_ENV = "test";
 for (const k of ["OPENROUTER_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME", "CODEX_API_KEY", "TARSEE_AI_PROVIDER", "TARSEE_KEYS_ONLY"]) delete process.env[k];
-// tarsee_datetime answers in Tarsee's zone (config/env.js reads it once, at import), else the host's; the year below
+// tarsee_datetime answers in Atlas's zone (config/env.js reads it once, at import), else the host's; the year below
 // is UTC's, so the zone is UTC too, whatever this machine's is.
 process.env.TARSEE_TIMEZONE = "UTC";
 
@@ -29,7 +29,7 @@ const { stopMcpHttp } = await import("../src/ai/mcp-http.js");
 const { resolveCodexBin } = await import("../src/ai/codex-cli.js");
 
 const KEY = "sk-or-v1-testcanaryverifycodex0001";
-const MODEL = "test-maker/test-model";   // a maker Tarsee has no engine for: it must be verified first
+const MODEL = "test-maker/test-model";   // a maker Atlas has no engine for: it must be verified first
 let fake;
 let db;
 let store;
@@ -45,7 +45,7 @@ function model(body) {
   const users = messageTexts(body, "user");
   const ask = users.at(-1) || "";
   if (/tarsee_datetime/.test(ask)) {
-    assert.ok(toolNames(body).includes("mcp__tarsee.tarsee_datetime"), `Tarsee's tools are offered: ${toolNames(body).join(" ")}`);
+    assert.ok(toolNames(body).includes("mcp__tarsee.tarsee_datetime"), `Atlas's tools are offered: ${toolNames(body).join(" ")}`);
     return { calls: [{ name: "tarsee_datetime", namespace: "mcp__tarsee", arguments: { format: "date" } }] };
   }
   const echo = /\becho\s+(\S+)/.exec(ask);
@@ -75,7 +75,7 @@ after(async () => {
 });
 
 describe("Verify on the real Codex engine", { skip: !codexThere && "the pinned codex binary isn't installed", timeout: 240_000 }, () => {
-  it("passes an OpenRouter model on Codex: a real Tarsee tool call, a real shell command and a real resumed thread", async () => {
+  it("passes an OpenRouter model on Codex: a real Atlas tool call, a real shell command and a real resumed thread", async () => {
     assert.equal(engineFor("openrouter", MODEL, store), null, "before: it must be verified first");
     const yearBefore = new Date().getUTCFullYear();
     const r = await verifyModel("openrouter", MODEL, { store, stateDir: tmp, engines: ["codex"], efforts: [], limiter: null });

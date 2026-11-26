@@ -1,4 +1,4 @@
-# Tarsee — Self-hosted Docker Compose
+# Atlas — Self-hosted Docker Compose
 # Values come from your shell or a .env file next to this one (see .env.example). This file holds names only:
 # never write a key into it.
 version: "3.8"
@@ -16,17 +16,17 @@ services:
       - TARSEE_STATE_DIR=/data/tarsee
       - TARSEE_WORKSPACE_DIR=/data/tarsee/workspace
       - TARSEE_DATA_DIR=/data/tarsee/data
-      # Encrypts the keys and tokens Tarsee stores. Set it before you save any key in Settings > AI.
+      # Encrypts the keys and tokens Atlas stores. Set it before you save any key in Settings > AI.
       - ENCRYPTION_KEY
       # Choose your AI. All optional: the setup wizard and Settings > AI do the same, and keys saved there are
       # stored encrypted. A name with no value is passed on only when your shell or .env sets it. Each key only ever
       # goes to its own provider. Guide: docs/providers.md
       # A command the agent runs can still read these keys inside the container (it runs as the same user as
-      # Tarsee), so give every key a spending limit at its provider: that is the real guard.
+      # Atlas), so give every key a spending limit at its provider: that is the real guard.
       # The default AI: claude, anthropic, chatgpt, openai, openrouter, deepseek or local; and its model.
       - TARSEE_AI_PROVIDER
       - TARSEE_AI_MODEL
-      # 1 keeps "Only use API keys" on (no Claude or ChatGPT plan sign-in), for a Tarsee other people talk to.
+      # 1 keeps "Only use API keys" on (no Claude or ChatGPT plan sign-in), for a Atlas other people talk to.
       - TARSEE_KEYS_ONLY
       # API keys, each billed per use by its provider. The Claude plan ignores ANTHROPIC_API_KEY.
       - ANTHROPIC_API_KEY

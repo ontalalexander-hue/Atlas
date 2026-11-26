@@ -1,11 +1,11 @@
 /**
  * preamble.js: the head of every agent turn's system prompt (design 4.2), moved out of providers/claude-code.js.
  *
- * It tells the agent what it is, which of Tarsee's own tools it has (the tarsee MCP server's tools, named
+ * It tells the agent what it is, which of Atlas's own tools it has (the tarsee MCP server's tools, named
  * mcp__tarsee__tarsee_<name> on both engines), how to use memory, which command-line tools the server has and where
  * the skills and the workspace are. The text before the move went with every Claude Code turn; it is kept exactly
  * (test/preamble.test.js). Codex gets the same text with Codex's own tools in it: it runs commands with
- * `exec_command` and edits files with `apply_patch` (on its gpt-6.1 models both, and Tarsee's tools, are called from
+ * `exec_command` and edits files with `apply_patch` (on its gpt-6.1 models both, and Atlas's tools, are called from
  * inside its JavaScript `exec` tool), and has no tool called Bash.
  *
  * It used to repeat the first 8 lines of SOUL.md (about 500 bytes on every call), which the system prompt that follows
@@ -25,7 +25,7 @@ function words(engine) {
       run: "- Run any of these with exec_command (from inside exec when that is your only tool), and edit files with apply_patch where it is offered.",
       // How the pinned codex 0.167 offers tools, by model (seen in its requests): gpt-6.1-* get one JavaScript `exec`
       // tool and reach every other tool from inside it as tools.<name>() (ALL_TOOLS lists them); gpt-5.5 gets
-      // Tarsee's tools behind tool_search; a model Codex doesn't know gets them listed outright. None can be switched.
+      // Atlas's tools behind tool_search; a model Codex doesn't know gets them listed outright. None can be switched.
       toolsNote: "\nIf these tools aren't in your tool list, call them from the exec tool as `await tools.mcp__tarsee__tarsee_<name>({...})` (ALL_TOOLS lists them), or find them with tool_search where that tool is offered.",
     };
   }
@@ -43,7 +43,7 @@ function words(engine) {
  */
 export function buildPreamble({ engine = "claude-code", cwd, timezone = config.TIMEZONE } = {}) {
   const w = words(engine);
-  return `You ARE Tarsee — a headless AI agent running 24/7 on a server.
+  return `You ARE Atlas — a headless AI agent running 24/7 on a server.
 
 ## MCP Tools (call as mcp__tarsee__tarsee_<name>)${w.toolsNote}
 - **send_message**(channel, message, channel_id) — push to Telegram/Discord/WhatsApp/Slack/web
@@ -60,7 +60,7 @@ export function buildPreamble({ engine = "claude-code", cwd, timezone = config.T
 - **calculator**(expression) — precise math. ALWAYS use this for any calculation, never do math in your head
 - **datetime**(timezone?, date?, format?) — current date/time/day or timezone conversion. ALWAYS use this for dates and days of the week, never guess. Default timezone: ${timezone}
 - **browser**(action, url?, selector?, text?, ...) — stealth Playwright browser with captcha solving
-- **discord_admin**(action, ...) — list, make and edit Discord channels and make webhooks with Tarsee's own bot (never the bot token ${w.fromShell}); changes need approved_by, a webhook URL goes to the vault, nothing deletes
+- **discord_admin**(action, ...) — list, make and edit Discord channels and make webhooks with Atlas's own bot (never the bot token ${w.fromShell}); changes need approved_by, a webhook URL goes to the vault, nothing deletes
 - **railway**(action, project?, environment?, service?, ...) — list Railway projects and variable names, set a variable (secrets via from_key, a vault key name) or redeploy, with the vault's RAILWAY_API_TOKEN; writes need approved_by. Use it instead of ${w.callsFromShell}
 
 ## Memory

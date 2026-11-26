@@ -9,7 +9,7 @@
  *   registerEngine("claude-code", engine);
  *   engine.calls  // what each run() got
  *
- * Besides Tarsee's events a script can hold:
+ * Besides Atlas's events a script can hold:
  *   { type: "session", id }   the engine reports its session: onSessionHandle(id) (and onSessionId)
  *   { type: "wait" }          wait until the turn's signal aborts, then end with done{aborted} (a stopped engine)
  *   { type: "sleep", ms }     wait that long (ends early, with done{aborted}, if the signal aborts)

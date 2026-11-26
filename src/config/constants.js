@@ -1,5 +1,5 @@
 // --- Claude Model Registry ---
-// Single source of truth for every Claude model Tarsee exposes. Adding a
+// Single source of truth for every Claude model Atlas exposes. Adding a
 // new model = one entry here. The Settings dropdown, /model command,
 // default fallback, and auto-routing all read from this registry — no
 // more updating six files every time Anthropic ships a new version.

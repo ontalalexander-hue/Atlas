@@ -63,7 +63,7 @@ logCapture.install();
 writePid();
 
 // --- Last-resort crash guards ---
-// Tarsee is an always-on agent whose whole value is being reachable. A single
+// Atlas is an always-on agent whose whole value is being reachable. A single
 // rejected promise in one async event listener — a Discord reply to a deleted
 // message, a SQLite constraint from a stale conversation id — would otherwise
 // terminate Node under its default unhandled-rejection policy and take every
@@ -156,7 +156,7 @@ app.use((req, res, next) => {
 // Canvas middleware (AI-generated UIs)
 app.use(canvasMiddleware);
 
-// Tarsee's icon (Settings → Appearance; lib/brand-icon.js): an uploaded icon is sent in place of the default files,
+// Atlas's icon (Settings → Appearance; lib/brand-icon.js): an uploaded icon is sent in place of the default files,
 // and /manifest.json carries its version. Before express.static, and without sign-in: browsers fetch icons without
 // cookies, and the sign-in screen shows the icon too.
 app.use(brandIconMiddleware());
@@ -251,7 +251,7 @@ const openRouterCatalog = initOpenRouterCatalog(settingsStore);
 // don't wait for them. Returns at once, without starting Codex, when ChatGPT isn't signed in, and while "API keys only"
 // is on (reading the list sends the plan's sign-in to ChatGPT's backend; the settings store says whether it's on).
 refreshChatgptModels({ stateDir: config.STATE_DIR, store: settingsStore }).catch((err) => console.warn("[ai] reading the ChatGPT account's models failed:", err?.message || err));
-// Tarsee's own tools for Codex turns (ai/mcp-http.js): a loopback-only endpoint on 127.0.0.1, never on Express.
+// Atlas's own tools for Codex turns (ai/mcp-http.js): a loopback-only endpoint on 127.0.0.1, never on Express.
 // Started now so the first Codex turn doesn't wait for the port; it would start itself on first use anyway.
 startMcpHttp().catch((err) => console.warn("[mcp-http] could not start:", err.message));
 initTTSEngine(settingsStore).catch((err) => {
@@ -374,7 +374,7 @@ startAutoCheckpoint({ db });
 // --- Retention sweep ---
 // Daily at 03:00 — prunes conversations idle > 14d (archiving a one-line
 // summary first) and checkpoint files older than 30d / over 50-file cap.
-// Keeps the SQLite DB from ballooning once Tarsee has been running for a
+// Keeps the SQLite DB from ballooning once Atlas has been running for a
 // few weeks on Railway.
 import { startRetention, stopRetention } from "./lib/retention.js";
 startRetention({ db });

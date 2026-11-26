@@ -123,7 +123,7 @@ describe("key providers", () => {
       assert.equal(saved.state, "ready", saved.detail);
       assert.equal(saved.keySource, "settings");
       assert.equal(saved.keyHint, `…${KEYS[id].slice(-4)}`);
-      assert.match(saved.keySourceText, /Saved in Tarsee \(encrypted\)/);
+      assert.match(saved.keySourceText, /Saved in Atlas \(encrypted\)/);
       assertNoKey(saved, KEYS[id]);
     });
 

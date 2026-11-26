@@ -787,7 +787,7 @@ ${sendFileHint("telegram")}`,
 
   return {
     stop: async () => {
-      bot.stop("Tarsee shutdown");
+      bot.stop("Atlas shutdown");
     },
     /** Who it connected as, for Settings → Channels: @username, or null until Telegram has said. */
     get identity() {

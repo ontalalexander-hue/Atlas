@@ -1,5 +1,5 @@
 /**
- * Security audit utility for Tarsee.
+ * Security audit utility for Atlas.
  * Checks for common security issues and misconfigurations.
  *
  * For the AI providers (design 4.15) it checks:
@@ -75,7 +75,7 @@ export function runAudit(settingsStore, deps = {}) {
       issues.push({ id: "ai-credential", severity: "warning", message: `Your default AI (${active.label}) isn't connected: ${cred.detail}`, fix: cred.fix || "Open Settings > AI." });
     }
   } catch (err) {
-    issues.push({ id: "ai-credential", severity: "warning", message: `Tarsee couldn't check the default AI's credential: ${err.message}`, fix: "Open Settings > AI." });
+    issues.push({ id: "ai-credential", severity: "warning", message: `Atlas couldn't check the default AI's credential: ${err.message}`, fix: "Open Settings > AI." });
   }
 
   // The credential homes and the ChatGPT sign-in file: owner-only. File modes mean nothing on Windows.
@@ -115,7 +115,7 @@ export function runAudit(settingsStore, deps = {}) {
     issues.push({
       id: "codex-dotenv",
       severity: "critical",
-      message: `${dotenv} is loaded by Codex into its own environment, so a proxy or certificate file there could see an AI's key and traffic; Tarsee won't start Codex while it is there.`,
+      message: `${dotenv} is loaded by Codex into its own environment, so a proxy or certificate file there could see an AI's key and traffic; Atlas won't start Codex while it is there.`,
       fix: `Set it aside in Settings > AI, or delete ${dotenv}.`,
     });
   }

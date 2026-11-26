@@ -721,7 +721,7 @@ const Settings = {
     const chatMenu = document.getElementById("chatMenuBtn");
     if (chatMenu) chatMenu.disabled = false;
     if (typeof Chat !== "undefined" && Chat._paintHeader) Chat._paintHeader();
-    else document.getElementById("topbarTitle").textContent = "Tarsee";
+    else document.getElementById("topbarTitle").textContent = "Atlas";
 
     // The composer was hidden while Settings was open: its model list and defaults, fresh, for whatever was changed
     // here (a key saved or removed, a model verified, Local AI's address, a sign-in).
@@ -1139,7 +1139,7 @@ const Settings = {
     const a = this._ai?.active;
     if (!el || !a) return;
     const how = a.chosenBy === "env" ? " (set by the Railway variable TARSEE_AI_PROVIDER)"
-      : a.chosenBy === "default" ? " (nothing chosen yet, so Tarsee starts with the Claude plan)" : "";
+      : a.chosenBy === "default" ? " (nothing chosen yet, so Atlas starts with the Claude plan)" : "";
     const model = this._aiModelLabel(a.provider, a.model);
     el.textContent = a.ready
       ? `✓ ${a.label}, using ${model}${how}`
@@ -1150,7 +1150,7 @@ const Settings = {
   _aiDrawSwitches() {
     const e = this.elements;
     const k = this._ai?.keysOnly || { on: false, locked: false };
-    // With no API-key AI switched on in this version, the switch would only silence Tarsee: it isn't offered then,
+    // With no API-key AI switched on in this version, the switch would only silence Atlas: it isn't offered then,
     // unless it is already on (it shows, so it can be switched off).
     const anyKey = this._aiShipped().some((c) => c.kind !== "subscription");
     const group = e.aiKeysOnly?.closest(".form-group");
@@ -1344,7 +1344,7 @@ const Settings = {
     const n = (v) => Number(v).toLocaleString("en-US");
     const placeholder = s.serverContext ? `${n(s.serverContext)}, read from your server` : `${n(s.defaultContext || 128000)} unless you set it`;
     const used = s.context && s.serverContext && s.serverContext < s.context
-      ? `<div class="hint" data-ai-local-context-note>Your server gives this model ${n(s.serverContext)}, so Tarsee uses that.</div>`
+      ? `<div class="hint" data-ai-local-context-note>Your server gives this model ${n(s.serverContext)}, so Atlas uses that.</div>`
       : "";
     return `<label class="ai-label" for="aiLocalUrl">Server address</label>` +
       `<div class="ai-presets">Fill in: ${presets}</div>` +
@@ -1374,7 +1374,7 @@ const Settings = {
     // passes it is in the list above and in a chat's model menu.
     const custom = c.id === "openai" && c.ready
       ? `<details class="ai-custom-model"><summary>A model that isn't in this list</summary>` +
-        `<div class="hint">A newer OpenAI model your key can use: type its id as OpenAI names it, then Verify. That's a short check that it can use Tarsee's tools, and it costs a few cents on your key. Once it passes, you can choose it here and in a chat's model menu.</div>` +
+        `<div class="hint">A newer OpenAI model your key can use: type its id as OpenAI names it, then Verify. That's a short check that it can use Atlas's tools, and it costs a few cents on your key. Once it passes, you can choose it here and in a chat's model menu.</div>` +
         `<div class="ai-inline"><input type="text" class="ai-input" data-ai-custom-model data-keep="custom-model" placeholder="The model's id" aria-label="OpenAI model id" autocomplete="off" spellcheck="false" autocapitalize="off">` +
         `<button type="button" class="btn btn-sm" data-ai-action="verify-custom">Verify</button></div></details>`
       : "";
@@ -1459,7 +1459,7 @@ const Settings = {
     const row = (m) => {
       const inMenu = m.inMenu === true || m.verified === true || m.id === c?.model;
       const badges = (m.verified ? `<span class="ai-badge" data-kind="ok">Verified</span>` : "")
-        + (m.recheck ? `<span class="ai-badge" data-kind="warn" title="It was verified on an older version of Tarsee's engine: Verify it again to be sure it still works.">Check again</span>` : "");
+        + (m.recheck ? `<span class="ai-badge" data-kind="warn" title="It was verified on an older version of Atlas's engine: Verify it again to be sure it still works.">Check again</span>` : "");
       const k = (v) => (v % 1024 === 0 ? `${v / 1024}K` : `${Math.round(v / 1000)}K`);
       const ctx = m.context ? `${k(m.context)} context${m.serverContext ? " (from your server)" : ""}` : "";
       const meta = [inMenu ? "In a chat's model menu" : "Verify to use it in a chat", ctx].filter(Boolean).join(" · ");
@@ -1467,7 +1467,7 @@ const Settings = {
       return `<div class="ai-or-row" data-ai-local-row><div class="ai-or-name"><span>${esc(m.label || m.id)}</span>${badges}<div class="ai-or-meta">${esc(meta)}</div></div>${btn}</div>`;
     };
     this._aiDrawList(list, `<div class="ai-or-title">Your server's models (${models.length})</div>` +
-      `<div class="hint">Verify checks that a model can use Tarsee's tools, which is worth doing for small models.</div>` +
+      `<div class="hint">Verify checks that a model can use Atlas's tools, which is worth doing for small models.</div>` +
       models.map(row).join(""));
   },
 
@@ -1485,7 +1485,7 @@ const Settings = {
 
   _aiOpenRouterHtml() {
     return `<details class="ai-or"><summary>All OpenRouter models</summary>` +
-      `<div class="hint">Claude and OpenAI models work straight away. Any other model needs one <strong>Verify</strong> first: a short check that it can use Tarsee's tools (it costs a few cents).</div>` +
+      `<div class="hint">Claude and OpenAI models work straight away. Any other model needs one <strong>Verify</strong> first: a short check that it can use Atlas's tools (it costs a few cents).</div>` +
       `<input type="search" class="ai-input" data-ai-or-search data-keep="search" placeholder="Search: gemini, qwen, free…" aria-label="Search OpenRouter's models" autocomplete="off">` +
       `<div class="ai-or-list" data-ai-or-list></div></details>`;
   },
@@ -1511,7 +1511,7 @@ const Settings = {
     };
     const row = (m) => {
       const badges = (m.free ? `<span class="ai-badge" data-kind="free">Free</span>` : "") + (m.verified ? `<span class="ai-badge" data-kind="ok">Verified</span>` : "")
-        + (m.recheck ? `<span class="ai-badge" data-kind="warn" title="It was verified on an older version of Tarsee's engine: Verify it again to be sure it still works.">Check again</span>` : "");
+        + (m.recheck ? `<span class="ai-badge" data-kind="warn" title="It was verified on an older version of Atlas's engine: Verify it again to be sure it still works.">Check again</span>` : "");
       const meta = [m.id, price(m), m.context ? `${Math.round(m.context / 1000)}K context` : ""].filter(Boolean).join(" · ");
       const verifyBtn = (label) => `<button type="button" class="btn btn-sm${m.needsVerification ? "" : " btn-ghost"}" data-ai-action="verify" data-model="${esc(m.id)}">${label}</button>`;
       const btn = m.needsVerification
@@ -1662,8 +1662,8 @@ const Settings = {
 
   async removeAiKey(id, btn) {
     const c = this._aiCard(id);
-    const after = c?.envKey ? ` Tarsee then uses the Railway variable ${c.envKey}, if it's set.` : "";
-    const ok = await TarseeDialog.ask({ title: `Remove the saved ${c?.label || "AI"} key?`, text: `It's deleted from Tarsee.${after}`, yes: "Remove", no: "Cancel", danger: true });
+    const after = c?.envKey ? ` Atlas then uses the Railway variable ${c.envKey}, if it's set.` : "";
+    const ok = await TarseeDialog.ask({ title: `Remove the saved ${c?.label || "AI"} key?`, text: `It's deleted from Atlas.${after}`, yes: "Remove", no: "Cancel", danger: true });
     if (!ok) return;
     const done = this._aiBusy(btn, "Removing…");
     try {
@@ -1753,7 +1753,7 @@ const Settings = {
       title: setAside ? "Set this file aside?" : "Remove these entries?",
       text: setAside
         ? `${file} is renamed, so nothing loads it any more. Nothing in it is deleted.`
-        : `Tarsee removes the entries that could send an AI key or its requests somewhere else from ${file}. The rest of the file stays as it is.`,
+        : `Atlas removes the entries that could send an AI key or its requests somewhere else from ${file}. The rest of the file stays as it is.`,
       yes: setAside ? "Set it aside" : "Remove",
       no: "Cancel",
       back: btn,
@@ -1778,7 +1778,7 @@ const Settings = {
     const cost = row?.verifyCost || "a few cents (est.)";
     const ok = await TarseeDialog.ask({
       title: `Verify ${row?.label || model}?`,
-      text: `Tarsee runs a few short test turns with it: a reply, one of Tarsee's tools, the shell, and picking the conversation back up. It takes up to a minute.\n\nCost: ${cost}.`,
+      text: `Atlas runs a few short test turns with it: a reply, one of Atlas's tools, the shell, and picking the conversation back up. It takes up to a minute.\n\nCost: ${cost}.`,
       yes: "Verify",
       no: "Cancel",
       back: btn,
@@ -1829,7 +1829,7 @@ const Settings = {
     if (on && planDefault) {
       const ok = await TarseeDialog.ask({
         title: "Only use API keys?",
-        text: `Your default AI is the ${a.label}, which this switches off. Tarsee won't answer until you choose an API-key AI as the default.`,
+        text: `Your default AI is the ${a.label}, which this switches off. Atlas won't answer until you choose an API-key AI as the default.`,
         yes: "Switch it on", no: "Cancel",
       });
       if (!ok) { box.checked = false; return; }
@@ -1876,7 +1876,7 @@ const Settings = {
    * Start ChatGPT's sign-in (POST /api/ai/chatgpt/login) and follow it (GET every 3 seconds). render(view) gets
    * { state: "starting" | "waiting" | "done" | "failed" | "expired" | "cancelled", url, code, expiresAt, error, account }
    * at once, every second while it waits (for the countdown) and on every change. A sign-in the server no longer has
-   * (Tarsee restarted, or another window cancelled it or signed out) is a failed one that says to start again.
+   * (Atlas restarted, or another window cancelled it or signed out) is a failed one that says to start again.
    * Returns { cancel() (ends it, on the server too), stop() (stops following it here, and draws nothing more) }.
    */
   startChatgptLogin(render) {
@@ -1894,7 +1894,7 @@ const Settings = {
       else if (r?.state === "done" || r?.state === "failed" || r?.state === "expired") { stop(); render(r); return; }
       else if (r?.state === "idle") {
         stop();
-        render({ state: "failed", error: "The sign-in stopped: Tarsee restarted, or it was cancelled or signed out in another window. Click Sign in with ChatGPT for a new code." });
+        render({ state: "failed", error: "The sign-in stopped: Atlas restarted, or it was cancelled or signed out in another window. Click Sign in with ChatGPT for a new code." });
         return;
       }
       timer = setTimeout(poll, 3000);
@@ -1991,7 +1991,7 @@ const Settings = {
   },
 
   async chatgptLogout(btn) {
-    const ok = await TarseeDialog.ask({ title: "Sign out of ChatGPT?", text: "Tarsee stops using your ChatGPT plan until you sign in again.", yes: "Sign out", no: "Cancel", danger: true });
+    const ok = await TarseeDialog.ask({ title: "Sign out of ChatGPT?", text: "Atlas stops using your ChatGPT plan until you sign in again.", yes: "Sign out", no: "Cancel", danger: true });
     if (!ok) return;
     // Signing out ends a sign-in still waiting here too: stop following it first, or its end would read as a failure.
     this._aiLoginCtl?.stop();
@@ -2861,7 +2861,7 @@ const Settings = {
   /**
    * Settings → Voice: where the OpenAI key Whisper uses comes from, from the last read of the AIs (drawn after every
    * one). It is the OpenAI API key card's (one slot, shared with Settings → AI), so the box stays empty and only says
-   * which key it is: "Saved in Tarsee (encrypted) …wxyz".
+   * which key it is: "Saved in Atlas (encrypted) …wxyz".
    */
   drawSttKey() {
     const box = document.getElementById("settingsOpenaiKey");
@@ -2871,10 +2871,10 @@ const Settings = {
     const hint = card?.keyHint ? ` ${card.keyHint}` : "";
     if (card?.keySource === "settings") {
       box.placeholder = `Saved${hint}`;
-      status.textContent = `${card.keySourceText || "Saved in Tarsee"}${hint}. It's the key on the OpenAI API key card in Settings > AI; paste a new one here to replace it.`;
+      status.textContent = `${card.keySourceText || "Saved in Atlas"}${hint}. It's the key on the OpenAI API key card in Settings > AI; paste a new one here to replace it.`;
     } else if (card?.keySource?.startsWith("env:")) {
       box.placeholder = `From Railway${hint}`;
-      status.textContent = `${card.keySourceText || "A Railway variable"}${hint}. It's the key on the OpenAI API key card in Settings > AI; a key pasted here is saved in Tarsee and used instead.`;
+      status.textContent = `${card.keySourceText || "A Railway variable"}${hint}. It's the key on the OpenAI API key card in Settings > AI; a key pasted here is saved in Atlas and used instead.`;
     } else {
       box.placeholder = "sk-...";
       status.textContent = card ? "No OpenAI key yet. One pasted here is also the OpenAI API key card's in Settings > AI." : "";
@@ -2976,7 +2976,7 @@ const Settings = {
       state.dataset.state = m.state;
       state.textContent = {
         downloaded: "Downloaded",
-        image: "Comes with Tarsee",
+        image: "Comes with Atlas",
         cache: "Downloaded (by an earlier version)",
         missing: "Not downloaded",
         downloading: `Downloading… ${m.percent || 0}%`,
@@ -3163,7 +3163,7 @@ const Settings = {
 
   // --- Identity (auto-saved) ---
   async saveIdentity() {
-    const name = this.elements.botName?.value.trim() || "Tarsee";
+    const name = this.elements.botName?.value.trim() || "Atlas";
     try {
       await API.json("/api/settings/general", {
         method: "POST",
@@ -3220,7 +3220,7 @@ const Settings = {
   // in the editor, or a change made elsewhere (most likely by the AI in a chat) once they click its note's button.
   AUTOMATION_FILES: {
     "HEARTBEAT.md": { element: "heartbeatMd", button: "Let it run", runs: "every 30 minutes", done: "HEARTBEAT.md will run every 30 minutes." },
-    "BOOT.md": { element: "bootMd", button: "Run at each restart", runs: "when Tarsee restarts", done: "BOOT.md will run when Tarsee restarts." },
+    "BOOT.md": { element: "bootMd", button: "Run at each restart", runs: "when Atlas restarts", done: "BOOT.md will run when Atlas restarts." },
   },
   _automationShown: {}, // file name → the text its note shows, which is what its button OKs
 
@@ -3264,7 +3264,7 @@ const Settings = {
       + `<span class="memory-badge cron-state cron-state-waiting">Waiting for your OK</span>`
       + `<div class="memory-content">`
       + `<div class="cron-when"><strong>Changed outside Settings, waiting for your OK</strong></div>`
-      + `<div class="cron-note">Something other than this page changed ${esc(name)}, most likely the AI in a chat. Tarsee won't run it, or spend anything on it, until you OK it. This is what would run ${esc(spec.runs)}:</div>`
+      + `<div class="cron-note">Something other than this page changed ${esc(name)}, most likely the AI in a chat. Atlas won't run it, or spend anything on it, until you OK it. This is what would run ${esc(spec.runs)}:</div>`
       + `<div class="cron-prompt">${esc(file.text)}</div>`
       + `</div>`
       + `<button type="button" class="btn btn-sm btn-primary cron-toggle" data-automation-approve="${esc(name)}">${esc(spec.button)}</button>`
@@ -3704,8 +3704,8 @@ const Settings = {
   },
 
   /**
-   * Tool Permissions: every tool the agent can run, from the registry (GET /api/admin/tool-registry: Tarsee's own
-   * tools, the tarsee MCP server's live list, and the tools built into the AIs), grouped as it groups them. Tarsee's
+   * Tool Permissions: every tool the agent can run, from the registry (GET /api/admin/tool-registry: Atlas's own
+   * tools, the tarsee MCP server's live list, and the tools built into the AIs), grouped as it groups them. Atlas's
    * own tools get Allow / Warn / Deny; the built-in ones say plainly that nothing here limits them.
    */
   async loadToolPermissions() {
@@ -3731,7 +3731,7 @@ const Settings = {
       if (!groups.has(g)) groups.set(g, []);
       groups.get(g).push(t);
     }
-    // Tarsee's own tools first, the AI's built-in ones last.
+    // Atlas's own tools first, the AI's built-in ones last.
     const ordered = [...groups].sort(([, a], [, b]) => (a.some((t) => t.policyCovered) ? 0 : 1) - (b.some((t) => t.policyCovered) ? 0 : 1));
     el.innerHTML = ordered.map(([group, list]) => {
       const covered = list.some((t) => t.policyCovered);

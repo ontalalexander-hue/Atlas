@@ -1,6 +1,6 @@
 /**
  * Railway for the agent (tarsee_railway): list projects, environments, services and variable names, set a service
- * variable and redeploy a service, done by Tarsee itself with a Railway token it reads from the vault. Without it the
+ * variable and redeploy a service, done by Atlas itself with a Railway token it reads from the vault. Without it the
  * only way to set a variable is a command carrying the value (`railway variables --set`, or a GraphQL call with the
  * token in it), which puts a secret into a command line, a transcript and the model's context, and which Claude
  * Code's auto mode rightly blocks.
@@ -15,9 +15,9 @@
  * variable the owner set; Railway does not inject one itself). Railway's project tokens are not accepted by this API
  * as Bearer, so it takes an account or workspace token.
  *
- * Tarsee usually runs on Railway, which tells every service its own RAILWAY_PROJECT_ID, RAILWAY_ENVIRONMENT_ID and
- * RAILWAY_SERVICE_ID. With no project given, the tool works on the project Tarsee runs in, in the environment it runs
- * in, on its own service. Redeploying that service (or setting a variable on it with a deploy) restarts Tarsee, which
+ * Atlas usually runs on Railway, which tells every service its own RAILWAY_PROJECT_ID, RAILWAY_ENVIRONMENT_ID and
+ * RAILWAY_SERVICE_ID. With no project given, the tool works on the project Atlas runs in, in the environment it runs
+ * in, on its own service. Redeploying that service (or setting a variable on it with a deploy) restarts Atlas, which
  * ends the turn doing it: the result says so.
  *
  * Secrets: `from_key` names a vault key; its value is read here, sent to Railway and never put in a result, a log line
@@ -79,7 +79,7 @@ export function maskValue(value) {
   return s.length < 12 ? "****" : `${s.slice(0, 4)}...${s.slice(-4)}`;
 }
 
-/** Where Tarsee itself runs on Railway (the variables Railway gives every service), or nulls off Railway. */
+/** Where Atlas itself runs on Railway (the variables Railway gives every service), or nulls off Railway. */
 export function hereOf(env = process.env) {
   const id = (k) => (UUID.test(String(env?.[k] || "").trim()) ? String(env[k]).trim() : null);
   return { projectId: id("RAILWAY_PROJECT_ID"), environmentId: id("RAILWAY_ENVIRONMENT_ID"), serviceId: id("RAILWAY_SERVICE_ID") };
@@ -89,7 +89,7 @@ export function hereOf(env = process.env) {
  * @param {object} args the tool's input (see tarsee_railway in src/ai/tarsee-mcp.js)
  * @param {object} [deps]
  * @param {{ getKey: Function, getAllKeysDecrypted?: Function }} [deps.vault] defaults to lib/key-vault.js
- * @param {object} [deps.env] defaults to process.env (the token's fallback, and where Tarsee runs)
+ * @param {object} [deps.env] defaults to process.env (the token's fallback, and where Atlas runs)
  * @param {Function} [deps.fetch] defaults to the global fetch
  * @param {Function} [deps.log] one line per call (console.log)
  * @param {number} [deps.timeoutMs]
@@ -225,7 +225,7 @@ async function allProjects({ api }) {
   return live(nodes(data.projects));
 }
 
-/** The project asked for, or (with none given) the one Tarsee runs in. */
+/** The project asked for, or (with none given) the one Atlas runs in. */
 async function resolveProject(ctx) {
   const { args, api, note, here } = ctx;
   const want = String(args.project ?? "").trim() || here.projectId || "";
@@ -250,7 +250,7 @@ async function resolveProject(ctx) {
   return project;
 }
 
-/** The environment asked for; else, in Tarsee's own project, the one it runs in; else production. */
+/** The environment asked for; else, in Atlas's own project, the one it runs in; else production. */
 function resolveEnv(project, args, note, here) {
   const want = String(args.environment ?? "").trim() || (project.isHere && here.environmentId) || "production";
   const env = pick(project.environments, want, "environment", `the project "${project.name}"`);
@@ -258,7 +258,7 @@ function resolveEnv(project, args, note, here) {
   return env;
 }
 
-/** The service asked for; else, in Tarsee's own project, Tarsee's own service. */
+/** The service asked for; else, in Atlas's own project, Atlas's own service. */
 function resolveService(project, args, note, here) {
   const want = String(args.service ?? "").trim() || (project.isHere && here.serviceId) || "";
   if (!want) fail(`service is required: the service's name or id in the project "${project.name}". Services there: ${project.services.map((s) => `${s.name} (id ${s.id})`).join(", ") || "none"}.`);
@@ -275,7 +275,7 @@ async function variableNames({ api }, project, env) {
 
 const where = (svc, env, project) => `${svc.name} (service id ${svc.id}) in ${env.name} (environment id ${env.id}), project "${project.name}" (id ${project.id})`;
 const isSelf = (svc, env, here) => !!here.serviceId && svc.id === here.serviceId && (!here.environmentId || env.id === here.environmentId);
-const SELF_RESTART = "This is Tarsee's own service: the deploy restarts Tarsee, which ends the turn that asked for it. Tarsee is back once Railway has deployed it (usually a minute or two).";
+const SELF_RESTART = "This is Atlas's own service: the deploy restarts Atlas, which ends the turn that asked for it. Atlas is back once Railway has deployed it (usually a minute or two).";
 
 // ---------------------------------------------------------------- list_projects
 
@@ -286,13 +286,13 @@ async function listProjects(ctx) {
     if (!list.length) return `${cap(LABEL)} has no projects this token can see.`;
     return [
       `Railway projects in ${LABEL} (${list.length}):`,
-      ...list.map((p) => `- ${p.name} (id ${p.id})${p.id === here.projectId ? " (Tarsee runs here)" : ""}`),
+      ...list.map((p) => `- ${p.name} (id ${p.id})${p.id === here.projectId ? " (Atlas runs here)" : ""}`),
       "Pass project (a name or an id) to see its environments and services.",
     ].join("\n");
   }
   const project = await resolveProject(ctx);
-  const envs = project.environments.map((e) => `- ${e.name} (id ${e.id})${project.isHere && e.id === here.environmentId ? " (Tarsee runs here)" : ""}`);
-  const svcs = project.services.map((s) => `- ${s.name} (id ${s.id})${project.isHere && s.id === here.serviceId ? " (Tarsee itself)" : ""}`);
+  const envs = project.environments.map((e) => `- ${e.name} (id ${e.id})${project.isHere && e.id === here.environmentId ? " (Atlas runs here)" : ""}`);
+  const svcs = project.services.map((s) => `- ${s.name} (id ${s.id})${project.isHere && s.id === here.serviceId ? " (Atlas itself)" : ""}`);
   return [
     `Project "${project.name}" (id ${project.id}) in ${LABEL}:`,
     `Environments (${envs.length}):`, ...(envs.length ? envs : ["  none"]),

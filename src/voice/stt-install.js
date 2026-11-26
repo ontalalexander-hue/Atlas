@@ -4,11 +4,11 @@
  *
  * Which Python runs faster-whisper (findSttRuntime), first that can import it:
  *   1. TARSEE_STT_PYTHON, when set (a Python you manage yourself);
- *   2. Tarsee's own: <state>/python/stt-venv, made by "Install faster-whisper";
+ *   2. Atlas's own: <state>/python/stt-venv, made by "Install faster-whisper";
  *   3. a Python on this computer (the Docker image installs faster-whisper for its python3).
  *
  * "Install faster-whisper" (startSttInstall), for installs without Docker:
- *   1. a Python 3.9+ with venv found here, else Tarsee's own CPython downloaded (python-runtime.js);
+ *   1. a Python 3.9+ with venv found here, else Atlas's own CPython downloaded (python-runtime.js);
  *   2. a private folder for faster-whisper made from it (a venv, <state>/python/stt-venv);
  *   3. pip installs faster-whisper FASTER_WHISPER_VERSION there: from pypi.org only (--isolated --index-url), and
  *      ready-made builds only (--only-binary=:all:, so nothing from a download runs while installing);
@@ -30,7 +30,7 @@ import {
 } from "./whisper-models.js";
 import { acquireLock, writeFileAtomic } from "./install-common.js";
 
-/** The faster-whisper Tarsee installs (and the Docker image pins: test/deploy-image.test.js checks they agree). */
+/** The faster-whisper Atlas installs (and the Docker image pins: test/deploy-image.test.js checks they agree). */
 export const FASTER_WHISPER_VERSION = "1.2.1";
 /**
  * What pip downloads for it, roughly: PyAV 28 MB, ctranslate2 20 MB, onnxruntime 15 MB, numpy 13 MB, sympy 6 MB,
@@ -103,9 +103,9 @@ async function detectRuntime() {
   const venvPy = venvInterpreter(sttDirs().venv);
   let broken = null;
   if (fs.existsSync(venvPy)) {
-    const p = await probePython({ cmd: venvPy, args: [], label: "Tarsee's faster-whisper" });
+    const p = await probePython({ cmd: venvPy, args: [], label: "Atlas's faster-whisper" });
     if (p.fasterWhisper) return readyFrom(p, "tarsee");
-    broken = "Tarsee's faster-whisper folder is there but doesn't work";
+    broken = "Atlas's faster-whisper folder is there but doesn't work";
   }
   const all = await findPythons();
   const withIt = all.find((p) => p.fasterWhisper);
@@ -219,7 +219,7 @@ function describeJob(j) {
 function begin(kind, model, run) {
   if (_job) {
     if (_job.kind === kind && _job.model === model) return { ...snapshot(), done: _job.done };
-    throw Object.assign(new Error(`Tarsee is already ${describeJob(_job)}. Wait for it to finish, then try again.`), { code: "BUSY", status: 409 });
+    throw Object.assign(new Error(`Atlas is already ${describeJob(_job)}. Wait for it to finish, then try again.`), { code: "BUSY", status: 409 });
   }
   let release;
   try {
@@ -315,7 +315,7 @@ async function installFasterWhisper(update, opts) {
 
   // 2. A private folder for faster-whisper (a venv), made again if an earlier try left it without pip.
   update({ phase: "venv", step: "Making a private folder for faster-whisper", percent: 25 });
-  const venvPy = { cmd: venvInterpreter(dirs.venv), args: [], label: "Tarsee's faster-whisper" };
+  const venvPy = { cmd: venvInterpreter(dirs.venv), args: [], label: "Atlas's faster-whisper" };
   if (!fs.existsSync(venvPy.cmd) || !(await pipWorks(venvPy))) {
     fs.rmSync(dirs.venv, { recursive: true, force: true });
     try {
@@ -454,7 +454,7 @@ export async function getSttStatus({ refresh = false, settingsStore } = {}) {
   const pyMB = Math.round((STANDALONE_PYTHON.approxBytes || 47e6) / 1e6);
   let summary;
   if (state === "ready") {
-    const where = own ? ` (Tarsee's own copy, in ${dirs.venv})` : rt.executable ? ` (${rt.executable})` : "";
+    const where = own ? ` (Atlas's own copy, in ${dirs.venv})` : rt.executable ? ` (${rt.executable})` : "";
     summary = `Ready: faster-whisper ${rt.fasterWhisper} on Python ${rt.version}${where}.`;
   } else if (state === "installing") {
     summary = "Installing faster-whisper…"; // (the step and its progress are the job's)
@@ -465,9 +465,9 @@ export async function getSttStatus({ refresh = false, settingsStore } = {}) {
   } else if (rt.custom) {
     summary = `Not ready: ${rt.problem}.`;
   } else if (rt.base) {
-    summary = `Not installed. Install sets faster-whisper up in Tarsee's own folder, using Python ${rt.base.version}${rt.base.executable ? ` (${rt.base.executable})` : ""}: about ${APPROX_PACKAGES_MB} MB to download.`;
+    summary = `Not installed. Install sets faster-whisper up in Atlas's own folder, using Python ${rt.base.version}${rt.base.executable ? ` (${rt.base.executable})` : ""}: about ${APPROX_PACKAGES_MB} MB to download.`;
   } else {
-    summary = `Not installed, and there is no Python on this computer. Install downloads Tarsee's own copy of Python (about ${pyMB} MB) and faster-whisper (about ${APPROX_PACKAGES_MB} MB) into Tarsee's folder.`;
+    summary = `Not installed, and there is no Python on this computer. Install downloads Atlas's own copy of Python (about ${pyMB} MB) and faster-whisper (about ${APPROX_PACKAGES_MB} MB) into Atlas's folder.`;
   }
 
   return {

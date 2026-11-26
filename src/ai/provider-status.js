@@ -47,7 +47,7 @@ export const PROVIDER_STATES = Object.freeze([
 /** How long a balance read from OpenRouter or DeepSeek is trusted before it is read again. */
 export const BALANCE_TTL_MS = 10 * 60 * 1000;
 
-/** The providers whose balance Tarsee reads (OpenRouter's key limit, DeepSeek's prepaid balance). */
+/** The providers whose balance Atlas reads (OpenRouter's key limit, DeepSeek's prepaid balance). */
 export const BALANCE_PROVIDERS = Object.freeze(["openrouter", "deepseek"]);
 
 // --- Small readers -------------------------------------------------------------------------------------------------
@@ -148,7 +148,7 @@ export function savedKeyProviders(store) {
 /** Plain words for where a credential came from. */
 export function keySourceText(source, { encrypted = true, provider = null } = {}) {
   if (!source) return null;
-  if (source === "settings") return encrypted ? "Saved in Tarsee (encrypted)" : "Saved in Tarsee (not encrypted: set ENCRYPTION_KEY)";
+  if (source === "settings") return encrypted ? "Saved in Atlas (encrypted)" : "Saved in Atlas (not encrypted: set ENCRYPTION_KEY)";
   if (source.startsWith("env:")) return `Railway variable ${source.slice(4)}`;
   if (source === "sign-in") return provider === "chatgpt" ? "Signed in with ChatGPT" : "Signed in with claude auth login";
   return source;
@@ -242,7 +242,7 @@ function result(p, state, { detail, fix = null, cred = null, account = null, bal
 function unknownProvider(idOrAlias) {
   return {
     id: String(idOrAlias ?? ""), label: String(idOrAlias ?? ""), kind: null, state: "error", ready: false,
-    detail: `Tarsee doesn't know an AI called "${idOrAlias}".`, fix: null,
+    detail: `Atlas doesn't know an AI called "${idOrAlias}".`, fix: null,
     keySource: null, keyHint: null, keySourceText: null, account: null, balance: null,
   };
 }
@@ -413,7 +413,7 @@ export function credentialPresence(idOrAlias, deps = {}) {
   }
 
   if (!cred.key) return result(p, "needs-key", { ...needsKey(p), cred: safeCred });
-  const from = cred.source === "settings" ? `Key saved in Tarsee (${cred.hint})` : `Key from the Railway variable ${cred.source.slice(4)} (${cred.hint})`;
+  const from = cred.source === "settings" ? `Key saved in Atlas (${cred.hint})` : `Key from the Railway variable ${cred.source.slice(4)} (${cred.hint})`;
   return result(p, "ready", { detail: `${from}.`, cred: safeCred, encrypted });
 }
 
@@ -441,7 +441,7 @@ export async function providerStatus(idOrAlias, deps = {}) {
       // Test button passes loginCli so `codex login status` itself confirms it.
       login = normalizeLogin(await (deps.loginStatus || defaultLoginStatus)({ codexHome, cli: deps.loginCli === true }));
     } catch (err) {
-      return result(p, "error", { detail: `Tarsee couldn't check the ChatGPT sign-in: ${err?.message || err}`, fix: "Try again in a moment; if it keeps failing, sign in again in Settings > AI." });
+      return result(p, "error", { detail: `Atlas couldn't check the ChatGPT sign-in: ${err?.message || err}`, fix: "Try again in a moment; if it keeps failing, sign in again in Settings > AI." });
     }
     if (login.expired) return result(p, "sign-in-expired", { detail: p.errorHints?.auth || "The ChatGPT sign-in has expired.", fix: signInFix(p) });
     if (!login.signedIn) {

@@ -1,11 +1,11 @@
-// The words a channel shows while a tool runs ("⚙️ Sending file…") and when it ends ("✓ File sent"). Tarsee's own
+// The words a channel shows while a tool runs ("⚙️ Sending file…") and when it ends ("✓ File sent"). Atlas's own
 // tools reach the channels as mcp__tarsee__tarsee_*, which used to show raw, and a Windows path showed whole.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { toolStatusLabel, toolDoneLabel } from "../src/lib/tool-status.js";
 
 describe("tool status labels", () => {
-  it("names Tarsee's own tools in words, not as mcp__tarsee__tarsee_*", () => {
+  it("names Atlas's own tools in words, not as mcp__tarsee__tarsee_*", () => {
     assert.equal(toolStatusLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }), "Sending report.pdf…");
     assert.equal(toolDoneLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }), "Sent report.pdf");
     assert.equal(toolDoneLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }, true), "Sending report.pdf failed");

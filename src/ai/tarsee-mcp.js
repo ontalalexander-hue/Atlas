@@ -1,9 +1,9 @@
 /**
- * Tarsee MCP Server
+ * Atlas MCP Server
  *
- * Exposes Tarsee's tools (send_message, schedule_task, remember, etc.)
+ * Exposes Atlas's tools (send_message, schedule_task, remember, etc.)
  * as native MCP tools for Claude Code. This lets Claude directly use
- * Tarsee capabilities without curl/bash workarounds.
+ * Atlas capabilities without curl/bash workarounds.
  *
  * Uses the Agent SDK's in-process MCP server — no separate process needed.
  */
@@ -14,7 +14,7 @@ import { executeTool } from "../lib/tools.js";
 import config from "../config/env.js";
 
 /**
- * Create a Tarsee MCP server with platform tools.
+ * Create a Atlas MCP server with platform tools.
  * @param {object} ctx - Tool execution context { db, settingsStore, channelManager, conversationId }
  * @param {{quiet?: boolean}} [opts] - quiet: no "Creating" log line (the Codex endpoint builds one per turn)
  * @returns {McpSdkServerConfigWithInstance}
@@ -50,7 +50,7 @@ export function createTarseeMcp(ctx, opts = {}) {
         "tarsee_configure_email_channel",
         "Configure the email channel when the user tells you their IMAP/SMTP credentials in chat. Partial-update — only the fields you pass get written; existing values stay. Passwords are stored encrypted. Call this instead of asking the user to open Settings. Infer common provider hosts (Gmail: imap.gmail.com:993 / smtp.gmail.com:465; iCloud: imap.mail.me.com:993 / smtp.mail.me.com:587; Zoho: imap.zoho.com:993 / smtp.zoho.com:465; FastMail: imap.fastmail.com:993 / smtp.fastmail.com:465) from the user's email domain when they don't specify. Outlook.com, Hotmail and Microsoft 365 mailboxes cannot connect this way: Microsoft refuses app passwords for IMAP and requires its own sign-in, so tell the user to use a mailbox from another provider instead of saving one.",
         {
-          tarseeEmailAddress: z.string().optional().describe("The mailbox Tarsee answers at, e.g. 'tarsee@yourcompany.com'"),
+          tarseeEmailAddress: z.string().optional().describe("The mailbox Atlas answers at, e.g. 'tarsee@yourcompany.com'"),
           imap: z.object({
             host: z.string().optional(),
             port: z.number().optional().describe("Default 993"),
@@ -66,9 +66,9 @@ export function createTarseeMcp(ctx, opts = {}) {
             secure: z.boolean().optional(),
           }).optional(),
           allowlistFromAddresses: z.array(z.string()).optional().describe("Only reply to emails from these addresses. Empty = accept from anyone (dev mode — warn the user)."),
-          mentionKeyword: z.string().optional().describe("Without leading @. Default 'tarsee'. Tarsee only replies when the body contains this mention."),
+          mentionKeyword: z.string().optional().describe("Without leading @. Default 'tarsee'. Atlas only replies when the body contains this mention."),
           replyAllMarker: z.string().optional().describe("Subject marker that opts into reply-all. Default '[reply-all]'."),
-          fromName: z.string().optional().describe("Display name on outbound mail. Default 'Tarsee'."),
+          fromName: z.string().optional().describe("Display name on outbound mail. Default 'Atlas'."),
           enabled: z.boolean().optional().describe("Toggle the channel on/off. Leave undefined to preserve current state."),
         },
         async (args) => {
@@ -83,7 +83,7 @@ export function createTarseeMcp(ctx, opts = {}) {
         {
           to: z.union([z.string(), z.array(z.string())]).describe("Primary recipient(s). Single address string or array."),
           cc: z.union([z.string(), z.array(z.string())]).optional().describe("Optional CC recipients"),
-          subject: z.string().describe("Subject line (Tarsee adds 'Re: ' automatically when inReplyTo is set)"),
+          subject: z.string().describe("Subject line (Atlas adds 'Re: ' automatically when inReplyTo is set)"),
           body: z.string().describe("Plain text body"),
           inReplyTo: z.string().optional().describe("Message-ID of the email you're replying to (include angle brackets). Omit for new threads."),
           attachments: z.array(z.string()).optional().describe("Files to attach as real attachments: absolute paths, or paths relative to the workspace. Never paste a file's contents or a folder path into the body instead."),
@@ -159,7 +159,7 @@ export function createTarseeMcp(ctx, opts = {}) {
 
       tool(
         "tarsee_read_file",
-        "Read a Tarsee workspace file (SOUL.md, IDENTITY.md, MEMORY.md, USER.md, etc.) or a daily memory log.",
+        "Read a Atlas workspace file (SOUL.md, IDENTITY.md, MEMORY.md, USER.md, etc.) or a daily memory log.",
         { filename: z.string().describe("Filename to read, e.g. 'MEMORY.md' or 'memory/2026-04-05.md'") },
         async (args) => {
           const result = await executeTool("read_file", args, ctx);
@@ -169,7 +169,7 @@ export function createTarseeMcp(ctx, opts = {}) {
 
       tool(
         "tarsee_write_file",
-        "Write or overwrite a Tarsee workspace file. Use for updating personality, identity, memory, or user notes. HEARTBEAT.md (the heartbeat's checks) and BOOT.md (what runs when Tarsee restarts) can be written too, but what you write there doesn't run until the owner OKs it in Settings > Automation (Let it run; for BOOT.md, Run at each restart): tell the owner so, and never say it is set up or running before then. The same goes for a change made with your own file or shell tools.",
+        "Write or overwrite a Atlas workspace file. Use for updating personality, identity, memory, or user notes. HEARTBEAT.md (the heartbeat's checks) and BOOT.md (what runs when Atlas restarts) can be written too, but what you write there doesn't run until the owner OKs it in Settings > Automation (Let it run; for BOOT.md, Run at each restart): tell the owner so, and never say it is set up or running before then. The same goes for a change made with your own file or shell tools.",
         { filename: z.string().describe("Workspace filename"), content: z.string().describe("Full content to write") },
         async (args) => {
           const result = await executeTool("write_file", args, ctx);
@@ -267,11 +267,11 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       // Without this the agent made channels and webhooks by pulling DISCORD_BOT_TOKEN from the vault and calling
-      // Discord's REST API from Bash: auto mode blocks that as a credential leak, rightly. Tarsee's own logged-in bot
+      // Discord's REST API from Bash: auto mode blocks that as a credential leak, rightly. Atlas's own logged-in bot
       // does it now (src/lib/discord-admin.js). No delete actions.
       tool(
         "tarsee_discord_admin",
-        "Admin jobs in a Discord server the bot is in, done by Tarsee's own logged-in bot: list_channels, create_channel (text, voice or category; public, private for listed people and roles, or with another channel's access), edit_channel (name, topic, category, who can see or do what), create_webhook, list_webhooks. Use it whenever someone asks for a new channel, a private channel, a webhook or a permission change. It replaces any Discord REST call from Bash: never pull DISCORD_BOT_TOKEN from the vault for this, and never put a bot token or a webhook URL in a command.\n\nGET THE GO FIRST for anything that changes a server, following the approval rules in your instructions (AGENTS.md). A new webhook counts as a credential (its URL lets anyone post), so create_webhook needs the owner's go. Put who said go, in their words, in approved_by (it is logged and shows in the server's audit log). If nobody has said go for this exact change, ask instead. list_channels and list_webhooks need no go.\n\nTHE SERVER: guild_id, or channel_id of any channel in it (the one you are answering in works), or nothing when the bot is in one server only.\n\nWEBHOOK URLS ARE SECRETS: create_webhook saves the URL in the vault under save_as_key (e.g. ALERTS_WATCHDOG_WEBHOOK; say what it is for in purpose) and returns only the webhook id, the key name and a masked URL. Scripts and services read it from the vault by that key name. reveal: true puts the full URL in the result: only when the owner asks to see it themselves, never for anything that goes into a chat.\n\nNOTHING HERE DELETES: deleting a channel or a webhook is for the owner to do by hand; say so if asked. If Discord refuses for a missing permission, the error says which one and where: tell the person, do not try another way around it.",
+        "Admin jobs in a Discord server the bot is in, done by Atlas's own logged-in bot: list_channels, create_channel (text, voice or category; public, private for listed people and roles, or with another channel's access), edit_channel (name, topic, category, who can see or do what), create_webhook, list_webhooks. Use it whenever someone asks for a new channel, a private channel, a webhook or a permission change. It replaces any Discord REST call from Bash: never pull DISCORD_BOT_TOKEN from the vault for this, and never put a bot token or a webhook URL in a command.\n\nGET THE GO FIRST for anything that changes a server, following the approval rules in your instructions (AGENTS.md). A new webhook counts as a credential (its URL lets anyone post), so create_webhook needs the owner's go. Put who said go, in their words, in approved_by (it is logged and shows in the server's audit log). If nobody has said go for this exact change, ask instead. list_channels and list_webhooks need no go.\n\nTHE SERVER: guild_id, or channel_id of any channel in it (the one you are answering in works), or nothing when the bot is in one server only.\n\nWEBHOOK URLS ARE SECRETS: create_webhook saves the URL in the vault under save_as_key (e.g. ALERTS_WATCHDOG_WEBHOOK; say what it is for in purpose) and returns only the webhook id, the key name and a masked URL. Scripts and services read it from the vault by that key name. reveal: true puts the full URL in the result: only when the owner asks to see it themselves, never for anything that goes into a chat.\n\nNOTHING HERE DELETES: deleting a channel or a webhook is for the owner to do by hand; say so if asked. If Discord refuses for a missing permission, the error says which one and where: tell the person, do not try another way around it.",
         {
           action: z.enum(["list_channels", "create_channel", "edit_channel", "create_webhook", "list_webhooks"]).describe("What to do"),
           guild_id: z.string().optional().describe("The server's id. Optional: channel_id of any channel in it works too, and with one server neither is needed"),
@@ -309,18 +309,18 @@ export function createTarseeMcp(ctx, opts = {}) {
       ),
 
       // Setting a Railway variable otherwise means a command with the value in it (`railway variables --set`, or
-      // GraphQL with the token), a secret in a command line and a transcript. Tarsee does it with a token from the
+      // GraphQL with the token), a secret in a command line and a transcript. Atlas does it with a token from the
       // vault (lib/railway-admin.js). No delete actions.
       tool(
         "tarsee_railway",
-        "Railway jobs done by Tarsee itself with a Railway token it reads from the vault (RAILWAY_API_TOKEN): list_projects (projects; with project, its environments and services), list_variables (variable NAMES on a service, never values), set_variable (set one variable on a service, then Railway redeploys it as it does on any variable change), redeploy (redeploy a service's latest deployment). Use it whenever someone asks to set a Railway variable or redeploy. It replaces any Railway call from Bash: never put a Railway token or a secret value in a command (no `railway variables --set` with a secret, no GraphQL with a token).\n\nSECRETS GO THROUGH from_key: for anything secret (a token, a password, a webhook URL, a database URL) pass from_key, the vault key name that holds it (e.g. from_key: \"ALERTS_WEBHOOK\"). Tarsee reads the value itself; it never shows up in the result, the logs or your context, only a masked form. value is for plain, non-secret text only (a port, a flag, a public URL); a value that looks like a secret or is a vault key's value is refused.\n\nGET THE GO FIRST for set_variable and redeploy: from the owner, or from whoever your instructions (AGENTS.md, USER.md) say may give it. Putting a secret into a service (from_key) counts as handing out a credential, so it needs the owner's go. Put who said go, in their words, in approved_by (it is logged). If nobody has said go for this exact change, ask instead. list_projects and list_variables need no go.\n\nTARSEE'S OWN SERVICE: when Tarsee runs on Railway, leaving out project works on the project Tarsee runs in, in its environment, on its own service. Redeploying it, or setting a variable on it with a deploy, restarts Tarsee and ends the turn doing it: say so before you do it, and finish anything else first.\n\nNAMES OR IDS: project, environment (default: the one Tarsee runs in, else production) and service each take a name (any case) or an id. A name that matches nothing, or more than one, is refused with the choices listed.\n\nNOTHING HERE DELETES: deleting a variable, a service or a project is for the owner to do by hand in Railway; say so if asked. If Railway refuses, the error says why in plain words: tell the person, do not try another way around it.",
+        "Railway jobs done by Atlas itself with a Railway token it reads from the vault (RAILWAY_API_TOKEN): list_projects (projects; with project, its environments and services), list_variables (variable NAMES on a service, never values), set_variable (set one variable on a service, then Railway redeploys it as it does on any variable change), redeploy (redeploy a service's latest deployment). Use it whenever someone asks to set a Railway variable or redeploy. It replaces any Railway call from Bash: never put a Railway token or a secret value in a command (no `railway variables --set` with a secret, no GraphQL with a token).\n\nSECRETS GO THROUGH from_key: for anything secret (a token, a password, a webhook URL, a database URL) pass from_key, the vault key name that holds it (e.g. from_key: \"ALERTS_WEBHOOK\"). Atlas reads the value itself; it never shows up in the result, the logs or your context, only a masked form. value is for plain, non-secret text only (a port, a flag, a public URL); a value that looks like a secret or is a vault key's value is refused.\n\nGET THE GO FIRST for set_variable and redeploy: from the owner, or from whoever your instructions (AGENTS.md, USER.md) say may give it. Putting a secret into a service (from_key) counts as handing out a credential, so it needs the owner's go. Put who said go, in their words, in approved_by (it is logged). If nobody has said go for this exact change, ask instead. list_projects and list_variables need no go.\n\nTARSEE'S OWN SERVICE: when Atlas runs on Railway, leaving out project works on the project Atlas runs in, in its environment, on its own service. Redeploying it, or setting a variable on it with a deploy, restarts Atlas and ends the turn doing it: say so before you do it, and finish anything else first.\n\nNAMES OR IDS: project, environment (default: the one Atlas runs in, else production) and service each take a name (any case) or an id. A name that matches nothing, or more than one, is refused with the choices listed.\n\nNOTHING HERE DELETES: deleting a variable, a service or a project is for the owner to do by hand in Railway; say so if asked. If Railway refuses, the error says why in plain words: tell the person, do not try another way around it.",
         {
           action: z.enum(["list_projects", "list_variables", "set_variable", "redeploy"]).describe("What to do"),
-          project: z.string().optional().describe("The project's name (any case) or id. Leave it out for the project Tarsee runs in (on Railway); list_projects without it lists them all"),
-          environment: z.string().optional().describe("The environment's name or id (default: the one Tarsee runs in, else production)"),
-          service: z.string().optional().describe("list_variables, set_variable, redeploy: the service's name or id (default in Tarsee's own project: Tarsee's own service)"),
+          project: z.string().optional().describe("The project's name (any case) or id. Leave it out for the project Atlas runs in (on Railway); list_projects without it lists them all"),
+          environment: z.string().optional().describe("The environment's name or id (default: the one Atlas runs in, else production)"),
+          service: z.string().optional().describe("list_variables, set_variable, redeploy: the service's name or id (default in Atlas's own project: Atlas's own service)"),
           name: z.string().optional().describe("set_variable: the variable's name, e.g. ALERTS_WEBHOOK_URL"),
-          from_key: z.string().optional().describe("set_variable: the vault key whose value to set, for anything secret. The value is read by Tarsee and never shown"),
+          from_key: z.string().optional().describe("set_variable: the vault key whose value to set, for anything secret. The value is read by Atlas and never shown"),
           value: z.string().optional().describe("set_variable: a plain, NON-SECRET value. Anything secret goes in the vault and through from_key instead. Pass from_key or value, not both"),
           deploy: z.boolean().optional().describe("set_variable: true (default) lets Railway redeploy the service as it normally does on a variable change; false sets it without a deploy (it takes effect on the next one)"),
           approved_by: z.string().optional().describe("Required for set_variable and redeploy: who said go and for what, e.g. \"the owner in chat: put the alerts webhook on the worker service\""),
@@ -444,7 +444,7 @@ export function createTarseeMcp(ctx, opts = {}) {
 
       tool(
         "tarsee_list_files",
-        "List all Tarsee workspace files and their sizes.",
+        "List all Atlas workspace files and their sizes.",
         {},
         async () => {
           const result = await executeTool("list_files", {}, ctx);
@@ -471,7 +471,7 @@ export function createTarseeMcp(ctx, opts = {}) {
   ];
 
   // (Quiet for the Codex endpoint, ai/mcp-http.js, which builds one per turn and logs its own start once.)
-  if (!opts.quiet) console.log(`[mcp] Creating Tarsee MCP server: ${allTools.length} tools, names: ${allTools.map(t => t.name).join(", ")}`);
+  if (!opts.quiet) console.log(`[mcp] Creating Atlas MCP server: ${allTools.length} tools, names: ${allTools.map(t => t.name).join(", ")}`);
   // (A result past TARSEE_TOOL_RESULT_MAX_CHARS goes to a file, by Claude Code itself: ai/context-limits.js.)
   return createSdkMcpServer({ name: "tarsee", version: "1.0.0", tools: allTools });
 }

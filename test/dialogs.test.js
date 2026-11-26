@@ -1,4 +1,4 @@
-// Tarsee's own questions (src/public/js/dialogs.js), in place of the browser's confirm() and prompt(): the parts that
+// Atlas's own questions (src/public/js/dialogs.js), in place of the browser's confirm() and prompt(): the parts that
 // need no page (TarseeDialog.core), and how the dashboard loads it. What it looks like and does on a page is checked in
 // a browser.
 import { describe, it } from "node:test";
@@ -40,8 +40,8 @@ describe("dialogs: the words of a question", () => {
     assert.equal(q.yes, "OK");
     assert.equal(q.no, "Cancel");
     assert.equal(q.danger, false);
-    const named = questionOf("yesno", { title: " Sign out of Tarsee on this device? ", yes: "Sign out", no: "Cancel", danger: 1 });
-    assert.equal(named.title, "Sign out of Tarsee on this device?");
+    const named = questionOf("yesno", { title: " Sign out of Atlas on this device? ", yes: "Sign out", no: "Cancel", danger: 1 });
+    assert.equal(named.title, "Sign out of Atlas on this device?");
     assert.equal(named.yes, "Sign out");
     assert.equal(named.danger, true);
     assert.equal(questionOf("yesno", "Just words?").title, "Just words?", "a bare string is the title");

@@ -363,7 +363,7 @@ describe("Token Health per provider", () => {
 });
 
 describe("the tool registry (Settings > Security)", () => {
-  it("lists every Tarsee tool once by its Tool Permissions name, with the name the agent calls it by", () => {
+  it("lists every Atlas tool once by its Tool Permissions name, with the name the agent calls it by", () => {
     const toolDefs = [
       { name: "pdf_read", description: "Extract text from a PDF file. Returns the text." },
       { name: "exec", description: "Run a shell command." },

@@ -309,10 +309,10 @@ describe("/auto, /status and /version name the AI and the model", () => {
     assert.match(out, /Codex \d+\.\d+\.\d+/);
   });
 
-  it("/version shows Tarsee, the AI and both engines", async () => {
+  it("/version shows Atlas, the AI and both engines", async () => {
     settings.set("ai.activeProvider", "chatgpt");
     const out = await run("/version");
-    assert.match(out, /\*\*Tarsee\*\* v\d+\.\d+\.\d+/);
+    assert.match(out, /\*\*Atlas\*\* v\d+\.\d+\.\d+/);
     assert.match(out, /ChatGPT plan · GPT-6 Luna/);
     assert.match(out, /Claude Code \d+\.\d+\.\d+/);
     assert.match(out, /Codex \d+\.\d+\.\d+/);

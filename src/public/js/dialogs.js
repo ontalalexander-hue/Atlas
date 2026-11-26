@@ -1,5 +1,5 @@
 /**
- * Tarsee's own questions, in place of the browser's: a yes or no (for confirm()) and a line of text (for prompt()).
+ * Atlas's own questions, in place of the browser's: a yes or no (for confirm()) and a line of text (for prompt()).
  * The browser's boxes are headed with the site's address, cannot be styled, and block the whole tab;
  * test/no-native-dialogs.test.js keeps them out of src/public.
  *

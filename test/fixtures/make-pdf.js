@@ -1,5 +1,5 @@
 // Small, valid PDFs built in the test itself, so the PDF tests need no binary fixtures. Each one has a real
-// cross-reference table (or, with objStm, a cross-reference stream), so pdftotext reads them as well as Tarsee's
+// cross-reference table (or, with objStm, a cross-reference stream), so pdftotext reads them as well as Atlas's
 // built-in reader does.
 //
 //   makePdf({ pages: ["Line one\nLine two", "Page two"] })            plain Helvetica text, one string per page

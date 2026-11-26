@@ -1,5 +1,5 @@
 /**
- * Event-driven hook system for Tarsee.
+ * Event-driven hook system for Atlas.
  * Allows registering handlers for various lifecycle events.
  */
 

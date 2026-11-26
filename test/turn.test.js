@@ -580,7 +580,7 @@ describe("refusals: one text, an error and a done, and the engine never starts",
     assert.equal(doneOf(plan)[0].stopReason, "end_turn", "a plan has no per-message cost");
   });
 
-  it("a provider Tarsee doesn't know", async () => {
+  it("a provider Atlas doesn't know", async () => {
     const events = await collect(runTurn({ provider: "nonsense", messages: [user("hi")], toolCtx: ctxFor(newChat()) }));
     refused(events, "not-ready");
   });
@@ -1085,7 +1085,7 @@ describe("the web chat route (routes/chat.js) through the router", () => {
     const list = await (await fetch(`${base}/models`)).json();
     assert.ok(Array.isArray(list.groups), `one group per ready AI: ${Object.keys(list)}`);
     assert.ok(list.groups.some((g) => g.provider === "deepseek"), "DeepSeek has a key, so it is listed");
-    assert.ok(Array.isArray(list.models), "Tarsee's Claude table for Settings is still there");
+    assert.ok(Array.isArray(list.models), "Atlas's Claude table for Settings is still there");
     const conv = newChat("web");
     const put = await fetch(`${base}/conversations/${conv}/picker`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: "deepseek:deepseek-v4-pro", effort: "high" }) });
     const putBody = await put.json();
@@ -1116,7 +1116,7 @@ describe("the web chat route (routes/chat.js) through the router", () => {
   });
 
   it("a voice call's message: the mark comes off, the AI is told it is on a call, no thinking summaries, the chat keeps its name", async () => {
-    const conv = newChat("Calls with Tarsee");
+    const conv = newChat("Calls with Atlas");
     const res = await fetch(`${base}/send`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ conversationId: conv, message: "[call] what's on today" }) });
     assert.equal(res.status, 200);
     await res.text();
@@ -1125,7 +1125,7 @@ describe("the web chat route (routes/chat.js) through the router", () => {
     assert.match(ran.systemParts.volatile, /\[LIVE CALL\]/);
     assert.match(ran.prompt, /^what's on today\n\n\(On a voice call: /, "the reminder rides on the message");
     assert.deepEqual(convs.getMessages(conv).filter((m) => m.role === "user").map((m) => m.content), ["what's on today"], "saved without the mark");
-    assert.equal(convs.get(conv).title, "Calls with Tarsee");
+    assert.equal(convs.get(conv).title, "Calls with Atlas");
 
     // An ordinary message in the same chat is not a call's.
     useEngines();
@@ -1137,7 +1137,7 @@ describe("the web chat route (routes/chat.js) through the router", () => {
   it("a call's deep ask (model \"top\") runs that one turn on the call AI's top tier", async () => {
     settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
     settings.set("ai.activeProvider", "deepseek");
-    const conv = newChat("Calls with Tarsee");
+    const conv = newChat("Calls with Atlas");
     const res = await fetch(`${base}/send`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ conversationId: conv, message: "[call] think hard about my week", model: "top" }) });
     const picked = sse(await res.text()).find((e) => e.event === "model_selected").data;
     assert.equal(picked.provider, "deepseek");

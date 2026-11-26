@@ -1,12 +1,12 @@
 // OpenRouter's model catalog (src/lib/openrouter-catalog.js), design 4.11 and Phase 4.
 //   - The list comes from OpenRouter's public GET /api/v1/models: no key is ever sent with it.
-//   - Only models Tarsee can run are kept: tool use (supported_parameters), a chat endpoint one of the engines speaks
+//   - Only models Atlas can run are kept: tool use (supported_parameters), a chat endpoint one of the engines speaks
 //     (Claude Code: /api/v1/messages, Codex: /api/v1/responses; ":batch" copies only take batches), a price that can be
 //     shown (routers that pick a different model per request list -1), and not retired.
 //   - Prices, context, vision, Free (":free") and the reasoning levels each model lists become the picker's rows.
 //   - It is cached for 6 hours in the cache.openrouter.models setting and fed to the provider registry.
 //   - The picker has three sections: Recommended, Verified by you, All models (searchable; a row is selectable once
-//     Tarsee knows which engine runs it).
+//     Atlas knows which engine runs it).
 // test/fixtures/openrouter-models.json is a real response of that public endpoint, recorded 2026-11-09 and trimmed to
 // 43 of its 461 entries (each kept entry is verbatim), chosen to cover every rule above.
 import { describe, it, before, after, beforeEach } from "node:test";
@@ -81,7 +81,7 @@ after(() => {
 describe("OpenRouter catalog: which models are kept", () => {
   const rows = parseOpenRouterModels(BODY, { now: NOW });
 
-  it("keeps the 36 models Tarsee can run out of the 43 recorded", () => {
+  it("keeps the 36 models Atlas can run out of the 43 recorded", () => {
     assert.equal(BODY.data.length, 43);
     assert.equal(rows.length, 36);
   });
@@ -160,9 +160,9 @@ describe("OpenRouter catalog: what each row says", () => {
     assert.equal(byId(rows, "google/gemini-4-argon").pdf, false);
   });
 
-  it("shows the reasoning levels each model lists as Tarsee's effort levels, lowest first", () => {
+  it("shows the reasoning levels each model lists as Atlas's effort levels, lowest first", () => {
     assert.deepEqual(byId(rows, "anthropic/claude-sonnet-5.5").reasoning.efforts, EFFORT_IDS);
-    // "none" and "minimal" are not levels Tarsee offers.
+    // "none" and "minimal" are not levels Atlas offers.
     assert.deepEqual(byId(rows, "openai/gpt-6-luna").reasoning.efforts, EFFORT_IDS);
     assert.deepEqual(byId(rows, "z-ai/glm-5.3").reasoning.efforts, ["low", "high", "max"]);
     assert.deepEqual(byId(rows, "deepseek/deepseek-v4-pro").reasoning.efforts, ["high", "xhigh"]);
@@ -350,7 +350,7 @@ describe("OpenRouter picker sections", () => {
     assert.equal(byId(all, "google/gemma-4-31b-it:free").priceLabel, "Free");
   });
 
-  it("makes a model selectable only once Tarsee knows its engine: Anthropic and OpenAI now, any other maker after Verify", () => {
+  it("makes a model selectable only once Atlas knows its engine: Anthropic and OpenAI now, any other maker after Verify", () => {
     const all = section(openRouterSections(freshStore()), "all").models;
     assert.equal(byId(all, "anthropic/claude-opus-5.5").selectable, true);
     assert.equal(byId(all, "openai/gpt-6.1-sol").selectable, true);

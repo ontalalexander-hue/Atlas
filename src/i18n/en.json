@@ -1,5 +1,5 @@
 {
-  "app.name": "Tarsee",
+  "app.name": "Atlas",
   "app.tagline": "Your AI Assistant",
   "status.running": "Running",
   "status.stopped": "Stopped",
@@ -43,7 +43,7 @@
   "audit.credential_delete": "API key removed",
   "security.encryption_enabled": "Credential encryption enabled",
   "security.encryption_disabled": "Credential encryption disabled",
-  "boot.starting": "Starting Tarsee...",
-  "boot.ready": "Tarsee is ready",
+  "boot.starting": "Starting Atlas...",
+  "boot.ready": "Atlas is ready",
   "boot.shutdown": "Shutting down..."
 }
