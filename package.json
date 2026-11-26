@@ -9,7 +9,7 @@
     "url": "https://github.com/ontalalexander-hue/Atlas/issues"
   },
   "bin": {
-    "tarsee": "./src/cli/index.js"
+    "atlas": "./src/cli/index.js"
   },
   "type": "module",
   "description": "Atlas — AI Gateway & Chat Platform with voice calls, multi-provider support, and channel integrations",

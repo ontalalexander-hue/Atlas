@@ -1,32 +1,32 @@
 // The words a channel shows while a tool runs ("⚙️ Sending file…") and when it ends ("✓ File sent"). Atlas's own
-// tools reach the channels as mcp__tarsee__tarsee_*, which used to show raw, and a Windows path showed whole.
+// tools reach the channels as mcp__atlas__atlas_*, which used to show raw, and a Windows path showed whole.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { toolStatusLabel, toolDoneLabel } from "../src/lib/tool-status.js";
 
 describe("tool status labels", () => {
-  it("names Atlas's own tools in words, not as mcp__tarsee__tarsee_*", () => {
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }), "Sending report.pdf…");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }), "Sent report.pdf");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_send_file", { file_path: "/data/report.pdf" }, true), "Sending report.pdf failed");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_send_message", {}), "Sending a message…");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_send_message", {}), "Message sent");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_web_search", { query: "secret plans" }), "Web searching…");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_web_fetch", { url: "https://x.test/?token=abc" }), "Fetching URL…");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_remember", { content: "x" }), "Saving a memory…");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_remember", {}), "Memory saved");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_search_memories_deep", {}), "Searching memories…");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_read_file", { filename: "memory/2026-04-05.md" }), "Reading 2026-04-05.md…");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_write_file", { filename: "MEMORY.md" }), "Wrote MEMORY.md");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_schedule_task", {}), "Scheduling a task…");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_browser", {}), "Using the browser…");
+  it("names Atlas's own tools in words, not as mcp__atlas__atlas_*", () => {
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_send_file", { file_path: "/data/report.pdf" }), "Sending report.pdf…");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_send_file", { file_path: "/data/report.pdf" }), "Sent report.pdf");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_send_file", { file_path: "/data/report.pdf" }, true), "Sending report.pdf failed");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_send_message", {}), "Sending a message…");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_send_message", {}), "Message sent");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_web_search", { query: "secret plans" }), "Web searching…");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_web_fetch", { url: "https://x.test/?token=abc" }), "Fetching URL…");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_remember", { content: "x" }), "Saving a memory…");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_remember", {}), "Memory saved");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_search_memories_deep", {}), "Searching memories…");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_read_file", { filename: "memory/2026-04-05.md" }), "Reading 2026-04-05.md…");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_write_file", { filename: "MEMORY.md" }), "Wrote MEMORY.md");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_schedule_task", {}), "Scheduling a task…");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_browser", {}), "Using the browser…");
   });
 
   it("never shows a key's name or value", () => {
-    for (const name of ["tarsee_get_key", "tarsee_set_key", "tarsee_delete_key", "tarsee_list_keys"]) {
+    for (const name of ["atlas_get_key", "atlas_set_key", "atlas_delete_key", "atlas_list_keys"]) {
       const input = { key: "STRIPE_SECRET", value: "sk_live_123" };
-      for (const label of [toolStatusLabel(`mcp__tarsee__${name}`, input), toolDoneLabel(`mcp__tarsee__${name}`, input), toolDoneLabel(`mcp__tarsee__${name}`, input, true)]) {
-        assert.ok(!/STRIPE|sk_live|mcp__|tarsee_/.test(label), `${name}: ${label}`);
+      for (const label of [toolStatusLabel(`mcp__atlas__${name}`, input), toolDoneLabel(`mcp__atlas__${name}`, input), toolDoneLabel(`mcp__atlas__${name}`, input, true)]) {
+        assert.ok(!/STRIPE|sk_live|mcp__|atlas_/.test(label), `${name}: ${label}`);
       }
     }
   });
@@ -40,16 +40,16 @@ describe("tool status labels", () => {
   it("shortens a Windows path to its file name too", () => {
     assert.equal(toolStatusLabel("Write", { file_path: "C:\\Users\\me\\workspace\\notes.txt" }), "Writing notes.txt…");
     assert.equal(toolDoneLabel("Read", { file_path: "C:\\Users\\me\\workspace\\notes.txt" }), "Read notes.txt");
-    assert.equal(toolStatusLabel("Edit", { file_path: "/data/tarsee/workspace/SOUL.md" }), "Editing SOUL.md…");
+    assert.equal(toolStatusLabel("Edit", { file_path: "/data/atlas/workspace/SOUL.md" }), "Editing SOUL.md…");
   });
 
   it("reads a PDF by its file name, and never shows a web address's query or the rest of its path", () => {
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_pdf_read", { path: "docs/q3 report.pdf" }), "Reading q3 report.pdf…");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_pdf_read", { path: "C:\\work\\deck.pdf" }), "Read deck.pdf");
-    assert.equal(toolDoneLabel("mcp__tarsee__tarsee_pdf_read", { path: "deck.pdf" }, true), "Reading deck.pdf failed");
-    const web = toolStatusLabel("mcp__tarsee__tarsee_pdf_read", { path: "https://files.example.com/private/a.pdf?token=sk-test-canary-123#p2" });
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_pdf_read", { path: "docs/q3 report.pdf" }), "Reading q3 report.pdf…");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_pdf_read", { path: "C:\\work\\deck.pdf" }), "Read deck.pdf");
+    assert.equal(toolDoneLabel("mcp__atlas__atlas_pdf_read", { path: "deck.pdf" }, true), "Reading deck.pdf failed");
+    const web = toolStatusLabel("mcp__atlas__atlas_pdf_read", { path: "https://files.example.com/private/a.pdf?token=sk-test-canary-123#p2" });
     assert.equal(web, "Reading a.pdf…");
-    assert.equal(toolStatusLabel("mcp__tarsee__tarsee_pdf_read", { source: "old/arg.pdf" }), "Reading arg.pdf…", "the old source argument too");
+    assert.equal(toolStatusLabel("mcp__atlas__atlas_pdf_read", { source: "old/arg.pdf" }), "Reading arg.pdf…", "the old source argument too");
   });
 
   it("keeps the built-in tools' words", () => {

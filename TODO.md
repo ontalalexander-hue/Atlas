@@ -78,7 +78,7 @@ Everything below is buildable with the current stack (Node.js, SQLite, Claude Ag
 Full security / a11y / UX audit consolidated into one branch. Highlights:
 
 - **Security:** token stopped leaking in login response; webhook GET now auth-gated; webhook tokens no longer accepted via query string; attachment size capped; concurrent send-same-conversation race fixed.
-- **Deploy:** `.dockerignore` added; HEALTHCHECK baked into image; Railway healthcheckTimeout dropped from 300s to 60s; Claude Code CLI auto-update is opt-in (`TARSEE_AUTO_UPDATE_CLI=1`).
+- **Deploy:** `.dockerignore` added; HEALTHCHECK baked into image; Railway healthcheckTimeout dropped from 300s to 60s; Claude Code CLI auto-update is opt-in (`ATLAS_AUTO_UPDATE_CLI=1`).
 - **Backup/Restore:** `/api/admin/backup` streams a consistent snapshot; `/api/admin/restore` validates the SQLite header and stages the file on the volume.
 - **A11y:** chat stream is now a live region; textarea has a real `<label>`; topbar icons have `aria-label`; welcome cards and voice orb are keyboard-activated; `--text-muted` lightened to pass WCAG AA.
 - **Touch targets:** every icon button now ≥44×44.

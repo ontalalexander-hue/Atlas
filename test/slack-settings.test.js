@@ -7,17 +7,17 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-slack-settings-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-slack-settings-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-key-for-unit-tests-only-32chars!";
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { settingsRouter } = await import("../src/routes/settings.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const calls = [];
 const channelManager = {
@@ -107,7 +107,7 @@ describe("the Slack app manifest", () => {
     for (const ev of ["message.im", "message.channels", "message.groups", "message.mpim", "agent_session_stopped"]) {
       assert.match(yml, new RegExp(`- ${ev.replace(".", "\\.")}\\b`), ev);
     }
-    assert.match(yml, /command: \/tarsee/);
+    assert.match(yml, /command: \/atlas/);
     assert.ok(!/chat:write\.public/.test(yml), "no posting in channels it is not in: it could not read the replies there");
   });
 });

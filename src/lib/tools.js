@@ -1212,11 +1212,11 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         // Email needs an explicit target — the threadKey stored under
         // channel_conv.email:<threadKey> is a Message-ID, not an address,
         // and we don't want to guess which recipient to reach. Require
-        // channel_id for email; suggest tarsee_send_email_thread for
+        // channel_id for email; suggest atlas_send_email_thread for
         // full thread control.
         if (channel === "email") {
           if (!channel_id) {
-            return "send_message to email requires channel_id = target email address. For threaded outbound (with In-Reply-To), use tarsee_send_email_thread instead.";
+            return "send_message to email requires channel_id = target email address. For threaded outbound (with In-Reply-To), use atlas_send_email_thread instead.";
           }
           if (!ctx.channelManager) return "send_message error: channel manager unavailable";
           try {
@@ -1822,10 +1822,10 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         const input = toolInput || {};
         const merged = {
           enabled: input.enabled !== undefined ? !!input.enabled : (prev.enabled ?? false),
-          tarseeEmailAddress: input.tarseeEmailAddress ?? prev.tarseeEmailAddress ?? (input.imap?.user ?? prev.imap?.user ?? ""),
+          atlasEmailAddress: input.atlasEmailAddress ?? prev.atlasEmailAddress ?? (input.imap?.user ?? prev.imap?.user ?? ""),
           fromName: input.fromName ?? prev.fromName ?? "Atlas",
           defaultSubject: input.defaultSubject ?? prev.defaultSubject ?? "Atlas",
-          mentionKeyword: input.mentionKeyword ?? prev.mentionKeyword ?? "tarsee",
+          mentionKeyword: input.mentionKeyword ?? prev.mentionKeyword ?? "atlas",
           replyAllMarker: input.replyAllMarker ?? prev.replyAllMarker ?? "[reply-all]",
           allowlistFromAddresses: Array.isArray(input.allowlistFromAddresses)
             ? input.allowlistFromAddresses
@@ -1864,7 +1864,7 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
           : "empty — WARNING: allows any sender";
         return [
           "✓ Email channel configured:",
-          `  Mailbox:     ${merged.tarseeEmailAddress || "(not set)"}`,
+          `  Mailbox:     ${merged.atlasEmailAddress || "(not set)"}`,
           `  IMAP:        ${merged.imap.host || "(not set)"}:${merged.imap.port} as ${merged.imap.user || "(not set)"} (password ${maskPw(merged.imap.password)})`,
           `  SMTP:        ${merged.smtp.host || "(not set)"}:${merged.smtp.port} as ${merged.smtp.user || "(not set)"} (password ${maskPw(merged.smtp.password)})`,
           `  Mention:     @${merged.mentionKeyword}`,
@@ -1887,7 +1887,7 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         if (!ctx.channelManager) return "send_email_thread error: channel manager unavailable";
         const emailChannel = ctx.channelManager.channels?.get?.("email");
         if (!emailChannel?.bot?.sendNew) {
-          return "send_email_thread error: email channel not running. Configure it in Settings > Channels > Email or via tarsee_configure_email_channel.";
+          return "send_email_thread error: email channel not running. Configure it in Settings > Channels > Email or via atlas_configure_email_channel.";
         }
         try {
           const { messageId, attachmentCount } = await emailChannel.bot.sendNew({ to, cc, subject, body, inReplyTo, attachments });

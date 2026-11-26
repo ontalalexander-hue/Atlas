@@ -1,5 +1,5 @@
 // What a turn leaves behind when the server stops in the middle of it (a redeploy, Ctrl+C, a crash, `node --watch`
-// restarting): a Codex turn's copies of the person's pictures (<system temp>/tarsee-codex/tarsee-images-*) and a
+// restarting): a Codex turn's copies of the person's pictures (<system temp>/atlas-codex/atlas-images-*) and a
 // Verify's workspace (<state>/verify/<provider>-*). Their turn's own clean-up never ran, so the server sweeps them once
 // at boot (lib/turn-leftovers.js). Only what is over an hour old goes: a turn another Atlas sharing the folders is
 // running right now is never touched, and nothing else in those folders is.
@@ -12,7 +12,7 @@ import { spawn } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { sweepTurnLeftovers, CODEX_IMAGE_DIR } from "../src/lib/turn-leftovers.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-leftovers-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-leftovers-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 const HOUR = 3_600_000;
@@ -31,10 +31,10 @@ describe("a stopped turn's leftovers, swept at boot", () => {
   it("removes pictures and Verify workspaces over an hour old; keeps newer ones and anything else", () => {
     const tmpDir = path.join(tmp, "system-temp");
     const stateDir = path.join(tmp, "state");
-    const images = path.join(tmpDir, "tarsee-codex");
+    const images = path.join(tmpDir, "atlas-codex");
     const verify = path.join(stateDir, "verify");
-    const oldPics = folder(images, "tarsee-images-aaaaaa", 2 * HOUR);
-    const newPics = folder(images, "tarsee-images-bbbbbb", 10 * 60_000);
+    const oldPics = folder(images, "atlas-images-aaaaaa", 2 * HOUR);
+    const newPics = folder(images, "atlas-images-bbbbbb", 10 * 60_000);
     const otherOld = folder(images, "someone-elses", 5 * HOUR);
     const oldCheck = folder(verify, "deepseek-cccccc", 3 * HOUR, "notes.txt");
     const newCheck = folder(verify, "openrouter-dddddd", 5 * 60_000, "notes.txt");
@@ -43,7 +43,7 @@ describe("a stopped turn's leftovers, swept at boot", () => {
     assert.ok(!fs.existsSync(oldPics) && !fs.existsSync(oldCheck));
     assert.ok(fs.existsSync(newPics), "a picture turn running now stays");
     assert.ok(fs.existsSync(newCheck), "a Verify running now stays");
-    assert.ok(fs.existsSync(otherOld), "only tarsee-images-* in the pictures folder");
+    assert.ok(fs.existsSync(otherOld), "only atlas-images-* in the pictures folder");
 
     assert.deepEqual(sweepTurnLeftovers({ tmpDir, stateDir, now: NOW + 2 * HOUR }), { pictures: 1, verify: 1 }, "the rest once they're old");
   });
@@ -54,9 +54,9 @@ describe("a stopped turn's leftovers, swept at boot", () => {
   });
 
   it("the pictures folder is the one the Codex engine writes to", () => {
-    assert.equal(CODEX_IMAGE_DIR, path.join(os.tmpdir(), "tarsee-codex"));
+    assert.equal(CODEX_IMAGE_DIR, path.join(os.tmpdir(), "atlas-codex"));
     const engine = fs.readFileSync(new URL("../src/ai/providers/codex.js", import.meta.url), "utf8");
-    assert.ok(/path\.join\(os\.tmpdir\(\), "tarsee-codex"\)|CODEX_IMAGE_DIR/.test(engine), "codex.js writes pictures under <system temp>/tarsee-codex");
+    assert.ok(/path\.join\(os\.tmpdir\(\), "atlas-codex"\)|CODEX_IMAGE_DIR/.test(engine), "codex.js writes pictures under <system temp>/atlas-codex");
   });
 });
 
@@ -64,8 +64,8 @@ describe("a stopped turn's leftovers, swept at boot", () => {
 // so each module also cleans up on the process's exit: the Codex turn's pictures and its codex process (and whatever
 // that started), and a Verify's workspace. Each case runs in a child Node that exits while the turn is waiting.
 const CHILD_ENV = (dir) => {
-  const env = { ...process.env, TEMP: dir, TMP: dir, TMPDIR: dir, TARSEE_STATE_DIR: path.join(dir, "state"),
-    TARSEE_WORKSPACE_DIR: path.join(dir, "workspace"), TARSEE_DATA_DIR: path.join(dir, "data"), NODE_ENV: "test" };
+  const env = { ...process.env, TEMP: dir, TMP: dir, TMPDIR: dir, ATLAS_STATE_DIR: path.join(dir, "state"),
+    ATLAS_WORKSPACE_DIR: path.join(dir, "workspace"), ATLAS_DATA_DIR: path.join(dir, "data"), NODE_ENV: "test" };
   for (const k of ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY"]) delete env[k];
   return env;
 };
@@ -126,7 +126,7 @@ const t = setInterval(() => { if (fs.existsSync(path.join(dir, "pictures.json"))
     assert.equal(code, 0, out);
     const pictures = JSON.parse(fs.readFileSync(path.join(dir, "pictures.json"), "utf8"));
     assert.equal(pictures.length, 1);
-    assert.ok(pictures[0].startsWith(path.join(dir, "tarsee-codex")), pictures[0]);
+    assert.ok(pictures[0].startsWith(path.join(dir, "atlas-codex")), pictures[0]);
     assert.ok(!fs.existsSync(path.dirname(pictures[0])), "the turn's pictures folder is gone");
     assert.ok(fs.existsSync(path.join(dir, "aborted")), "codex was stopped");
     assert.match(fs.readFileSync(path.join(dir, "swept"), "utf8"), /^[0-9a-f]{24}$/, "the turn's processes were swept by its mark");

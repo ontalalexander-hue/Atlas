@@ -1,4 +1,4 @@
-// Sending files back to a chat (send_file / tarsee_send_file): which chat it goes to (lib/chat-target.js), what the
+// Sending files back to a chat (send_file / atlas_send_file): which chat it goes to (lib/chat-target.js), what the
 // tool checks before sending, that a Telegram turn can reach Telegram at all (its tool context has no channel
 // manager), and the Telegram bot's upload itself, against a Bot API server on 127.0.0.1 that reads the multipart
 // body as Telegram would. Nothing here touches the network beyond 127.0.0.1.
@@ -9,10 +9,10 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-send-file-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-send-file-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 fs.mkdirSync(path.join(tmp, "workspace", "reports"), { recursive: true });
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -20,11 +20,11 @@ const { SettingsStore } = await import("../src/db/settings.js");
 const { ConversationStore } = await import("../src/db/conversations.js");
 const { chatTargetOf, resolveChatTarget } = await import("../src/lib/chat-target.js");
 const { executeTool, setToolsChannelManager, getToolDefinitions } = await import("../src/lib/tools.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const { mimeOfFile } = await import("../src/channels/whatsapp.js");
 const { sendFileHint } = await import("../src/lib/build-system-prompt.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
 
@@ -77,7 +77,7 @@ describe("which chat a message or file goes to", () => {
 
 describe("send_file", () => {
   const mgr = fakeManager();
-  const ws = process.env.TARSEE_WORKSPACE_DIR;
+  const ws = process.env.ATLAS_WORKSPACE_DIR;
   let telegramConv;
   before(() => {
     setToolsChannelManager(mgr);
@@ -90,10 +90,10 @@ describe("send_file", () => {
 
   it("is offered to the agent, in the MCP server and the tool list", async () => {
     assert.ok(getToolDefinitions().some((t) => t.name === "send_file"));
-    const mcp = createTarseeMcp({ db, settingsStore: settings });
+    const mcp = createAtlasMcp({ db, settingsStore: settings });
     const names = Object.keys(mcp.instance._registeredTools || {});
-    assert.ok(names.includes("tarsee_send_file"), names.join(", "));
-    assert.match(sendFileHint("telegram"), /tarsee_send_file with channel="telegram"/);
+    assert.ok(names.includes("atlas_send_file"), names.join(", "));
+    assert.match(sendFileHint("telegram"), /atlas_send_file with channel="telegram"/);
   });
 
   it("sends a workspace file to the Telegram chat the turn is in, with its caption", async () => {
@@ -129,13 +129,13 @@ describe("send_file", () => {
     fs.writeFileSync(big, "");
     fs.truncateSync(big, 101 * 1024 * 1024);   // sparse
     assert.match(await run({ channel: "slack", file_path: big }, { conversationId: slackConv }), /101\.0 MB; slack takes up to 100 MB/);
-    assert.match(sendFileHint("slack"), /tarsee_send_file with channel="slack"/);
+    assert.match(sendFileHint("slack"), /atlas_send_file with channel="slack"/);
     // From somewhere else (a cron, another channel), with no chat named: the latest Slack chat's channel, at the top
     // level, not inside whatever thread happened to be last.
     await executeTool("send_message", { channel: "slack", message: "Briefing" }, { db, settingsStore: settings, conversationId: telegramConv });
     assert.deepEqual(mgr.sent.at(-1), { kind: "message", type: "slack", chatId: "C42", message: "Briefing", opts: { threadId: null } });
-    const mcp = createTarseeMcp({ db, settingsStore: settings });
-    const schema = mcp.instance._registeredTools.tarsee_send_file.inputSchema;
+    const mcp = createAtlasMcp({ db, settingsStore: settings });
+    const schema = mcp.instance._registeredTools.atlas_send_file.inputSchema;
     assert.ok(JSON.stringify(schema?.def ?? schema?._def ?? schema).includes("slack"), "the MCP tool takes channel slack");
   });
 
@@ -213,7 +213,7 @@ describe("the Telegram bot uploads the file (a Bot API server on 127.0.0.1)", ()
   });
 
   it("as a document with its real name and bytes, into the forum topic, with an HTML caption", async () => {
-    const file = path.join(process.env.TARSEE_WORKSPACE_DIR, "reports", "October Report.html");
+    const file = path.join(process.env.ATLAS_WORKSPACE_DIR, "reports", "October Report.html");
     await bot.sendFile("777", file, "**Ready**", { threadId: "12" });
     const call = calls.findLast((c) => c.method === "sendDocument");
     assert.equal(call.fields.chat_id, "777");
@@ -224,7 +224,7 @@ describe("the Telegram bot uploads the file (a Bot API server on 127.0.0.1)", ()
   });
 
   it("sends the caption as plain text when Telegram can't parse it, and a file with no caption as it is", async () => {
-    const file = path.join(process.env.TARSEE_WORKSPACE_DIR, "reports", "October Report.html");
+    const file = path.join(process.env.ATLAS_WORKSPACE_DIR, "reports", "October Report.html");
     await bot.sendFile("777", file, "BROKEN <b");
     const docs = calls.filter((c) => c.method === "sendDocument");
     assert.equal(docs.at(-1).fields.caption, "BROKEN <b");

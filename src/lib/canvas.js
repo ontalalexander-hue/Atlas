@@ -123,7 +123,7 @@ export function canvasMiddleware(req, res, next) {
   // does; the chat iframe is same-origin and sends the cookie automatically.
   if (!req.auth?.authenticated) {
     return res.status(401).type("html").send(
-      "<!DOCTYPE html><html><body style=\"background:#1a1a1a;color:#ececec;font-family:sans-serif;padding:40px\">"
+      "<!DOCTYPE html><html><body style=\"background:#070b14;color:#e8f1ff;font-family:sans-serif;padding:40px\">"
       + "<h1>Sign in required</h1><p>Log in to Atlas to view this canvas.</p></body></html>",
     );
   }
@@ -143,14 +143,14 @@ export function canvasMiddleware(req, res, next) {
         .sort((a, b) => b.modified - a.modified);
 
       if (canvases.length === 0) {
-        return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#1a1a1a;color:#ececec;font-family:Poppins,sans-serif;padding:40px;text-align:center}h1{color:#c45a35}p{color:#a8a8a0}</style></head><body><h1>Canvas Gallery</h1><p>No canvases yet. Ask Atlas to create one!</p></body></html>`);
+        return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#070b14;color:#e8f1ff;font-family:Poppins,sans-serif;padding:40px;text-align:center}h1{color:#1f7ae0}p{color:#a8a8a0}</style></head><body><h1>Canvas Gallery</h1><p>No canvases yet. Ask Atlas to create one!</p></body></html>`);
       }
 
       // Canvas names are directory names on disk and are model-controlled, so
       // they must be escaped for text and URL-encoded for the href — otherwise
       // a canvas named `<img src=x onerror=...>` is stored XSS on this page.
       const items = canvases.map(c => `<a href="/canvas/${encodeURIComponent(c.name)}/" style="display:block;background:#2b2a27;border-radius:8px;padding:16px;margin:8px 0;text-decoration:none;color:#ececec;border:1px solid #3a3935"><strong>${escapeHtml(c.name)}</strong><br><span style="color:#a8a8a0;font-size:12px">${Math.round(c.size/1024)}KB &middot; ${escapeHtml(c.modified.toLocaleDateString())}</span></a>`).join("");
-      return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#1a1a1a;color:#ececec;font-family:Poppins,sans-serif;padding:40px;max-width:600px;margin:0 auto}h1{color:#c45a35}a:hover{border-color:#c45a35!important}</style></head><body><h1>Canvas Gallery</h1>${items}</body></html>`);
+      return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#070b14;color:#e8f1ff;font-family:Poppins,sans-serif;padding:40px;max-width:600px;margin:0 auto}h1{color:#1f7ae0}a:hover{border-color:#1f7ae0!important}</style></head><body><h1>Canvas Gallery</h1>${items}</body></html>`);
     } catch {
       return res.status(500).send("Error loading gallery");
     }

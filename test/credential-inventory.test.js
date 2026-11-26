@@ -8,11 +8,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-cred-inventory-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-const CLEARED = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_HOME"];
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-cred-inventory-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+const CLEARED = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_HOME"];
 for (const k of CLEARED) delete process.env[k];
 // No Claude sign-in from this machine's own home.
 process.env.HOME = path.join(tmp, "home");
@@ -22,7 +22,7 @@ const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { getCredentialInventory, renderInventoryPromptSection } = await import("../src/lib/credential-inventory.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const DEEPSEEK_KEY = "sk-testcanarydeepseek0000000000";
 after(() => { db.close(); fs.rmSync(tmp, { recursive: true, force: true }); });
@@ -42,7 +42,7 @@ describe("the credential inventory's AI providers", () => {
   it("each AI once it can answer: a key, a sign-in, a server address", () => {
     store.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
     process.env.CLAUDE_CODE_OAUTH_TOKEN = "test-canary-claude-oauth-token";
-    process.env.TARSEE_LOCAL_AI_URL = "http://127.0.0.1:11434/v1";
+    process.env.ATLAS_LOCAL_AI_URL = "http://127.0.0.1:11434/v1";
     store.set("ai.local.model", "qwen3:8b");
     fs.mkdirSync(path.join(tmp, ".codex-home"), { recursive: true });
     fs.writeFileSync(path.join(tmp, ".codex-home", "auth.json"), "{}");

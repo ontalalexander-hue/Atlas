@@ -8,15 +8,15 @@
  * Reply policy (mention-only, mirrors Discord's guild @mention rule):
  *   1. Parse inbound email with mailparser
  *   2. Strip quoted reply history → "stripped body"
- *   3. Check for mention keyword (default @tarsee) in stripped body
+ *   3. Check for mention keyword (default @atlas) in stripped body
  *      - YES → buildSystemPromptParts + chatStream + SMTP reply to From: only
  *      - NO  → persist as context to the conversation; NO outbound
- *   4. `[reply-all]` subject marker OR `@tarsee reply-all` opts into
+ *   4. `[reply-all]` subject marker OR `@atlas reply-all` opts into
  *      replying to To+Cc (sender-only otherwise).
  *
  * Safety gates before ever touching the chat pipeline:
  *   - Allowlist of From addresses (empty = warn + allow all, dev mode)
- *   - Self-loop guard (drop if From == tarseeEmailAddress)
+ *   - Self-loop guard (drop if From == atlasEmailAddress)
  *   - Bulk/auto-reply drop (List-Id, Auto-Submitted, Precedence headers)
  *   - Per-sender rate limit (6/10 min)
  *   - Body truncation at 100 KB
@@ -52,7 +52,7 @@ import {
   resolveRecipients,
 } from "../lib/email-threading.js";
 
-const DEFAULT_MENTION_KEYWORD = "tarsee";
+const DEFAULT_MENTION_KEYWORD = "atlas";
 const DEFAULT_REPLY_ALL_MARKER = "[reply-all]";
 const MAX_BODY_BYTES = 100 * 1024;
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -64,7 +64,7 @@ const HISTORY_WINDOW = 15;
 /**
  * @param {object} config
  * @param {boolean} config.enabled
- * @param {string} config.tarseeEmailAddress  the inbox we listen on
+ * @param {string} config.atlasEmailAddress  the inbox we listen on
  * @param {object} config.imap   {host, port, user, password, secure?}
  * @param {object} config.smtp   {host, port, user, password, secure?}
  * @param {string[]} [config.allowlistFromAddresses]
@@ -92,7 +92,7 @@ export async function createEmailBot(rawConfig, db, { chatStream: streamChat = c
     console.warn("[email] WARNING: allowlistFromAddresses is empty — accepting mail from ANY sender. Set this in settings for production.");
   }
 
-  const selfAddress = String(cfg.tarseeEmailAddress || cfg.imap.user).toLowerCase().trim();
+  const selfAddress = String(cfg.atlasEmailAddress || cfg.imap.user).toLowerCase().trim();
 
   // Per-sender rate limiter
   const rate = new Map();
@@ -539,7 +539,7 @@ export async function createEmailBot(rawConfig, db, { chatStream: streamChat = c
 
     /**
      * Proactively start or continue a thread (used by the
-     * tarsee_send_email_thread MCP tool).
+     * atlas_send_email_thread MCP tool).
      *
      * @param {object} opts
      * @param {string|string[]} opts.to
@@ -667,7 +667,7 @@ export function buildReplyMail({ incoming, bodyText, replyAll }, sender) {
   };
 }
 
-/** A new mail, or one continuing a thread (tarsee_send_email_thread): { mail, attachmentCount }. */
+/** A new mail, or one continuing a thread (atlas_send_email_thread): { mail, attachmentCount }. */
 export function buildNewMail({ to, cc, subject, body, inReplyTo, attachments }, sender) {
   const toArr = Array.isArray(to) ? to : String(to).split(",").map((s) => s.trim()).filter(Boolean);
   const ccArr = cc ? (Array.isArray(cc) ? cc : String(cc).split(",").map((s) => s.trim()).filter(Boolean)) : [];
@@ -711,7 +711,7 @@ export function normalizeConfig(c) {
   if (!c) return {};
   const out = {
     enabled: !!c.enabled,
-    tarseeEmailAddress: c.tarseeEmailAddress || c.emailAddress || c.imap?.user || "",
+    atlasEmailAddress: c.atlasEmailAddress || c.emailAddress || c.imap?.user || "",
     fromName: c.fromName || "Atlas",
     defaultSubject: c.defaultSubject || "Atlas",
     mentionKeyword: c.mentionKeyword || DEFAULT_MENTION_KEYWORD,

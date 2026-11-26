@@ -18,7 +18,7 @@
  *
  * Every probe answers { ok, state, message, httpStatus?, balance?, account?, models? }: a plain sentence for the
  * owner, never an exception and never the key. fetch is injectable (tests use a stub that records where each request
- * went), and a test server (NODE_ENV=test with a loopback TARSEE_TEST_BASE_URL_<ID>, engine-env's seam) sends each
+ * went), and a test server (NODE_ENV=test with a loopback ATLAS_TEST_BASE_URL_<ID>, engine-env's seam) sends each
  * probe to its fake instead of the provider's host. A probe of the stored key also updates the card: a pass clears the engines' failure flag, a rejected key or
  * an empty balance sets it, and a balance read is cached for 10 minutes.
  */
@@ -423,7 +423,7 @@ export function contextWords(n) {
 
 /**
  * Where a probe of a provider's own host goes: its code constant, or, in a test server only (engine-env testBaseUrl:
- * NODE_ENV exactly "test" and a loopback TARSEE_TEST_BASE_URL_<ID>), the same path on the fake standing in for that
+ * NODE_ENV exactly "test" and a loopback ATLAS_TEST_BASE_URL_<ID>), the same path on the fake standing in for that
  * provider, so a test's made-up key never goes to the real provider.
  */
 function probeUrl(p, url, env) {

@@ -43,7 +43,7 @@ const CREDENTIAL = [
 ];
 // Email addresses other than example ones and the project's placeholders.
 const EMAIL = /\b[A-Za-z0-9._%+-]+@([A-Za-z0-9-]+\.)+[A-Za-z]{2,}\b/g;
-const EMAIL_OK = /@(example\.(com|org|net)|(your)?domain\.com|company\.com|b\.com|users\.noreply\.github\.com)$|^(you|admin|user|name|someone|tarsee|bot|noreply|no-reply)@/i;
+const EMAIL_OK = /@(example\.(com|org|net)|(your)?domain\.com|company\.com|b\.com|users\.noreply\.github\.com)$|^(you|admin|user|name|someone|atlas|bot|noreply|no-reply)@/i;
 
 describe("what ships is generic", () => {
   it("there is something to check", () => {

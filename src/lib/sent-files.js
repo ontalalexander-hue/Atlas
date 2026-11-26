@@ -1,5 +1,5 @@
 /**
- * The copies of a chat's files, and handing them back to the page to look at. Ported from TarseeMacOS.
+ * The copies of a chat's files, and handing them back to the page to look at. Ported from the macOS app.
  *
  * Kept: whatever the agent sends to a chat (the send_file tool, and the files it emails), as sent-<time>-<name> in
  * the workspace's uploads folder, and every file uploaded in the dashboard's chat, as chat-<time>-<n>-<name>, kept

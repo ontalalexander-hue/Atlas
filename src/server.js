@@ -71,16 +71,16 @@ writePid();
 // sites; this is the backstop that keeps an unforeseen one from ending the
 // process. Both are logged loudly so they still get fixed rather than hidden.
 process.on("unhandledRejection", (reason) => {
-  console.error("[tarsee] UNHANDLED REJECTION (process kept alive):", reason);
+  console.error("[atlas] UNHANDLED REJECTION (process kept alive):", reason);
 });
 process.on("uncaughtException", (err) => {
-  console.error("[tarsee] UNCAUGHT EXCEPTION (process kept alive):", err);
+  console.error("[atlas] UNCAUGHT EXCEPTION (process kept alive):", err);
 });
 
 // --- Enforce encryption in production ---
 if (config.NODE_ENV === "production" && !isEncryptionEnabled()) {
-  console.error("[tarsee] FATAL: ENCRYPTION_KEY environment variable is required in production.");
-  console.error("[tarsee] Set a strong random key (e.g., openssl rand -hex 32) to encrypt credentials at rest.");
+  console.error("[atlas] FATAL: ENCRYPTION_KEY environment variable is required in production.");
+  console.error("[atlas] Set a strong random key (e.g., openssl rand -hex 32) to encrypt credentials at rest.");
   process.exit(1);
 }
 
@@ -91,16 +91,16 @@ if (config.NODE_ENV === "production" && !isEncryptionEnabled()) {
 // returned true for everyone, which published /terminal as an unauthenticated
 // shell. Fail fast and say why instead of serving a dead, dangerous instance.
 if (config.NODE_ENV === "production" && !config.SETUP_PASSWORD) {
-  console.error("[tarsee] FATAL: SETUP_PASSWORD environment variable is required in production.");
-  console.error("[tarsee] Without it nobody can log in, and the web terminal would be exposed.");
-  console.error("[tarsee] Set SETUP_PASSWORD to the PIN you want to use, then redeploy.");
+  console.error("[atlas] FATAL: SETUP_PASSWORD environment variable is required in production.");
+  console.error("[atlas] Without it nobody can log in, and the web terminal would be exposed.");
+  console.error("[atlas] Set SETUP_PASSWORD to the PIN you want to use, then redeploy.");
   process.exit(1);
 }
 
 if (isEncryptionEnabled()) {
-  console.log("[tarsee] credential encryption: ENABLED");
+  console.log("[atlas] credential encryption: ENABLED");
 } else {
-  console.warn("[tarsee] credential encryption: DISABLED (set ENCRYPTION_KEY for production)");
+  console.warn("[atlas] credential encryption: DISABLED (set ENCRYPTION_KEY for production)");
 }
 
 // --- Initialize database ---
@@ -218,10 +218,10 @@ setupWebSocket(server, db, app);
 
 // --- Start ---
 server.listen(config.PORT, "0.0.0.0", () => {
-  console.log(`[tarsee] listening on http://0.0.0.0:${config.PORT}`);
-  console.log(`[tarsee] state:     ${config.STATE_DIR}`);
-  console.log(`[tarsee] workspace: ${config.WORKSPACE_DIR}`);
-  console.log(`[tarsee] database:  ${config.DB_PATH}`);
+  console.log(`[atlas] listening on http://0.0.0.0:${config.PORT}`);
+  console.log(`[atlas] state:     ${config.STATE_DIR}`);
+  console.log(`[atlas] workspace: ${config.WORKSPACE_DIR}`);
+  console.log(`[atlas] database:  ${config.DB_PATH}`);
 });
 
 // --- Audit log + Settings ---
@@ -255,7 +255,7 @@ refreshChatgptModels({ stateDir: config.STATE_DIR, store: settingsStore }).catch
 // Started now so the first Codex turn doesn't wait for the port; it would start itself on first use anyway.
 startMcpHttp().catch((err) => console.warn("[mcp-http] could not start:", err.message));
 initTTSEngine(settingsStore).catch((err) => {
-  console.warn("[tarsee] TTS engine init error:", err.message);
+  console.warn("[atlas] TTS engine init error:", err.message);
 });
 
 // --- Phonon, the default TTS: download its model in the background on first boot ---
@@ -286,7 +286,7 @@ try {
   const memoryStore = new MemoryStore(db);
   memoryStore.syncToMemoryFile();
 } catch (err) {
-  console.warn("[tarsee] memory sync error:", err.message);
+  console.warn("[atlas] memory sync error:", err.message);
 }
 
 // --- Web Push (VAPID + subscription store) ---
@@ -298,7 +298,7 @@ import { initPush } from "./lib/push.js";
 try {
   initPush(db, auditLog);
 } catch (err) {
-  console.warn("[tarsee] push init error:", err.message);
+  console.warn("[atlas] push init error:", err.message);
 }
 
 // --- Auto-install high-leverage skills on first boot ---
@@ -315,14 +315,14 @@ try {
     if (!installed.has(name)) {
       try {
         installSkill(name);
-        console.log(`[tarsee] installed default skill: ${name}`);
+        console.log(`[atlas] installed default skill: ${name}`);
       } catch (err) {
-        console.warn(`[tarsee] failed to install ${name}:`, err.message);
+        console.warn(`[atlas] failed to install ${name}:`, err.message);
       }
     }
   }
 } catch (err) {
-  console.warn("[tarsee] default-skill bootstrap error:", err.message);
+  console.warn("[atlas] default-skill bootstrap error:", err.message);
 }
 
 // --- Boot runner ---
@@ -345,10 +345,10 @@ const convStore = new ConversationStore(db);
 // current tools; clearing was unnecessary and broke cross-deploy continuity.
 // Bloated sessions are handled separately by the transcript cap in the
 // provider, so preserving the id here cannot resurrect a hang-prone session.
-// Set TARSEE_CLEAR_SESSIONS_ON_BOOT=1 to restore the old wipe.
-if (process.env.TARSEE_CLEAR_SESSIONS_ON_BOOT === "1") {
+// Set ATLAS_CLEAR_SESSIONS_ON_BOOT=1 to restore the old wipe.
+if (process.env.ATLAS_CLEAR_SESSIONS_ON_BOOT === "1") {
   convStore.clearAllSessions();
-  console.log("[boot] cleared all claude session ids (TARSEE_CLEAR_SESSIONS_ON_BOOT=1)");
+  console.log("[boot] cleared all claude session ids (ATLAS_CLEAR_SESSIONS_ON_BOOT=1)");
 } else {
   console.log("[boot] preserving claude session ids — conversations will resume across this restart");
 }
@@ -401,7 +401,7 @@ import { setCronChannelManager } from "./lib/cron.js";
 setCronChannelManager(channelManager);
 // Same for the heartbeat. It starts before the channel manager exists, so
 // without this late wiring a HEARTBEAT.md task that decided to notify the user
-// called tarsee_send_message against an undefined transport and failed
+// called atlas_send_message against an undefined transport and failed
 // silently — the agent believed it had messaged you and it had not.
 import { setHeartbeatChannelManager } from "./lib/heartbeat.js";
 setHeartbeatChannelManager(channelManager);
@@ -410,14 +410,14 @@ setHeartbeatChannelManager(channelManager);
 // Deliberately here rather than earlier in boot: it needs the channel manager.
 import { runBootChecklist } from "./lib/boot-runner.js";
 runBootChecklist({ db, settingsStore, channelManager }).catch((err) => {
-  console.warn("[tarsee] boot runner error:", err.message);
+  console.warn("[atlas] boot runner error:", err.message);
 });
 // MUST stay unawaited, and MUST stay below server.listen(). The retry ladder in
 // _startWithRetry backs off up to ~152s per channel in the worst case, while
 // railway.toml sets healthcheckTimeout=60 — awaiting this would fail the deploy
 // healthcheck before the first channel finished retrying.
 channelManager.startAll().catch((err) => {
-  console.warn("[tarsee] channel startup error:", err.message);
+  console.warn("[atlas] channel startup error:", err.message);
 });
 
 // Watchdog: auto-recover a Telegram poller that wedged at boot. Matters more
@@ -436,16 +436,16 @@ app.set("gatewayManager", gatewayManager);
 
 // --- Hooks system ---
 loadHooks().then(() => {
-  console.log("[tarsee] hooks loaded:", hookRegistry.list().length);
+  console.log("[atlas] hooks loaded:", hookRegistry.list().length);
 }).catch((err) => {
-  console.warn("[tarsee] hook loading error:", err.message);
+  console.warn("[atlas] hook loading error:", err.message);
 });
 
 // --- Plugin system ---
 loadPlugins({ db, settingsStore, hookRegistry }).then(() => {
-  console.log("[tarsee] plugins loaded");
+  console.log("[atlas] plugins loaded");
 }).catch((err) => {
-  console.warn("[tarsee] plugin loading error:", err.message);
+  console.warn("[atlas] plugin loading error:", err.message);
 });
 
 // --- Emit boot:ready hook ---
@@ -457,7 +457,7 @@ setTimeout(() => hookRegistry.emit("boot:ready"), 2000);
 
 // --- Graceful shutdown ---
 function shutdown(signal) {
-  console.log(`[tarsee] ${signal} received, shutting down...`);
+  console.log(`[atlas] ${signal} received, shutting down...`);
   stopTTSEngine();
   stopSttWorker();
   stopHeartbeat();

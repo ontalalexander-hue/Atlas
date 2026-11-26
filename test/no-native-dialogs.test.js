@@ -1,4 +1,4 @@
-// No browser dialog in the dashboard: every question is our own (src/public/js/dialogs.js, TarseeDialog). The
+// No browser dialog in the dashboard: every question is our own (src/public/js/dialogs.js, AtlasDialog). The
 // browser's boxes are headed with the site's address, cannot be styled, and block the whole tab.
 //
 // Every .js and .html file under src/public is read as code: comments, the words in strings and template literals, and
@@ -194,7 +194,7 @@ export function nativeDialogs(src, { html = false } = {}) {
   for (const m of calls) {
     const at = m.index, name = m[1];
     const prev = before(code, at);
-    if (prev.char === ".") continue;                                      // a method of something (ui.confirm(), this.alert(), TarseeDialog.ask)
+    if (prev.char === ".") continue;                                      // a method of something (ui.confirm(), this.alert(), AtlasDialog.ask)
     if (prev.char === "*" && before(code, code.lastIndexOf("*", at)).word === "function") continue;   // function* confirm(
     if (/^(function|get|set|static|async)$/.test(prev.word)) continue;   // its own definition
     // A method's definition: confirm(x) { ... } (the call's closing parenthesis, then a brace).
@@ -227,12 +227,12 @@ describe("no browser dialogs in src/public: only our own (js/dialogs.js)", () =>
       for (const h of nativeDialogs(src, { html: /\.html?$/i.test(p) })) found.push(`src/public/${relative(PUBLIC, p)}:${lineOf(src, h.at)}: ${h.what}`);
     }
     assert.ok(seen > 15, `looked at ${seen} files`);
-    assert.deepEqual(found, [], `Ask with TarseeDialog.ask() or TarseeDialog.askText() (src/public/js/dialogs.js) instead of:\n  ${found.join("\n  ")}`);
+    assert.deepEqual(found, [], `Ask with AtlasDialog.ask() or AtlasDialog.askText() (src/public/js/dialogs.js) instead of:\n  ${found.join("\n  ")}`);
   });
 
-  it("our own questions are there to use: js/dialogs.js puts TarseeDialog on the window", () => {
+  it("our own questions are there to use: js/dialogs.js puts AtlasDialog on the window", () => {
     const src = readFileSync(join(PUBLIC, "js/dialogs.js"), "utf8");
-    assert.match(src, /G\.TarseeDialog = Object\.freeze\(\{\s*ask:/);
+    assert.match(src, /G\.AtlasDialog = Object\.freeze\(\{\s*ask:/);
     assert.deepEqual(nativeDialogs(src), []);
   });
 });
@@ -265,7 +265,7 @@ describe("the guard itself", () => {
     assert.deepEqual(hit("function setup() {\n  form.addEventListener('submit', (e) => { e.preventDefault(); confirm(); });\n  function confirm() { return 1; }\n}"), []);
     // A const arrow of its own in a method.
     assert.deepEqual(hit("const Live = {\n  async post(item) {\n    const confirm = (id) => id;\n    onDone(() => confirm(item.id));\n  },\n};"), []);
-    assert.deepEqual(hit("ui.confirm = make('button'); this.confirm = null; obj.alert(x); rl.prompt(); TarseeDialog.ask({ title: 'confirm()?' });"), []);
+    assert.deepEqual(hit("ui.confirm = make('button'); this.confirm = null; obj.alert(x); rl.prompt(); AtlasDialog.ask({ title: 'confirm()?' });"), []);
     assert.deepEqual(hit("class Board { confirm(what) { return what; } async prompt() {} static alert(x) {} get confirmed() { return 1; } }"), []);
     assert.deepEqual(hit("const o = { confirm(x) { return x; }, alert: () => 1 };"), []);
     assert.deepEqual(hit("// if (!confirm('old way')) return;\n/* window.alert('no') */\nconst s = \"alert('a string')\", t = 'prompt(1)';"), []);

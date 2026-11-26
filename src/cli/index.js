@@ -78,9 +78,9 @@ async function cmdDoctor() {
 
 async function cmdChat(chatArgs) {
   const message = chatArgs.join(" ");
-  if (!message) { console.error("Usage: tarsee chat <message>"); process.exit(1); }
+  if (!message) { console.error("Usage: atlas chat <message>"); process.exit(1); }
   const port = process.env.PORT || 3000;
-  const token = process.env.TARSEE_API_TOKEN || "";
+  const token = process.env.ATLAS_API_TOKEN || "";
   try {
     const res = await fetch(`http://localhost:${port}/api/chat/send`, {
       method: "POST",
@@ -100,7 +100,7 @@ async function cmdChat(chatArgs) {
     console.log();
   } catch (err) {
     console.error("Error:", err.message);
-    console.error("Is Atlas running? Try: tarsee start");
+    console.error("Is Atlas running? Try: atlas start");
   }
 }
 
@@ -117,8 +117,8 @@ function cmdVersion() {
 }
 
 function cmdHelp() {
-  console.log("\nTarsee CLI\n");
-  console.log("Usage: tarsee <command> [options]\n");
+  console.log("\nAtlas CLI\n");
+  console.log("Usage: atlas <command> [options]\n");
   console.log("Commands:");
   for (const [name, cmd] of Object.entries(COMMANDS)) {
     console.log(`  ${name.padEnd(14)} ${cmd.desc}`);

@@ -56,8 +56,8 @@ const SCENARIOS = {
       switch (index) {
         case 0: return { calls: [{ name: "exec_command", arguments: { cmd: node("console.log('hi from the shell')") } }] };
         case 1: return { calls: [{ name: "exec_command", arguments: { cmd: node("console.error('nope'); process.exit(3)") } }] };
-        case 2: return { calls: [{ name: "tarsee_datetime", namespace: "mcp__tarsee", arguments: { timezone: "UTC" } }] };
-        case 3: return { calls: [{ name: "tarsee_fail", namespace: "mcp__tarsee", arguments: {} }] };
+        case 2: return { calls: [{ name: "atlas_datetime", namespace: "mcp__atlas", arguments: { timezone: "UTC" } }] };
+        case 3: return { calls: [{ name: "atlas_fail", namespace: "mcp__atlas", arguments: {} }] };
         case 4: return { calls: [{ type: "custom", name: "apply_patch", input: PATCH }] };
         default: return { reasoning: "Everything ran.", text: "All done.", usage: { input_tokens: 5000, cached_input_tokens: 4000, output_tokens: 80 } };
       }
@@ -95,7 +95,7 @@ const SCENARIOS = {
 };
 
 async function capture(name, scenario) {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-codex-capture-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-codex-capture-"));
   const ws = path.join(tmp, "workspace");
   fs.mkdirSync(ws);
   scenario.prep?.(ws);

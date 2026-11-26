@@ -23,7 +23,7 @@ import crypto from "node:crypto";
 
 const MAX_STRING = 8_000;          // cap any single string in a step payload
 const MAX_MESSAGE_CHARS = 200_000; // a message event carries the full clean text up to this
-const RETENTION_DAYS = Number(process.env.TARSEE_EVENT_RETENTION_DAYS) || 14;
+const RETENTION_DAYS = Number(process.env.ATLAS_EVENT_RETENTION_DAYS) || 14;
 
 let _db = null;
 let _stmts = null;

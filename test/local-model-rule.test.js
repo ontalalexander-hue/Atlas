@@ -1,5 +1,5 @@
 // Local AI's one rule for "verify first" (design 4.11): the model chosen on the Local AI card (ai.local.model, or the
-// TARSEE_AI_MODEL variable while Local AI is the default AI, exactly as the turn layer reads it) runs at once; any
+// ATLAS_AI_MODEL variable while Local AI is the default AI, exactly as the turn layer reads it) runs at once; any
 // other Local AI model must be verified before a chat's model menu or /model can pick it. The card and the wizard
 // still list every model the server has (needsVerification stays false), and each row says whether the composer's
 // menu takes it (inMenu), so the card can offer Verify on that row without changing the chosen model.
@@ -10,14 +10,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-local-rule-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-local-rule-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CODEX_HOME",
 ];
 for (const name of CLEARED) delete process.env[name];
@@ -28,10 +28,10 @@ const { checkModel, modelChoices, getModelGroups } = await import("../src/lib/mo
 const { setCatalogModels } = await import("../src/ai/provider-registry.js");
 const { createAiRouter } = await import("../src/routes/ai.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const LOCAL_URL = "http://local-ai.test:11434/v1";
-const RAILWAY = { TARSEE_AI_PROVIDER: "local", TARSEE_LOCAL_AI_URL: LOCAL_URL, TARSEE_AI_MODEL: "qwen3" };
+const RAILWAY = { ATLAS_AI_PROVIDER: "local", ATLAS_LOCAL_AI_URL: LOCAL_URL, ATLAS_AI_MODEL: "qwen3" };
 const verifiedEntry = { engine: "codex", at: "2026-11-09T00:00:00.000Z", engineVersion: null, efforts: [], checks: null };
 
 function reset() {
@@ -58,7 +58,7 @@ describe("the composer's menu and /model (lib/model-catalog.js)", () => {
     assert.equal(checkModel("local", "llama3", store).ok, true, "verified on its own row");
   });
 
-  it("a Railway-only setup: TARSEE_AI_MODEL is the chosen model while Local AI is the default AI", () => {
+  it("a Railway-only setup: ATLAS_AI_MODEL is the chosen model while Local AI is the default AI", () => {
     Object.assign(process.env, RAILWAY);
     const r = checkModel("local", "qwen3", store);
     assert.equal(r.ok, true, JSON.stringify(r));
@@ -67,16 +67,16 @@ describe("the composer's menu and /model (lib/model-catalog.js)", () => {
     assert.equal(checkModel("local", "llama3", store).ok, false);
   });
 
-  it("TARSEE_AI_MODEL as a ref naming Local AI counts too; one naming another AI doesn't", () => {
-    Object.assign(process.env, RAILWAY, { TARSEE_AI_MODEL: "local:qwen3" });
+  it("ATLAS_AI_MODEL as a ref naming Local AI counts too; one naming another AI doesn't", () => {
+    Object.assign(process.env, RAILWAY, { ATLAS_AI_MODEL: "local:qwen3" });
     assert.equal(checkModel("local", "qwen3", store).ok, true);
-    process.env.TARSEE_AI_MODEL = "deepseek:deepseek-flash";
+    process.env.ATLAS_AI_MODEL = "deepseek:deepseek-flash";
     assert.equal(checkModel("local", "qwen3", store).ok, false);
   });
 
-  it("TARSEE_AI_MODEL doesn't count while another AI is the default, nor over the card's own choice", () => {
+  it("ATLAS_AI_MODEL doesn't count while another AI is the default, nor over the card's own choice", () => {
     Object.assign(process.env, RAILWAY);
-    store.set("ai.activeProvider", "deepseek");   // the setting wins over TARSEE_AI_PROVIDER, as in the turn layer
+    store.set("ai.activeProvider", "deepseek");   // the setting wins over ATLAS_AI_PROVIDER, as in the turn layer
     assert.equal(checkModel("local", "qwen3", store).ok, false);
     store.set("ai.activeProvider", "local");
     store.set("ai.local.model", "llama3");
@@ -138,7 +138,7 @@ describe("GET /api/ai/models/local (the card and the wizard)", () => {
     assert.equal(rows.llama3.inMenu, false, "needs Verify on its row first");
   });
 
-  it("follows the route's env: TARSEE_AI_MODEL while Local AI is the default", async () => {
+  it("follows the route's env: ATLAS_AI_MODEL while Local AI is the default", async () => {
     env = { ...RAILWAY };
     const res = await fetch(`${base}/models/local`);
     assert.equal(res.status, 200);

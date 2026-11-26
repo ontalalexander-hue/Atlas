@@ -12,12 +12,12 @@ import express from "express";
 import { fakePython } from "./fakes/fake-python.js";
 import { fakeDownloadHost } from "./fakes/fake-download-host.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-stt-routes-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-delete process.env.TARSEE_STT_PYTHON;
-delete process.env.TARSEE_WHISPER_BUNDLED_DIR;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-stt-routes-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+delete process.env.ATLAS_STT_PYTHON;
+delete process.env.ATLAS_WHISPER_BUNDLED_DIR;
 
 const config = (await import("../src/config/env.js")).default;
 const { sessionAuth, requireAuth, createSession } = await import("../src/middleware/auth.js");
@@ -68,7 +68,7 @@ before(async () => {
   install.__setForTests({ catalog: CATALOG });
   ({ s: server, url: base } = await listen(app(voiceRouter)));
   const r = await realFetch(`${base}/`);
-  csrf = /tarsee_csrf=([^;]+)/.exec(r.headers.get("set-cookie"))[1];
+  csrf = /atlas_csrf=([^;]+)/.exec(r.headers.get("set-cookie"))[1];
 });
 after(async () => {
   globalThis.fetch = realFetch;
@@ -92,9 +92,9 @@ beforeEach(() => {
 /** A request as the signed-in owner's browser makes it (session cookie + CSRF token), or as given. */
 function call(method, p, { body, headers = {}, as = "owner", url = base } = {}) {
   const h = { ...headers };
-  if (as === "owner") { h.Cookie = `tarsee_session=${session}`; h["X-CSRF-Token"] = csrf; }
+  if (as === "owner") { h.Cookie = `atlas_session=${session}`; h["X-CSRF-Token"] = csrf; }
   if (as === "token") h.Authorization = `Bearer ${config.API_TOKEN}`;
-  if (as === "no-csrf") h.Cookie = `tarsee_session=${session}`;
+  if (as === "no-csrf") h.Cookie = `atlas_session=${session}`;
   if (body !== undefined && !Buffer.isBuffer(body)) { h["Content-Type"] = "application/json"; body = JSON.stringify(body); }
   return realFetch(`${url}${p}`, { method, headers: h, body });
 }

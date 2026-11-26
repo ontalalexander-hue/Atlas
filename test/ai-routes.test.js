@@ -9,14 +9,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-ai-routes-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-ai-routes-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "CLAUDE_CODE_HOME",
   "CODEX_HOME",
 ];
@@ -90,7 +90,7 @@ async function verifyModel(providerId, model, deps) { verifyCalls.push({ provide
 
 // --- The app ------------------------------------------------------------------------------------------------------
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db, new AuditLog(db));
 const raw = (key) => db.prepare("SELECT value FROM settings WHERE key = ?").get(key)?.value ?? null;
 const servers = [];
@@ -540,11 +540,11 @@ describe("PUT /active and PUT /keys-only", () => {
     assert.equal(card((await api("GET", "/providers")).body, "claude").state, "ready");
   });
 
-  it("TARSEE_KEYS_ONLY=1 locks the switch on", async () => {
-    process.env.TARSEE_KEYS_ONLY = "1";
+  it("ATLAS_KEYS_ONLY=1 locks the switch on", async () => {
+    process.env.ATLAS_KEYS_ONLY = "1";
     const r = await api("PUT", "/keys-only", { on: false });
     assert.equal(r.status, 423);
-    assert.match(r.body.error, /TARSEE_KEYS_ONLY/);
+    assert.match(r.body.error, /ATLAS_KEYS_ONLY/);
     assert.deepEqual((await api("GET", "/providers")).body.keysOnly, { on: true, locked: true });
   });
 });
@@ -567,7 +567,7 @@ describe("PUT /providers/:id and GET /models/:id", () => {
   });
 
   it("a Railway address with a password in it is never shown on the card", async () => {
-    process.env.TARSEE_LOCAL_AI_URL = "http://admin:test-canary-pw9@192.168.1.20:11434/v1";
+    process.env.ATLAS_LOCAL_AI_URL = "http://admin:test-canary-pw9@192.168.1.20:11434/v1";
     const { body } = await api("GET", "/providers");
     const local = card(body, "local");
     assert.equal(local.state, "needs-setup");

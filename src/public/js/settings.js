@@ -151,12 +151,12 @@ const Settings = {
 
     // --- Push notifications (per-device toggle) ---
     const refreshPushStatus = async () => {
-      if (!window.TarseePush) {
+      if (!window.AtlasPush) {
         if (this.elements.pushStatus) this.elements.pushStatus.textContent = "Not supported in this browser.";
         this.elements.enablePushBtn?.setAttribute("disabled", "");
         return;
       }
-      const status = await window.TarseePush.status();
+      const status = await window.AtlasPush.status();
       const on = status === "subscribed";
       if (this.elements.enablePushBtn) this.elements.enablePushBtn.style.display = on ? "none" : "";
       if (this.elements.disablePushBtn) this.elements.disablePushBtn.style.display = on ? "" : "none";
@@ -173,7 +173,7 @@ const Settings = {
 
     this.elements.enablePushBtn?.addEventListener("click", async () => {
       try {
-        await window.TarseePush.enable();
+        await window.AtlasPush.enable();
         App.showToast?.("Push enabled — try the test button.", "success");
       } catch (err) {
         App.showToast?.("Push: " + err.message, "error");
@@ -181,7 +181,7 @@ const Settings = {
       refreshPushStatus();
     });
     this.elements.disablePushBtn?.addEventListener("click", async () => {
-      try { await window.TarseePush.disable(); App.showToast?.("Push disabled on this device.", "info"); }
+      try { await window.AtlasPush.disable(); App.showToast?.("Push disabled on this device.", "info"); }
       catch (err) { App.showToast?.(err.message, "error"); }
       refreshPushStatus();
     });
@@ -203,8 +203,8 @@ const Settings = {
     // Reflect current theme on open, persist + apply instantly on change.
     if (this.elements.theme) {
       const current = (() => {
-        try { return localStorage.getItem("tarsee_theme") || "warm-charcoal"; }
-        catch { return "warm-charcoal"; }
+        try { return localStorage.getItem("atlas_theme") || "atlas"; }
+        catch { return "atlas"; }
       })();
       // "dark" was the legacy value before the theme switcher — alias it.
       this.elements.theme.value = current === "dark" ? "warm-charcoal" : current;
@@ -212,7 +212,7 @@ const Settings = {
       this.elements.theme.addEventListener("change", async () => {
         const name = this.elements.theme.value;
         document.documentElement.setAttribute("data-theme", name);
-        try { localStorage.setItem("tarsee_theme", name); } catch {}
+        try { localStorage.setItem("atlas_theme", name); } catch {}
         // Persist to server so other devices signed in to the same account
         // can see the pick via /api/settings. Failure is non-fatal — the
         // local-storage value is the authoritative per-device theme.
@@ -271,10 +271,10 @@ const Settings = {
       btn.addEventListener("click", () => this.applyEmailPreset(btn.dataset.preset));
     });
 
-    // Keep the "triggers on @tarsee" hint in sync with the user's keyword
+    // Keep the "triggers on @atlas" hint in sync with the user's keyword
     if (this.elements.emailMentionKeyword && this.elements.emailMentionHint) {
       this.elements.emailMentionKeyword.addEventListener("input", () => {
-        const v = this.elements.emailMentionKeyword.value.trim() || "@tarsee";
+        const v = this.elements.emailMentionKeyword.value.trim() || "@atlas";
         this.elements.emailMentionHint.textContent = v;
       });
     }
@@ -1013,7 +1013,7 @@ const Settings = {
     const was = this._aiSeen;
     this._aiSeen = { def, ready };
     if (!was || (was.def === def && was.ready === ready)) return;
-    window.dispatchEvent(new CustomEvent("tarsee:ai-changed", { detail: { defaultChanged: was.def !== def, provider: a.provider || null } }));
+    window.dispatchEvent(new CustomEvent("atlas:ai-changed", { detail: { defaultChanged: was.def !== def, provider: a.provider || null } }));
   },
 
   /** A provider's models (GET /api/ai/models/:id), kept a minute unless force. Draws its card's model list. */
@@ -1138,7 +1138,7 @@ const Settings = {
     const el = this.elements.aiDefaultNow;
     const a = this._ai?.active;
     if (!el || !a) return;
-    const how = a.chosenBy === "env" ? " (set by the Railway variable TARSEE_AI_PROVIDER)"
+    const how = a.chosenBy === "env" ? " (set by the Railway variable ATLAS_AI_PROVIDER)"
       : a.chosenBy === "default" ? " (nothing chosen yet, so Atlas starts with the Claude plan)" : "";
     const model = this._aiModelLabel(a.provider, a.model);
     el.textContent = a.ready
@@ -1161,7 +1161,7 @@ const Settings = {
     }
     if (e.aiKeysOnlyNote) {
       e.aiKeysOnlyNote.textContent = k.locked
-        ? "Locked on by the Railway variable TARSEE_KEYS_ONLY=1: the Claude and ChatGPT plan sign-ins stay off. Remove that variable to change it here."
+        ? "Locked on by the Railway variable ATLAS_KEYS_ONLY=1: the Claude and ChatGPT plan sign-ins stay off. Remove that variable to change it here."
         : (e.aiKeysOnlyNote.dataset.text || "");
     }
 
@@ -1663,7 +1663,7 @@ const Settings = {
   async removeAiKey(id, btn) {
     const c = this._aiCard(id);
     const after = c?.envKey ? ` Atlas then uses the Railway variable ${c.envKey}, if it's set.` : "";
-    const ok = await TarseeDialog.ask({ title: `Remove the saved ${c?.label || "AI"} key?`, text: `It's deleted from Atlas.${after}`, yes: "Remove", no: "Cancel", danger: true });
+    const ok = await AtlasDialog.ask({ title: `Remove the saved ${c?.label || "AI"} key?`, text: `It's deleted from Atlas.${after}`, yes: "Remove", no: "Cancel", danger: true });
     if (!ok) return;
     const done = this._aiBusy(btn, "Removing…");
     try {
@@ -1749,7 +1749,7 @@ const Settings = {
   async fixSettingsFile(file, btn) {
     const banner = (this._ai?.banners || []).find((b) => b.action?.file === file);
     const setAside = banner?.action?.label === "Set this file aside";
-    const ok = await TarseeDialog.ask({
+    const ok = await AtlasDialog.ask({
       title: setAside ? "Set this file aside?" : "Remove these entries?",
       text: setAside
         ? `${file} is renamed, so nothing loads it any more. Nothing in it is deleted.`
@@ -1776,7 +1776,7 @@ const Settings = {
     // It spends a little on the owner's own key: say what, and ask first (the server's estimate, GET /api/ai/models).
     const row = this._aiModels[id]?.models?.find((m) => m.id === model);
     const cost = row?.verifyCost || "a few cents (est.)";
-    const ok = await TarseeDialog.ask({
+    const ok = await AtlasDialog.ask({
       title: `Verify ${row?.label || model}?`,
       text: `Atlas runs a few short test turns with it: a reply, one of Atlas's tools, the shell, and picking the conversation back up. It takes up to a minute.\n\nCost: ${cost}.`,
       yes: "Verify",
@@ -1827,7 +1827,7 @@ const Settings = {
     const a = this._ai?.active;
     const planDefault = a && (a.provider === "claude" || a.provider === "chatgpt");
     if (on && planDefault) {
-      const ok = await TarseeDialog.ask({
+      const ok = await AtlasDialog.ask({
         title: "Only use API keys?",
         text: `Your default AI is the ${a.label}, which this switches off. Atlas won't answer until you choose an API-key AI as the default.`,
         yes: "Switch it on", no: "Cancel",
@@ -1991,7 +1991,7 @@ const Settings = {
   },
 
   async chatgptLogout(btn) {
-    const ok = await TarseeDialog.ask({ title: "Sign out of ChatGPT?", text: "Atlas stops using your ChatGPT plan until you sign in again.", yes: "Sign out", no: "Cancel", danger: true });
+    const ok = await AtlasDialog.ask({ title: "Sign out of ChatGPT?", text: "Atlas stops using your ChatGPT plan until you sign in again.", yes: "Sign out", no: "Cancel", danger: true });
     if (!ok) return;
     // Signing out ends a sign-in still waiting here too: stop following it first, or its end would read as a failure.
     this._aiLoginCtl?.stop();
@@ -2289,7 +2289,7 @@ const Settings = {
   },
 
   async regenerateWhatsappSecret() {
-    if (!(await TarseeDialog.ask({
+    if (!(await AtlasDialog.ask({
       title: "Regenerate the webhook secret?",
       text: "The current URL will stop working until you update it in the WHAPI dashboard.",
       yes: "Regenerate", no: "Cancel", danger: true,
@@ -2358,7 +2358,7 @@ const Settings = {
       if (telegramMode === "off" && telegramAllow.length === 0) dangers.push("Telegram");
       if (slackMode === "off" && slackAllow.length === 0) dangers.push("Slack");
       if (dangers.length > 0) {
-        const ok = await TarseeDialog.ask({
+        const ok = await AtlasDialog.ask({
           title: `${dangers.join(" and ")}: mention mode is OFF and the allowlist is empty.`,
           text: `The bot will respond to EVERY message in EVERY ${dangers.length > 1 ? "channel/chat" : (dangers[0] === "Telegram" ? "chat" : "channel")} it can see.\n\n` +
             `Continue?`,
@@ -2430,7 +2430,7 @@ const Settings = {
     if (!e.emailEnabled) return; // UI not present
 
     e.emailEnabled.checked = !!cfg.enabled;
-    e.emailAddress.value = cfg.tarseeEmailAddress || "";
+    e.emailAddress.value = cfg.atlasEmailAddress || "";
     e.emailImapHost.value = cfg.imap?.host || "";
     e.emailImapPort.value = cfg.imap?.port || "";
     e.emailImapUser.value = cfg.imap?.user || "";
@@ -2447,7 +2447,7 @@ const Settings = {
       ? "••••••••  (leave blank to keep existing)"
       : "16-character app password (not your login password)";
 
-    e.emailMentionKeyword.value = cfg.mentionKeyword || "@tarsee";
+    e.emailMentionKeyword.value = cfg.mentionKeyword || "@atlas";
     e.emailReplyAllMarker.value = cfg.replyAllMarker || "[reply-all]";
     e.emailFromName.value = cfg.fromName || "";
 
@@ -2455,7 +2455,7 @@ const Settings = {
     e.emailAllowlist.value = Array.isArray(allow) ? allow.join("\n") : (allow || "");
 
     if (e.emailMentionHint) {
-      e.emailMentionHint.textContent = e.emailMentionKeyword.value.trim() || "@tarsee";
+      e.emailMentionHint.textContent = e.emailMentionKeyword.value.trim() || "@atlas";
     }
   },
 
@@ -2497,7 +2497,7 @@ const Settings = {
       const payload = {
         type: "email",
         enabled: !!e.emailEnabled.checked,
-        tarseeEmailAddress: e.emailAddress.value.trim(),
+        atlasEmailAddress: e.emailAddress.value.trim(),
         imap: {
           host: e.emailImapHost.value.trim(),
           port: Number(e.emailImapPort.value) || 993,
@@ -2508,7 +2508,7 @@ const Settings = {
           port: Number(e.emailSmtpPort.value) || 465,
           user: e.emailSmtpUser.value.trim(),
         },
-        mentionKeyword: e.emailMentionKeyword.value.trim() || "@tarsee",
+        mentionKeyword: e.emailMentionKeyword.value.trim() || "@atlas",
         replyAllMarker: e.emailReplyAllMarker.value.trim() || "[reply-all]",
         fromName: e.emailFromName.value.trim(),
         allowlistFromAddresses: parseAddrs(e.emailAllowlist.value),
@@ -2847,7 +2847,7 @@ const Settings = {
   },
 
   async deletePiperVoice(id) {
-    if (!(await TarseeDialog.ask({ title: `Delete voice "${id}"?`, yes: "Delete", no: "Cancel", danger: true }))) return;
+    if (!(await AtlasDialog.ask({ title: `Delete voice "${id}"?`, yes: "Delete", no: "Cancel", danger: true }))) return;
     try {
       const csrf = API.getCsrfToken();
       const headers = {};
@@ -3070,7 +3070,7 @@ const Settings = {
 
   async deleteSttModel(name, btn) {
     const m = (this._stt?.models || []).find((x) => x.name === name);
-    const ok = await TarseeDialog.ask({
+    const ok = await AtlasDialog.ask({
       title: `Delete the ${name} speech model?`,
       text: `It frees ${m?.size || "its space"}. You can download it again any time.${m?.current ? "\n\nIt's the one in use: speech-to-text switches to another downloaded model until it's back." : ""}`,
       yes: "Delete",
@@ -3437,7 +3437,7 @@ const Settings = {
       if (added.awaitingOwner) {
         // Sent with only the API token (the sign-in ran out), so the server kept it switched off.
         App.showToast("Task added, switched off: it waits for your OK in the list above. Sign in again to switch it on.", "info");
-        window.dispatchEvent(new CustomEvent("tarsee:auth-required"));
+        window.dispatchEvent(new CustomEvent("atlas:auth-required"));
       } else {
         App.showToast("Task added and switched on", "success");
       }
@@ -3675,7 +3675,7 @@ const Settings = {
   },
 
   async deleteSkill(name) {
-    if (!(await TarseeDialog.ask({ title: `Delete skill "${name}"?`, yes: "Delete", no: "Cancel", danger: true }))) return;
+    if (!(await AtlasDialog.ask({ title: `Delete skill "${name}"?`, yes: "Delete", no: "Cancel", danger: true }))) return;
     try {
       await API.request(`/api/skills/${encodeURIComponent(name)}`, { method: "DELETE" });
       this.loadSkills();
@@ -3705,7 +3705,7 @@ const Settings = {
 
   /**
    * Tool Permissions: every tool the agent can run, from the registry (GET /api/admin/tool-registry: Atlas's own
-   * tools, the tarsee MCP server's live list, and the tools built into the AIs), grouped as it groups them. Atlas's
+   * tools, the atlas MCP server's live list, and the tools built into the AIs), grouped as it groups them. Atlas's
    * own tools get Allow / Warn / Deny; the built-in ones say plainly that nothing here limits them.
    */
   async loadToolPermissions() {

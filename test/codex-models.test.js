@@ -24,7 +24,7 @@ let root;
 let fakeBin;
 let n = 0;
 before(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-codex-models-"));
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-codex-models-"));
   const bin = path.join(root, "bin");
   fs.cpSync(FIXTURES, bin, { recursive: true });
   fakeBin = path.join(bin, process.platform === "win32" ? "codex.cmd" : "codex");
@@ -32,7 +32,7 @@ before(() => {
 });
 after(() => { fs.rmSync(root, { recursive: true, force: true }); });
 
-const CANARIES = ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_BASE_URL", "ENCRYPTION_KEY", "TARSEE_PROVIDER_KEY"];
+const CANARIES = ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_BASE_URL", "ENCRYPTION_KEY", "ATLAS_PROVIDER_KEY"];
 
 /** A signed-in-looking home (any auth.json; the fake's account/read decides) and the env picking the fake's answers. */
 function scenario(vars = {}, { signedIn = true } = {}) {

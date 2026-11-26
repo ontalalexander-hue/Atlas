@@ -12,18 +12,18 @@ import express from "express";
 import http from "node:http";
 import WebSocket from "ws";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-turn-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY"]) {
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-turn-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
 // The Claude plan counts as signed in (provider-status.js reads the Railway variable), whatever this machine has.
 process.env.CLAUDE_CODE_OAUTH_TOKEN = "test-canary-claude-oauth-token";
 const API_TOKEN = "test-canary-api-token-0000";
-process.env.TARSEE_API_TOKEN = API_TOKEN;
+process.env.ATLAS_API_TOKEN = API_TOKEN;
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -39,7 +39,7 @@ const { usageIndex } = await import("../src/lib/token-usage.js");
 
 const { runTurn, stopTurns, registerEngine, configureTurns, QUEUED_NOTE, failureFlagKey } = turn;
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 live.initLiveBus(db);
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
@@ -139,9 +139,9 @@ describe("a turn on the default AI", () => {
     assert.equal(stored, "raw-1", "the Claude plan's session is stored bare, as every existing row");
   });
 
-  it("the default provider comes from the registry: the setting, then TARSEE_AI_PROVIDER, then the Claude plan", async () => {
+  it("the default provider comes from the registry: the setting, then ATLAS_AI_PROVIDER, then the Claude plan", async () => {
     settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
-    process.env.TARSEE_AI_PROVIDER = "deepseek";
+    process.env.ATLAS_AI_PROVIDER = "deepseek";
     try {
       const events = await collect(runTurn({ messages: [user("hi")], toolCtx: ctxFor(newChat()) }));
       assert.equal(events[0].provider, "deepseek");
@@ -149,7 +149,7 @@ describe("a turn on the default AI", () => {
       const again = await collect(runTurn({ messages: [user("hi")], toolCtx: ctxFor(newChat()) }));
       assert.equal(again[0].provider, "claude", "the stored claude-code is the Claude plan");
     } finally {
-      delete process.env.TARSEE_AI_PROVIDER;
+      delete process.env.ATLAS_AI_PROVIDER;
     }
   });
 
@@ -1310,7 +1310,7 @@ describe("the external API, ACP and subagents through the router", () => {
   });
 
   it("a turn that goes quiet is given up: the external API answers 504 and the chat takes the next message", async () => {
-    process.env.TARSEE_CHANNEL_IDLE_ABORT_MS = "150";
+    process.env.ATLAS_CHANNEL_IDLE_ABORT_MS = "150";
     try {
       settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
       useEngines({ claude: [[{ type: "wait" }], ok("Back again.")] });
@@ -1324,7 +1324,7 @@ describe("the external API, ACP and subagents through the router", () => {
       assert.equal(r.status, 200, "the conversation's lock was let go");
       assert.equal((await r.json()).response, "Back again.");
     } finally {
-      delete process.env.TARSEE_CHANNEL_IDLE_ABORT_MS;
+      delete process.env.ATLAS_CHANNEL_IDLE_ABORT_MS;
     }
   });
 
@@ -1349,7 +1349,7 @@ describe("the external API, ACP and subagents through the router", () => {
   });
 
   it("a message queued behind another turn isn't given up for the time it waits: its idle clock starts with its turn", async () => {
-    process.env.TARSEE_CHANNEL_IDLE_ABORT_MS = "150";
+    process.env.ATLAS_CHANNEL_IDLE_ABORT_MS = "150";
     try {
       settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
       useEngines({ claude: [ok("Your turn now.")] });
@@ -1366,7 +1366,7 @@ describe("the external API, ACP and subagents through the router", () => {
       assert.equal((await r.json()).response, "Your turn now.");
       assert.equal(engines.claude.calls[0].signal.aborted, false);
     } finally {
-      delete process.env.TARSEE_CHANNEL_IDLE_ABORT_MS;
+      delete process.env.ATLAS_CHANNEL_IDLE_ABORT_MS;
     }
   });
 
@@ -1397,7 +1397,7 @@ describe("the external API, ACP and subagents through the router", () => {
   });
 
   it("an ACP turn that goes quiet is given up with 504", async () => {
-    process.env.TARSEE_CHANNEL_IDLE_ABORT_MS = "150";
+    process.env.ATLAS_CHANNEL_IDLE_ABORT_MS = "150";
     try {
       settings.set("ai.activeProvider", "deepseek");
       settings.set("ai.deepseek.apiKey", DEEPSEEK_KEY);
@@ -1409,7 +1409,7 @@ describe("the external API, ACP and subagents through the router", () => {
       assert.match(body.error, /^DeepSeek Flash stopped responding \(1 min idle\)/);
       assert.equal(body.session.turnCount, 1);
     } finally {
-      delete process.env.TARSEE_CHANNEL_IDLE_ABORT_MS;
+      delete process.env.ATLAS_CHANNEL_IDLE_ABORT_MS;
     }
   });
 

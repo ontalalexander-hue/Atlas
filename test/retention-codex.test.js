@@ -15,10 +15,10 @@ import Database from "better-sqlite3";
 import { startFakeResponses } from "./fixtures/fake-responses.js";
 import { startMcpStub } from "./fixtures/mcp-stub.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-retention-codex-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-retention-codex-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { pruneOldRollouts } = await import("../src/lib/retention.js");
 const codex = await import("../src/ai/providers/codex.js");
@@ -85,9 +85,9 @@ describe("Codex rollouts in the daily sweep", () => {
 
 // --- The real pinned codex binary ------------------------------------------------------------------------------------
 
-/** Only what a program needs to start (no credential of this machine), and TARSEE_CODEX_BIN when set. */
+/** Only what a program needs to start (no credential of this machine), and ATLAS_CODEX_BIN when set. */
 function hostEnv() {
-  const keep = ["PATH", "Path", "SystemRoot", "SYSTEMROOT", "SystemDrive", "TEMP", "TMP", "TMPDIR", "ComSpec", "PATHEXT", "WINDIR", "windir", "LANG", "TARSEE_CODEX_BIN"];
+  const keep = ["PATH", "Path", "SystemRoot", "SYSTEMROOT", "SystemDrive", "TEMP", "TMP", "TMPDIR", "ComSpec", "PATHEXT", "WINDIR", "windir", "LANG", "ATLAS_CODEX_BIN"];
   return Object.fromEntries(keep.filter((k) => process.env[k] != null).map((k) => [k, process.env[k]]));
 }
 const CODEX_THERE = (() => { try { return !!resolveCodexBin(); } catch { return false; } })();
@@ -133,7 +133,7 @@ describe("Codex's thread databases with the real codex binary", { skip: CODEX_TH
       onSessionHandle: (h) => handles.push(h),
       turnId: `retention-${conv}`,
       deps: {
-        env: { ...hostEnv(), HOME: fakeHome, USERPROFILE: fakeHome, NODE_ENV: "test", TARSEE_TEST_BASE_URL_OPENROUTER: fake.url },
+        env: { ...hostEnv(), HOME: fakeHome, USERPROFILE: fakeHome, NODE_ENV: "test", ATLAS_TEST_BASE_URL_OPENROUTER: fake.url },
         stateDir: state, workspace: ws, vaultEnv: async () => ({}), accountModels: () => [],
       },
     })) out.push(ev);

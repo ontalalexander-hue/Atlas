@@ -66,7 +66,7 @@
   // Session cookie (httpOnly) is sent automatically by browser on WS upgrade.
   // API token via query param serves as fallback auth.
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const apiToken = localStorage.getItem("tarsee_api_token");
+  const apiToken = localStorage.getItem("atlas_api_token");
   const wsUrl = `${protocol}//${window.location.host}/terminal${apiToken ? "?token=" + encodeURIComponent(apiToken) : ""}`;
   let ws = null;
   let reconnectInterval = null;

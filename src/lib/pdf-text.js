@@ -1,6 +1,6 @@
 /**
  * pdf-text.js: the text of a PDF, for an AI that can't read PDF files itself (ai/media.js, design 4.12) and for
- * the pdf_read tool (tarsee_pdf_read, design 4.9).
+ * the pdf_read tool (atlas_pdf_read, design 4.9).
  *
  * Two readers, tried in this order by pdfText():
  *  - pdftotext (poppler-utils; the Docker image installs it). It reads nearly anything.
@@ -103,7 +103,7 @@ export async function pdfText(buffer, { file = null, timeoutMs = PDFTOTEXT_TIMEO
     try {
       let src = file;
       if (!src) {
-        tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-pdf-"));
+        tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-pdf-"));
         src = path.join(tmp, "in.pdf");
         fs.writeFileSync(src, buffer);
       }

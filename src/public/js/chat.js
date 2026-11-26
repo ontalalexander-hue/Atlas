@@ -81,7 +81,7 @@ const Chat = {
     // Settings → AI (js/settings.js) read the AIs and something the composer shows changed: the list and the defaults
     // again, now. A new default (or its model, or whether it can answer) also means the model the last turn ran on is
     // no longer what the next message runs on.
-    window.addEventListener("tarsee:ai-changed", (ev) => {
+    window.addEventListener("atlas:ai-changed", (ev) => {
       if (ev.detail?.defaultChanged !== false) this._turnModel = null;
       this.refreshPicker(true);
       this._loadPick({ fresh: true });
@@ -545,7 +545,7 @@ const Chat = {
       const data = await API.json("/api/settings/setup-status");
       // Ignore default/autofill names — only use names set via IDENTITY.md
       const name = data.botName;
-      const ignored = ["admin", "user", "root", "tarsee", ""];
+      const ignored = ["admin", "user", "root", "atlas", ""];
       this.setBotName(name && !ignored.includes(name.toLowerCase()) ? name : "Atlas");
     } catch {
       this.setBotName("Atlas");
@@ -702,8 +702,8 @@ const Chat = {
   /** The sidebar's own controls: New chat, the search box, the groups, the rows (delegated: the list is redrawn often). */
   _initNav() {
     try {
-      this._collapsed = new Set(JSON.parse(localStorage.getItem("tarsee_nav_collapsed") || "[]"));
-      this._expanded = new Set(JSON.parse(localStorage.getItem("tarsee_nav_expanded") || "[]"));
+      this._collapsed = new Set(JSON.parse(localStorage.getItem("atlas_nav_collapsed") || "[]"));
+      this._expanded = new Set(JSON.parse(localStorage.getItem("atlas_nav_expanded") || "[]"));
     } catch { /* storage blocked: all open */ }
     const plainClick = (e) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
     for (const id of ["newChatBtn", "brandLink"]) {
@@ -747,8 +747,8 @@ const Chat = {
 
   _saveNav() {
     try {
-      localStorage.setItem("tarsee_nav_collapsed", JSON.stringify([...this._collapsed]));
-      localStorage.setItem("tarsee_nav_expanded", JSON.stringify([...this._expanded]));
+      localStorage.setItem("atlas_nav_collapsed", JSON.stringify([...this._collapsed]));
+      localStorage.setItem("atlas_nav_expanded", JSON.stringify([...this._expanded]));
     } catch { /* memory only */ }
   },
 
@@ -842,7 +842,7 @@ const Chat = {
     if (r.kind === "chat") return this.openChat(r.id, { push, replace });
     if (r.kind === "new") return this.newChat({ push, replace });
     let saved = null;
-    try { saved = localStorage.getItem("tarsee_last_channel"); } catch { /* ignore */ }
+    try { saved = localStorage.getItem("atlas_last_channel"); } catch { /* ignore */ }
     const ch = (saved && this.channels.find((c) => c.key === saved)) || this.channels.find((c) => c.key === "web:default");
     if (ch) return this.openChannel(ch.key, ch.conversationId, { push: false, replace: true });
     return this.openChannel("web:default", null, { push: false, replace: true });
@@ -940,7 +940,7 @@ const Chat = {
     if (this.liveOn() && Live.convId && Live.convId !== conversationId) Live.detach();
     this.currentChannelKey = channelKey || null;
     this.currentConversationId = conversationId || null;
-    if (channelKey) { try { localStorage.setItem("tarsee_last_channel", channelKey); } catch { /* ignore */ } }
+    if (channelKey) { try { localStorage.setItem("atlas_last_channel", channelKey); } catch { /* ignore */ } }
     // Switching channels invalidates the prior turn's token telemetry —
     // reset so the meter reflects the new conversation's state, not stale
     // numbers from whichever channel we just left.
@@ -1073,7 +1073,7 @@ const Chat = {
   async renameChat() {
     const id = this.currentConversationId;
     if (!id) return;
-    const name = await TarseeDialog.askText({ title: "Rename this chat", label: "Name", value: this._currentName || "", yes: "Rename", no: "Cancel" });
+    const name = await AtlasDialog.askText({ title: "Rename this chat", label: "Name", value: this._currentName || "", yes: "Rename", no: "Cancel" });
     if (name == null || !String(name).trim() || this.currentConversationId !== id) return;
     try {
       await API.updateConversation(id, { title: String(name).trim().slice(0, 120) });
@@ -1090,7 +1090,7 @@ const Chat = {
     // (The conversation shown when it was asked is the one reset, whatever the page did meanwhile.)
     const id = this.currentConversationId;
     if (!id) return;
-    if (!(await TarseeDialog.ask({ title: "Start a fresh session?", text: `Messages stay, but ${this.botName} starts this chat with a clean context and won't recall the earlier back-and-forth.`, yes: "Start fresh", no: "Cancel" }))) return;
+    if (!(await AtlasDialog.ask({ title: "Start a fresh session?", text: `Messages stay, but ${this.botName} starts this chat with a clean context and won't recall the earlier back-and-forth.`, yes: "Start fresh", no: "Cancel" }))) return;
     try {
       await API.json(`/api/chat/conversations/${id}/reset-session`, { method: "POST" });
       App.showToast("Fresh session started", "success");
@@ -1872,7 +1872,7 @@ const Chat = {
 
   /**
    * The reply to one message, read from its own stream (the old view, for when the live view is off:
-   * localStorage.tarsee_live_off = "1"). The steps go in the answer's place as they come, the words under them.
+   * localStorage.atlas_live_off = "1"). The steps go in the answer's place as they come, the words under them.
    */
   async _streamReply(text, attachments) {
     const assistantMsg = this.appendMessage("assistant", "", true);
@@ -1986,7 +1986,7 @@ const Chat = {
     // /clear (and its aliases) really delete this conversation's messages
     // on the server, so ask first. /reset used to be a client-only fake.
     if (/^\/(clear|reset|new)\b/i.test(text)) {
-      if (!(await TarseeDialog.ask({ title: "Clear this conversation?", text: "Its messages are deleted on the server (a summary is saved to memory first). This can't be undone.", yes: "Clear it", no: "Cancel", danger: true }))) return;
+      if (!(await AtlasDialog.ask({ title: "Clear this conversation?", text: "Its messages are deleted on the server (a summary is saved to memory first). This can't be undone.", yes: "Clear it", no: "Cancel", danger: true }))) return;
       text = text.replace(/^\/reset\b/i, "/clear");
     }
     let attachments = [];
@@ -2052,7 +2052,7 @@ const Chat = {
   // and drained from every completion path.
   _persistQueue() {
     try {
-      localStorage.setItem("tarsee_pending_queue", JSON.stringify(
+      localStorage.setItem("atlas_pending_queue", JSON.stringify(
         this.messageQueue.map((q) => ({ text: q.text, convId: q.convId || null })),
       ));
     } catch { /* storage unavailable: queue still works in memory */ }
@@ -2060,7 +2060,7 @@ const Chat = {
 
   _restoreQueue() {
     try {
-      const saved = JSON.parse(localStorage.getItem("tarsee_pending_queue") || "[]");
+      const saved = JSON.parse(localStorage.getItem("atlas_pending_queue") || "[]");
       if (Array.isArray(saved) && saved.length && !this.messageQueue.length) {
         this.messageQueue = saved.filter((q) => q && q.text).map((q) => ({ text: q.text, attachments: [], convId: q.convId }));
       }
@@ -2227,7 +2227,7 @@ const Chat = {
       // Defense-in-depth: same-origin check (canvas iframes run allow-same-origin).
       if (event.origin !== location.origin) return;
       const data = event.data;
-      if (!data || data.type !== "tarsee:diagram-click") return;
+      if (!data || data.type !== "atlas:diagram-click") return;
       // Verify the source is one of our canvas iframes
       const iframes = document.querySelectorAll('iframe.canvas-iframe');
       let trusted = false;
@@ -2268,7 +2268,7 @@ const Chat = {
       this._typingWs.onopen = () => {
         // Successful connection resets backoff
         this._typingReconnect.attempts = 0;
-        const token = API.token || localStorage.getItem("tarsee_api_token");
+        const token = API.token || localStorage.getItem("atlas_api_token");
         if (token) this._typingWs.send(JSON.stringify({ type: "auth", token }));
         // Live view: resubscribe from the last sequence seen (catches up on
         // everything missed while the socket was down).

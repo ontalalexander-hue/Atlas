@@ -63,7 +63,7 @@ export function summarizeToolInput(name, input = {}) {
   return s.length > 140 ? s.slice(0, 139) + "…" : s;
 }
 
-/** Friendly tool names: mcp__tarsee__tarsee_send_message → tarsee_send_message. */
+/** Friendly tool names: mcp__atlas__atlas_send_message → atlas_send_message. */
 export function displayToolName(name) {
   const n = String(name || "tool");
   const m = n.match(/^mcp__[^_]+(?:_[^_]+)*?__(.+)$/);

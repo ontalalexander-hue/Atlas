@@ -11,10 +11,10 @@ import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-migration-012-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-migration-012-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb, migrate, ensureColumn, ensureUsageColumns } = await import("../src/db/sqlite.js");
 const { UsageIndex } = await import("../src/lib/token-usage.js");

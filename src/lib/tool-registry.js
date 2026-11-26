@@ -4,23 +4,23 @@
  *
  * Three sources, merged:
  *   - Atlas's own tools as lib/tools.js defines them (getToolDefinitions): read_file, exec, pdf_read, ...
- *   - the tarsee MCP server's live list (ai/tarsee-mcp.js, asked over an in-memory MCP client exactly as an
- *     engine asks it): tarsee_send_message, tarsee_push_notification, tarsee_pdf_read, ... Each one runs
- *     executeTool("<name without tarsee_>"), so it is the same tool as lib/tools.js's of that name.
+ *   - the atlas MCP server's live list (ai/atlas-mcp.js, asked over an in-memory MCP client exactly as an
+ *     engine asks it): atlas_send_message, atlas_push_notification, atlas_pdf_read, ... Each one runs
+ *     executeTool("<name without atlas_>"), so it is the same tool as lib/tools.js's of that name.
  *   - the tools built into the engines themselves: Claude Code's Read, Write, Edit, Bash, Glob and Grep, and
  *     Codex's shell, file patch and plan tools (named in Claude's words, as the live view shows them).
  *
  * Each entry: { name, label, description, group, policyCovered, mcpName, engines, mode? }
  *   name           the Tool Permissions name (what POST /api/admin/tool-permissions takes): "push_notification"
- *   mcpName        what the agent calls it ("tarsee_push_notification"; the engine sees mcp__tarsee__<mcpName>),
- *                  null for a tool the agent can't call through the tarsee server
+ *   mcpName        what the agent calls it ("atlas_push_notification"; the engine sees mcp__atlas__<mcpName>),
+ *                  null for a tool the agent can't call through the atlas server
  *   policyCovered  true when Settings > Tool Permissions applies (everything through executeTool); false for the
  *                  engines' own tools, which nothing in Atlas can gate (design 2, non-goals: said honestly)
  *   engines        for a built-in tool, the engines that have it
  *   mode           the current Tool Permissions setting (filled by the route)
  */
 
-const MCP_PREFIX = "tarsee_";
+const MCP_PREFIX = "atlas_";
 
 /** Plain-language names and groups for the tools Atlas ships. Anything else is named from its id, in "Other". */
 const KNOWN = {
@@ -87,7 +87,7 @@ function labelFromName(name) {
 
 /**
  * The registry from its sources (pure). toolDefs: [{ name, description }] (lib/tools.js getToolDefinitions),
- * mcpTools: [{ name, description }] (the tarsee MCP server's tools/list). Atlas's tools sorted by group then
+ * mcpTools: [{ name, description }] (the atlas MCP server's tools/list). Atlas's tools sorted by group then
  * label, the engines' own last.
  */
 export function buildToolRegistry({ toolDefs = [], mcpTools = [] } = {}) {
@@ -122,20 +122,20 @@ export function buildToolRegistry({ toolDefs = [], mcpTools = [] } = {}) {
 let _mcpList = null;
 
 /**
- * The tarsee MCP server's tools as an engine sees them ([{ name, description }]), asked once per process over an
+ * The atlas MCP server's tools as an engine sees them ([{ name, description }]), asked once per process over an
  * in-memory MCP client. An empty list if the server can't be built (the registry then shows lib/tools.js's tools).
  */
 export function mcpToolList() {
   if (!_mcpList) {
     _mcpList = (async () => {
-      const [{ createTarseeMcp }, { Client }, { InMemoryTransport }] = await Promise.all([
-        import("../ai/tarsee-mcp.js"),
+      const [{ createAtlasMcp }, { Client }, { InMemoryTransport }] = await Promise.all([
+        import("../ai/atlas-mcp.js"),
         import("@modelcontextprotocol/sdk/client/index.js"),
         import("@modelcontextprotocol/sdk/inMemory.js"),
       ]);
-      const server = createTarseeMcp({});
+      const server = createAtlasMcp({});
       const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-      const client = new Client({ name: "tarsee-tool-registry", version: "1.0.0" }, { capabilities: {} });
+      const client = new Client({ name: "atlas-tool-registry", version: "1.0.0" }, { capabilities: {} });
       await Promise.all([server.instance.connect(serverSide), client.connect(clientSide)]);
       try {
         const { tools } = await client.listTools();
@@ -144,7 +144,7 @@ export function mcpToolList() {
         await client.close().catch(() => {});
       }
     })().catch((err) => {
-      console.warn(`[tools] could not list the tarsee MCP tools: ${err.message}`);
+      console.warn(`[tools] could not list the atlas MCP tools: ${err.message}`);
       _mcpList = null;
       return [];
     });
@@ -152,7 +152,7 @@ export function mcpToolList() {
   return _mcpList;
 }
 
-/** The live registry: lib/tools.js's definitions and the tarsee MCP server's list, with the engines' own tools. */
+/** The live registry: lib/tools.js's definitions and the atlas MCP server's list, with the engines' own tools. */
 export async function toolRegistry() {
   const [{ getToolDefinitions }, mcpTools] = await Promise.all([import("./tools.js"), mcpToolList()]);
   return buildToolRegistry({ toolDefs: getToolDefinitions(), mcpTools });

@@ -1,4 +1,4 @@
-// Discord formatting (src/lib/discord-format.js, ported from TarseeMacOS): markdown tables drawn as a fenced grid when
+// Discord formatting (src/lib/discord-format.js, ported from the macOS app): markdown tables drawn as a fenced grid when
 // narrow or as label-value lines when wide, fences left alone, and a splitter that never leaves a fence unbalanced.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import config from "../config/env.js";
 
-const PID_FILE = path.join(config.STATE_DIR, "tarsee.pid");
+const PID_FILE = path.join(config.STATE_DIR, "atlas.pid");
 
 export function writePid() {
   try {

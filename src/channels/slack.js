@@ -35,13 +35,13 @@ import { turnErrorNote, idleNote, errorStillToSay, sttProblem } from "./turn-not
 /** Largest file the bot downloads from a message or uploads with send_file (Slack itself takes up to 1 GB). */
 export const SLACK_FILE_CAP_MB = 100;
 
-/** Commands that act on the conversation they are sent in: in Slack that is a thread, which /tarsee cannot see. */
+/** Commands that act on the conversation they are sent in: in Slack that is a thread, which /atlas cannot see. */
 const THREAD_COMMANDS = new Set(["clear", "new", "export", "send", "think"]);
 
 /** /help lists commands as the web app takes them; in Slack a "/clear" typed on its own goes to Slack, not to Atlas. */
 function withSlackHowTo(helpText, handle) {
   const threadOnes = [...THREAD_COMMANDS].map((c) => `\`/${c}\``).join(", ");
-  return `**In Slack**, start a command with /tarsee: \`/tarsee /model opus\` works anywhere, and only you see the answer. ` +
+  return `**In Slack**, start a command with /atlas: \`/atlas /model opus\` works anywhere, and only you see the answer. ` +
     `${threadOnes} act on one conversation, which here is a thread: reply in it with \`@${handle} /clear\`.\n\n${helpText}`;
 }
 
@@ -125,8 +125,8 @@ function withDeadline(promise, ms, message) {
 }
 
 /**
- * What `/tarsee <text>` asks for: { command } or { question }. A command is written with its slash
- * (`/tarsee /model opus`) or is one bare word (`/tarsee help`, `/tarsee status`; orQuestion: a question after all
+ * What `/atlas <text>` asks for: { command } or { question }. A command is written with its slash
+ * (`/atlas /model opus`) or is one bare word (`/atlas help`, `/atlas status`; orQuestion: a question after all
  * when no command has that name). Anything else is a question, even "help me write an email".
  */
 export function readSlashText(text) {
@@ -474,7 +474,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
 
   /**
    * Answer in a thread: stream the model's reply there, with a card per tool it runs, and save it.
-   *   ackTs: the person's message, for the 👀 reaction and the agent's own reactions (null for /tarsee)
+   *   ackTs: the person's message, for the 👀 reaction and the agent's own reactions (null for /atlas)
    * Which AI answers is the turn layer's to decide (ai/turn.js: this thread's own pick, else the default), and so is
    * saying what to set up when that AI isn't ready: its answer is the reply.
    */
@@ -509,7 +509,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       let lastEventAt = Date.now();
       let idleAborted = false;
       // How long a turn may go with no stream event before it is given up (finite on purpose: see discord.js).
-      const IDLE_ABORT_MS = Number(process.env.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+      const IDLE_ABORT_MS = Number(process.env.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
       const idleTimer = setInterval(() => {
         if (Date.now() - lastEventAt > IDLE_ABORT_MS) {
           idleAborted = true;
@@ -778,15 +778,15 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
     }
   });
 
-  // ── /tarsee ───────────────────────────────────────────────────────────
+  // ── /atlas ───────────────────────────────────────────────────────────
 
-  app.command("/tarsee", async ({ command, ack, respond }) => {
+  app.command("/atlas", async ({ command, ack, respond }) => {
     await ack();
     const tell = (markdown) => respond({
       response_type: "ephemeral",
       text: markdown.slice(0, 3000),
       blocks: splitForSlack(markdown, 11_000).slice(0, 1).map((text) => ({ type: "markdown", text })),
-    }).catch((err) => console.warn("[slack] /tarsee reply failed:", err.message));
+    }).catch((err) => console.warn("[slack] /atlas reply failed:", err.message));
     try {
       const channel = command.channel_id;
       const asEvent = {
@@ -795,7 +795,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       };
       const decision = decideSlackMessage(asEvent, { botUserId, botTeamId, allowlist: allowlistNow() });
       if (!decision.handle) {
-        console.warn(`[slack] ignoring /tarsee from user ${command.user_id} in ${channel} (${decision.reason})`);
+        console.warn(`[slack] ignoring /atlas from user ${command.user_id} in ${channel} (${decision.reason})`);
         await tell("You're not on this Atlas's Slack allowlist.");
         return;
       }
@@ -819,7 +819,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
           return;
         }
         if (!cmdResult.handled && !asked.orQuestion) {
-          await tell(`There's no \`/${name}\` command. \`/tarsee help\` lists them; anything else you write after /tarsee is a question for me.`);
+          await tell(`There's no \`/${name}\` command. \`/atlas help\` lists them; anything else you write after /atlas is a question for me.`);
           return;
         }
       }
@@ -828,7 +828,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
       const who = await userName(command.user_id);
       let root;
       try {
-        root = await app.client.chat.postMessage({ channel, markdown_text: `**${who}** asked: ${cmdResult.handled ? `\`/tarsee ${text}\`` : text}` });
+        root = await app.client.chat.postMessage({ channel, markdown_text: `**${who}** asked: ${cmdResult.handled ? `\`/atlas ${text}\`` : text}` });
       } catch (err) {
         const code = slackErrorCode(err);
         await tell(code === "not_in_channel" || code === "channel_not_found"
@@ -846,7 +846,7 @@ export async function createSlackBot(config, db, { slackApiUrl = null, chatStrea
         aiPromptOverride: playbook, ackTs: null, savedUserId: savedUser?.id || null,
       });
     } catch (err) {
-      console.error("[slack] /tarsee error:", err);
+      console.error("[slack] /atlas error:", err);
       await tell(`⚠️ ${err.message || "Something went wrong."}`);
     }
   });

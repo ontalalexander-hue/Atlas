@@ -128,7 +128,7 @@ const NOT_READY_STATES = new Set(["needs-key", "needs-sign-in", "needs-setup", "
  * Whether the default AI can take a turn now, for the callers that would rather skip quietly than fail every time
  * (the heartbeat, every 30 minutes; the boot checklist): { ready, provider, label, reason }. The checks the turn
  * layer makes before a turn: switched on in this version, not blocked by "API keys only", set up (a key, a sign-in,
- * Local AI's address). The default is the registry's (activeProviderId: the setting, then TARSEE_AI_PROVIDER, then
+ * Local AI's address). The default is the registry's (activeProviderId: the setting, then ATLAS_AI_PROVIDER, then
  * the Claude plan), so an install set up only through Railway variables counts too. The engines' failure flags don't
  * count, as in the turn layer: a turn says so itself if the problem is still there.
  */

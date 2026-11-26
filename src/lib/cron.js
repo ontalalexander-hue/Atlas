@@ -642,7 +642,7 @@ async function runOnce(job) {
     conversationId: null,
     messageCount: 0,
     conversationPrompt: null,
-    channelHint: `This is a scheduled cron job (${job.id}). Execute the task immediately. If the task asks you to send a message to a channel, use tarsee_send_message. Do NOT just describe what you would do — actually do it.`,
+    channelHint: `This is a scheduled cron job (${job.id}). Execute the task immediately. If the task asks you to send a message to a channel, use atlas_send_message. Do NOT just describe what you would do — actually do it.`,
   });
 
   const messages = [

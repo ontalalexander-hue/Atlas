@@ -1,7 +1,7 @@
 // Scheduled tasks and the owner's OK (src/lib/cron.js, lib/tools.js schedule_task, routes/settings.js, lib/commands.js
 // /cron, js/cron-core.js). The rule: Atlas calls an AI model, or spends on an API key, only when the owner sent a
 // message, clicked a button that clearly does that, or set the job up themselves. So:
-//   - a task the AI schedules (tarsee_schedule_task) is saved paused, waiting for the owner's OK; the owner's own
+//   - a task the AI schedules (atlas_schedule_task) is saved paused, waiting for the owner's OK; the owner's own
 //     tasks (the Settings form, /cron add) are switched on as before;
 //   - the owner switches a task on or off: PATCH /api/settings/cron/:id, /cron on <id>, /cron off <id>, and the
 //     Switch on / Pause button in Settings > Automation > Scheduled tasks;
@@ -24,11 +24,11 @@ import { Worker } from "node:worker_threads";
 import express from "express";
 import nodeCron from "node-cron";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-scheduled-tasks-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY"]) {
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-scheduled-tasks-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
@@ -44,7 +44,7 @@ const { ConversationStore } = await import("../src/db/conversations.js");
 const { initLiveBus } = await import("../src/lib/live-bus.js");
 const { registerEngine, configureTurns, runTurn } = await import("../src/ai/turn.js");
 const { createFakeEngine } = await import("./fakes/fake-engine.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const { stopMcpHttp } = await import("../src/ai/mcp-http.js");
 const { executeTool } = await import("../src/lib/tools.js");
 const { processCommand } = await import("../src/lib/commands.js");
@@ -59,7 +59,7 @@ const writeWorkspaceFile = (name, content) => { writeFile(name, content); if (is
 await import("../src/public/js/cron-core.js");
 const CronCore = globalThis.CronCore;
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 initLiveBus(db);
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);
@@ -80,9 +80,9 @@ const owner = (text) => processCommand(text, { settingsStore: settings, db, plat
 
 /** Call one of Atlas's tools the way Claude Code does: its in-process MCP server, around the turn's tool context. */
 async function callInProcess(ctx, name, args) {
-  const mcp = createTarseeMcp(ctx, { quiet: true });
+  const mcp = createAtlasMcp(ctx, { quiet: true });
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "tarsee-test", version: "1.0.0" }, { capabilities: {} });
+  const client = new Client({ name: "atlas-test", version: "1.0.0" }, { capabilities: {} });
   await Promise.all([mcp.instance.connect(serverSide), client.connect(clientSide)]);
   try {
     const r = await client.callTool({ name, arguments: args });
@@ -148,7 +148,7 @@ after(async () => {
 describe("a task the AI schedules waits for the owner's OK", () => {
   it("a task that asks the AI is saved paused, as the AI's, waiting; nothing is scheduled; the tool says how to switch it on", async () => {
     const ctx = chatCtx();
-    const text = await callInProcess(ctx, "tarsee_schedule_task", { schedule: "0 9 * * *", prompt: "Summarise my inbox", name: "Inbox" });
+    const text = await callInProcess(ctx, "atlas_schedule_task", { schedule: "0 9 * * *", prompt: "Summarise my inbox", name: "Inbox" });
     const job = jobNamed("Inbox");
     assert.ok(job, text);
     assert.equal(job.enabled, false);
@@ -169,7 +169,7 @@ describe("a task the AI schedules waits for the owner's OK", () => {
   });
 
   it("so is a direct-action task (no AI), which the tool calls instant", async () => {
-    const text = await callInProcess(chatCtx(), "tarsee_schedule_task", {
+    const text = await callInProcess(chatCtx(), "atlas_schedule_task", {
       schedule: "30 12 * * *", name: "Lunch", once: true, action: { tool: "send_message", args: { channel: "web", message: "Lunch!" } },
     });
     const job = jobNamed("Lunch");
@@ -213,7 +213,7 @@ describe("a task the AI schedules waits for the owner's OK", () => {
 
 describe("the owner switches a task on and off", () => {
   it("PATCH /api/settings/cron/:id: on clears the waiting mark and schedules it, off unschedules it", async () => {
-    await callInProcess(chatCtx(), "tarsee_schedule_task", { schedule: "0 9 * * 1", prompt: "Plan the week", name: "Week" });
+    await callInProcess(chatCtx(), "atlas_schedule_task", { schedule: "0 9 * * 1", prompt: "Plan the week", name: "Week" });
     const { id } = jobNamed("Week");
 
     // Switch on says what the owner's row showed (CronCore.seenOf), so only that task is switched on.
@@ -253,7 +253,7 @@ describe("the owner switches a task on and off", () => {
   });
 
   it("/cron on <id> and /cron off <id>, and /cron list says each task's state and who made it", async () => {
-    await callInProcess(chatCtx(), "tarsee_schedule_task", { schedule: "0 9 * * *", prompt: "Check the deploys", name: "Deploys" });
+    await callInProcess(chatCtx(), "atlas_schedule_task", { schedule: "0 9 * * *", prompt: "Check the deploys", name: "Deploys" });
     const { id } = jobNamed("Deploys");
     let list = await owner("/cron list");
     assert.match(list, new RegExp(`${id}.*waiting for your OK`, "i"));
@@ -335,7 +335,7 @@ describe("a scheduled run, a webhook's run, the heartbeat and BOOT.md can't sche
   it("on Claude Code: a cron job's, the heartbeat's and the boot checklist's turns get a tool context that says so", async () => {
     const outs = [];
     engine = createFakeEngine([async (opts) => {
-      outs.push(await callInProcess(opts.toolCtx, "tarsee_schedule_task", ARGS));
+      outs.push(await callInProcess(opts.toolCtx, "atlas_schedule_task", ARGS));
       return answer("Done.");
     }]);
     registerEngine("claude-code", engine);
@@ -360,7 +360,7 @@ describe("a scheduled run, a webhook's run, the heartbeat and BOOT.md can't sche
     settings.set("ai.activeProvider", "openai");
     const outs = [];
     engine = createFakeEngine([async (opts) => {
-      outs.push(await callOverHttp(opts.mcp, "tarsee_schedule_task", ARGS));
+      outs.push(await callOverHttp(opts.mcp, "atlas_schedule_task", ARGS));
       return answer("Done.");
     }]);
     registerEngine("codex", engine);
@@ -381,7 +381,7 @@ describe("a scheduled run, a webhook's run, the heartbeat and BOOT.md can't sche
   it("a chat's own turn can still schedule one, paused", async () => {
     const outs = [];
     engine = createFakeEngine([async (opts) => {
-      outs.push(await callInProcess(opts.toolCtx, "tarsee_schedule_task", ARGS));
+      outs.push(await callInProcess(opts.toolCtx, "atlas_schedule_task", ARGS));
       return answer("Saved, waiting for your OK.");
     }]);
     registerEngine("claude-code", engine);
@@ -432,7 +432,7 @@ describe("how often a task that asks the AI may run", () => {
   });
 
   it("every way of making one says the rule: the AI's tool, the Settings form and /cron add", async () => {
-    const tool = await callInProcess(chatCtx(), "tarsee_schedule_task", { schedule: "*/5 * * * *", prompt: "Check the price" });
+    const tool = await callInProcess(chatCtx(), "atlas_schedule_task", { schedule: "*/5 * * * *", prompt: "Check the price" });
     assert.match(tool, /^schedule_task error: .*at most once every 15 minutes/s, tool);
     const res = await api("POST", "/cron", { schedule: "* * * * * *", prompt: "Check the price" });
     assert.equal(res.status, 400);
@@ -943,7 +943,7 @@ describe("Settings > Automation > Scheduled tasks (js/cron-core.js)", () => {
     assert.ok(page.indexOf('<script src="/js/cron-core.js"></script>') > 0);
     assert.ok(page.indexOf("/js/cron-core.js") < page.indexOf('<script src="/js/settings.js"></script>'));
     assert.ok(sw.includes('"/js/cron-core.js"'));
-    assert.doesNotMatch(sw, /const CACHE_NAME = "tarsee-v21"/, "the cache version moves on so phones pick up the new page");
+    assert.doesNotMatch(sw, /const CACHE_NAME = "atlas-v21"/, "the cache version moves on so phones pick up the new page");
     assert.match(settingsJs, /CronCore\.listHtml/);
     assert.match(settingsJs, /method: "PATCH"/);
     assert.match(settingsJs, /\/api\/settings\/cron\/\$\{encodeURIComponent/);

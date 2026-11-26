@@ -7,12 +7,12 @@ import crypto from "node:crypto";
 
 // Remember where a real Phonon install would be before pointing everything at
 // throwaway folders (config/env.js creates its directories on import).
-const REAL_PHONON_DIR = process.env.TARSEE_PHONON_DIR
-  || path.join(process.env.TARSEE_DATA_DIR || path.join(process.env.TARSEE_STATE_DIR || path.join(os.homedir(), ".tarsee"), "data"), "tts", "phonon");
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-phonon-test-"));
-process.env.TARSEE_STATE_DIR = TMP;
-process.env.TARSEE_DATA_DIR = path.join(TMP, "data");
-process.env.TARSEE_PHONON_DIR = path.join(TMP, "phonon-none");
+const REAL_PHONON_DIR = process.env.ATLAS_PHONON_DIR
+  || path.join(process.env.ATLAS_DATA_DIR || path.join(process.env.ATLAS_STATE_DIR || path.join(os.homedir(), ".atlas"), "data"), "tts", "phonon");
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-phonon-test-"));
+process.env.ATLAS_STATE_DIR = TMP;
+process.env.ATLAS_DATA_DIR = path.join(TMP, "data");
+process.env.ATLAS_PHONON_DIR = path.join(TMP, "phonon-none");
 
 const { initTTSEngine, getTTSEngine, FallbackTTSEngine, enginePreference, fallbackVoiceFor } = await import("../src/voice/engine-registry.js");
 const { speakPesos, cleanSpeechText, phononSpeechText } = await import("../src/voice/speech-text.js");
@@ -367,10 +367,10 @@ describe("Phonon installer", () => {
   let dir;
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(TMP, "phonon-"));
-    process.env.TARSEE_PHONON_DIR = dir;
+    process.env.ATLAS_PHONON_DIR = dir;
   });
   afterEach(() => {
-    process.env.TARSEE_PHONON_DIR = path.join(TMP, "phonon-none");
+    process.env.ATLAS_PHONON_DIR = path.join(TMP, "phonon-none");
   });
 
   const fakeRuntime = { ensureRuntime: async () => {}, smokeTest: async () => "ok", log: () => {}, retryDelayMs: 1 };
@@ -449,8 +449,8 @@ describe("Phonon installer", () => {
   it("files on disk with no usable Python runtime read as failed, so Retry can repair it", async () => {
     const { fetch } = fakeHub(hubFiles());
     await installPhonon({ ...fakeRuntime, fetch, model: MODEL, voices: VOICES });
-    const prev = process.env.TARSEE_PHONON_PYTHON;
-    process.env.TARSEE_PHONON_PYTHON = path.join(dir, "no-such-python");
+    const prev = process.env.ATLAS_PHONON_PYTHON;
+    process.env.ATLAS_PHONON_PYTHON = path.join(dir, "no-such-python");
     try {
       assert.equal(getPhononInstallStatus().state, "installed", "the files are all there");
       const st = await checkPhononInstall();
@@ -458,7 +458,7 @@ describe("Phonon installer", () => {
       assert.match(st.error, /cannot import ptts/);
       assert.equal(await new PhononTTSEngine().isAvailable(), false, "so Edge TTS speaks");
     } finally {
-      if (prev === undefined) delete process.env.TARSEE_PHONON_PYTHON; else process.env.TARSEE_PHONON_PYTHON = prev;
+      if (prev === undefined) delete process.env.ATLAS_PHONON_PYTHON; else process.env.ATLAS_PHONON_PYTHON = prev;
     }
   });
 
@@ -502,11 +502,11 @@ describe("Phonon installer", () => {
   it("the background install on boot: only for Phonon, only when missing, once, and can be turned off", async () => {
     const calls = [];
     const install = async (o) => { calls.push(o); };
-    const prev = process.env.TARSEE_PHONON_AUTO_INSTALL;
+    const prev = process.env.ATLAS_PHONON_AUTO_INSTALL;
     try {
-      process.env.TARSEE_PHONON_AUTO_INSTALL = "0";
+      process.env.ATLAS_PHONON_AUTO_INSTALL = "0";
       assert.equal(autoInstallPhonon(store(), { install, delayMs: 0 }), false);
-      delete process.env.TARSEE_PHONON_AUTO_INSTALL;
+      delete process.env.ATLAS_PHONON_AUTO_INSTALL;
       assert.equal(autoInstallPhonon(store({ "voice.engine": "edge-tts" }), { install, delayMs: 0 }), false);
       assert.equal(autoInstallPhonon(store({ "voice.engine": "auto" }), { install, delayMs: 0 }), false);
       const onInstalled = () => {};
@@ -516,7 +516,7 @@ describe("Phonon installer", () => {
       assert.equal(calls.length, 1);
       assert.equal(calls[0].onInstalled, onInstalled);
     } finally {
-      if (prev === undefined) delete process.env.TARSEE_PHONON_AUTO_INSTALL; else process.env.TARSEE_PHONON_AUTO_INSTALL = prev;
+      if (prev === undefined) delete process.env.ATLAS_PHONON_AUTO_INSTALL; else process.env.ATLAS_PHONON_AUTO_INSTALL = prev;
     }
   });
 });
@@ -529,13 +529,13 @@ describe("Phonon's Python runtime", () => {
   const cand = (cmd, args = []) => ({ cmd, args, source: "system", label: [cmd, ...args].join(" ") });
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(TMP, "phonon-py-"));
-    process.env.TARSEE_PHONON_DIR = dir;
+    process.env.ATLAS_PHONON_DIR = dir;
     py = fakePython(path.join(dir, "fake"));
     resetPhononAvailability();
     fs.rmSync(pythonHome(), { recursive: true, force: true });
   });
   afterEach(() => {
-    process.env.TARSEE_PHONON_DIR = path.join(TMP, "phonon-none");
+    process.env.ATLAS_PHONON_DIR = path.join(TMP, "phonon-none");
     setPythonForTests();
     resetPhononAvailability();
   });
@@ -599,15 +599,15 @@ describe("Phonon's Python runtime", () => {
 // ── The real worker, where Phonon is installed ──────────────────────────
 
 const realInstalled = (() => {
-  const prev = process.env.TARSEE_PHONON_DIR;
-  process.env.TARSEE_PHONON_DIR = REAL_PHONON_DIR;
-  try { return phononInstalled(); } finally { process.env.TARSEE_PHONON_DIR = prev; }
+  const prev = process.env.ATLAS_PHONON_DIR;
+  process.env.ATLAS_PHONON_DIR = REAL_PHONON_DIR;
+  try { return phononInstalled(); } finally { process.env.ATLAS_PHONON_DIR = prev; }
 })();
 
 describe("Phonon worker (real)", { skip: !realInstalled && "Phonon is not installed on this machine" }, () => {
   it("speaks a line through the real worker and stops cleanly", async () => {
-    const prev = process.env.TARSEE_PHONON_DIR;
-    process.env.TARSEE_PHONON_DIR = REAL_PHONON_DIR;
+    const prev = process.env.ATLAS_PHONON_DIR;
+    process.env.ATLAS_PHONON_DIR = REAL_PHONON_DIR;
     const tts = new PhononTTSEngine("toby");
     try {
       assert.equal(await tts.isAvailable(), true);
@@ -617,7 +617,7 @@ describe("Phonon worker (real)", { skip: !realInstalled && "Phonon is not instal
       assert.ok(audio.length > 24000, `a second or more of 24 kHz audio (${audio.length} bytes)`);
     } finally {
       tts.stop();
-      process.env.TARSEE_PHONON_DIR = prev;
+      process.env.ATLAS_PHONON_DIR = prev;
     }
   });
 });

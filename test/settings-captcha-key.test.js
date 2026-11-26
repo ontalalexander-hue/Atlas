@@ -16,12 +16,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-captcha-key-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-captcha-key-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
-for (const name of ["CAPTCHA_API_KEY", "TARSEE_KEYS_ONLY", "TARSEE_AI_PROVIDER", "CLAUDE_CODE_OAUTH_TOKEN"]) delete process.env[name];
+for (const name of ["CAPTCHA_API_KEY", "ATLAS_KEYS_ONLY", "ATLAS_AI_PROVIDER", "CLAUDE_CODE_OAUTH_TOKEN"]) delete process.env[name];
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -32,7 +32,7 @@ const { isEncrypted, encrypt } = await import("../src/lib/vault.js");
 const PUBLIC = fileURLToPath(new URL("../src/public/", import.meta.url));
 const CAPTCHA_KEY = "test-canary-captcha-" + "0".repeat(8) + "k3y9";
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const raw = (key) => db.prepare("SELECT value FROM settings WHERE key = ?").get(key)?.value ?? null;
 const audits = (target) => db.prepare("SELECT action, actor FROM audit_log WHERE target = ? ORDER BY id").all(target);

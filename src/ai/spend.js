@@ -145,7 +145,7 @@ export function anthropicListCost(model, usage) {
  *   at, store, caps       the moment (DeepSeek's hours), the settings store, capsFor()'s answer if already known
  * Returns { metered, enforcedBy, limitUsd, spentUsd, estimated, tripped, over, subtype, message }:
  *   enforcedBy  "engine" when the engine enforces the ceiling itself (the Anthropic key: pass maxBudgetUsd to it),
- *               "tarsee" when this check does, null when there is no ceiling
+ *               "atlas" when this check does, null when there is no ceiling
  *   tripped     true once the spend is over the ceiling; the turn layer then stops the turn with
  *               error{subtype:"error_max_budget_usd", message} and done{stopReason:"error_max_budget_usd"}
  *   over        the same as tripped (the name ai/turn.js reads)
@@ -176,7 +176,7 @@ export function checkTurnBudget(opts = {}) {
   const native = opts.caps?.nativeBudget ?? capsFor(id, opts.model, store)?.nativeBudget;
   if (limit == null) return out;
   if (native) { out.enforcedBy = "engine"; return out; }
-  out.enforcedBy = "tarsee";
+  out.enforcedBy = "atlas";
   if (spent != null && spent > limit + 1e-12) {
     out.tripped = true;
     out.over = true;

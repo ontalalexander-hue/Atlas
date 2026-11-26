@@ -2,7 +2,7 @@
  * The chat's files: what kind each one is, which files a message's words point at, and the pure parts of showing them
  * in the viewer (a CSV as a table, JSON laid out, a sound's waveform as bars). No DOM, no network: the page's viewer
  * (file-viewer.js) and its cards (chat-files.js) use these, and so do the node tests (test/chat-files.test.js).
- * Ported from TarseeMacOS.
+ * Ported from the macOS app.
  */
 
 export const EXT_KIND = {

@@ -12,10 +12,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Keep every module that reads config away from the real state dir, vault and DB.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-calculator-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-calculator-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 const SECRET = "calculator-test-encryption-key-0123456789";
 process.env.ENCRYPTION_KEY = SECRET;
 fs.mkdirSync(path.join(tmp, "workspace"), { recursive: true });
@@ -91,9 +91,9 @@ describe("calculator: a secret, the global object or code never comes back", () 
   }
 
   it("runs nothing: an assignment to the global object doesn't happen", async () => {
-    const out = await calc("(globalThis.__tarseeCalculatorRan = 1)");
-    assertRefused(out, "(globalThis.__tarseeCalculatorRan = 1)");
-    assert.equal(globalThis.__tarseeCalculatorRan, undefined);
+    const out = await calc("(globalThis.__atlasCalculatorRan = 1)");
+    assertRefused(out, "(globalThis.__atlasCalculatorRan = 1)");
+    assert.equal(globalThis.__atlasCalculatorRan, undefined);
   });
 
   it("runs nothing: import('node:fs') can't write a file", async () => {

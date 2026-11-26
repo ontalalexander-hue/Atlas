@@ -1,7 +1,7 @@
 /**
  * turn-watchdog.js: the end of a turn that an HTTP caller is waiting on (the external API, ACP).
  *
- * The chat channels give up a turn that sends nothing for TARSEE_CHANNEL_IDLE_ABORT_MS (20 minutes when unset): an AI
+ * The chat channels give up a turn that sends nothing for ATLAS_CHANNEL_IDLE_ABORT_MS (20 minutes when unset): an AI
  * that never answers (a Local AI server that hangs, a stalled connection) would otherwise hold the conversation's lock
  * and the engine's process for good, with nothing to stop it. A turn an HTTP caller waits on gets the same limit.
  *
@@ -21,7 +21,7 @@
 
 /** How long a turn may go without an event (the same variable as the chat channels'). */
 export function idleLimitMs(env = process.env) {
-  return Number(env?.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+  return Number(env?.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
 }
 
 /**

@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="warm-charcoal">
+<html lang="en" data-theme="atlas">
 <head>
   <meta charset="utf-8">
   <!-- Apply saved theme BEFORE any CSS loads — prevents a flash of the
        default palette on every pageload for users who picked a non-default
-       theme. Falls back to warm-charcoal if nothing is saved. -->
+       theme. Falls back to atlas if nothing is saved. -->
   <script src="/js/theme-boot.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#1a1a1a">
+  <meta name="theme-color" content="#070b14">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -28,6 +28,7 @@
   <!-- Theme overrides — each file is scoped to [data-theme="NAME"] so only
        the matching one takes effect. Loading all at once keeps theme
        switching instant (no stylesheet fetch). -->
+  <link rel="stylesheet" href="/css/themes/atlas.css">
   <link rel="stylesheet" href="/css/themes/warm-charcoal.css">
   <link rel="stylesheet" href="/css/themes/noir.css">
   <link rel="stylesheet" href="/css/themes/solarized-light.css">
@@ -604,7 +605,7 @@
             <div class="settings-section channel-section" id="emailChannelSection" data-channel="email">
               <div class="channel-head"><h3>Email</h3><span class="channel-status" id="emailChannelStatus"></span></div>
               <div class="hint mb-3">
-                Email Atlas with <code id="emailMentionHint">@tarsee</code> in the message and it answers. Other mail is read and remembered, so later questions can draw on it. Works with any mailbox that offers IMAP and SMTP with an app password.
+                Email Atlas with <code id="emailMentionHint">@atlas</code> in the message and it answers. Other mail is read and remembered, so later questions can draw on it. Works with any mailbox that offers IMAP and SMTP with an app password.
               </div>
               <div data-guide-slot="email"></div>
 
@@ -617,7 +618,7 @@
 
               <div class="form-group">
                 <label>Atlas's email address</label>
-                <input type="email" id="settingsEmailAddress" placeholder="tarsee@example.com" autocomplete="off">
+                <input type="email" id="settingsEmailAddress" placeholder="atlas@example.com" autocomplete="off">
                 <div class="hint">Whichever mailbox you've created for Atlas. This is what inbound mail is sent to and outbound mail is sent from.</div>
               </div>
 
@@ -648,7 +649,7 @@
               </div>
               <div class="form-group">
                 <label>User</label>
-                <input type="text" id="settingsEmailImapUser" placeholder="tarsee@example.com" autocomplete="off">
+                <input type="text" id="settingsEmailImapUser" placeholder="atlas@example.com" autocomplete="off">
               </div>
               <div class="form-group">
                 <label>App password</label>
@@ -671,7 +672,7 @@
               </div>
               <div class="form-group">
                 <label>User</label>
-                <input type="text" id="settingsEmailSmtpUser" placeholder="tarsee@example.com" autocomplete="off">
+                <input type="text" id="settingsEmailSmtpUser" placeholder="atlas@example.com" autocomplete="off">
               </div>
               <div class="form-group">
                 <label>App password</label>
@@ -684,7 +685,7 @@
               <h4 style="margin-top:18px; margin-bottom:8px;">Reply behavior</h4>
               <div class="form-group">
                 <label>Mention keyword</label>
-                <input type="text" id="settingsEmailMentionKeyword" placeholder="@tarsee" autocomplete="off">
+                <input type="text" id="settingsEmailMentionKeyword" placeholder="@atlas" autocomplete="off">
                 <div class="hint">Atlas only replies if this keyword appears in the email body (after quote-strip). Swap for <code>@jarvis</code>, <code>@bot</code>, or anything else.</div>
               </div>
               <div class="form-group">
@@ -695,7 +696,7 @@
               <div class="form-group">
                 <label>Display name (optional)</label>
                 <input type="text" id="settingsEmailFromName" placeholder="Atlas" autocomplete="off">
-                <div class="hint">The name shown on outbound mail, e.g. <code>Atlas &lt;tarsee@example.com&gt;</code>.</div>
+                <div class="hint">The name shown on outbound mail, e.g. <code>Atlas &lt;atlas@example.com&gt;</code>.</div>
               </div>
 
               <h4 style="margin-top:18px; margin-bottom:8px;">Sender allowlist</h4>
@@ -1109,7 +1110,8 @@
               <div class="form-group">
                 <label>Theme</label>
                 <select id="settingsTheme">
-                  <option value="warm-charcoal">Warm Charcoal (default)</option>
+                  <option value="atlas">Atlas (default)</option>
+                  <option value="warm-charcoal">Warm Charcoal</option>
                   <option value="noir">Noir: pure OLED black</option>
                   <option value="solarized-light">Solarized Light</option>
                   <option value="jarvis-blue">JARVIS Blue</option>
@@ -1165,7 +1167,7 @@
     </div>
     <div class="console-output" id="consoleOutput"></div>
     <div class="console-input-area">
-      <span class="console-prompt">tarsee&gt;</span>
+      <span class="console-prompt">atlas&gt;</span>
       <input type="text" class="console-input" id="consoleInput" placeholder="Type a command or 'help'..." autocomplete="off" spellcheck="false">
     </div>
   </div>

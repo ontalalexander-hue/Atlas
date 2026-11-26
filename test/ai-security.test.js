@@ -11,12 +11,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-ai-security-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-ai-security-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
-for (const name of ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_AI_PROVIDER", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_HOME"]) delete process.env[name];
+for (const name of ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_AI_PROVIDER", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_HOME"]) delete process.env[name];
 
 const { safePath, isSensitivePath } = await import("../src/lib/safe-path.js");
 const { redactSecrets } = await import("../src/lib/redact.js");
@@ -30,15 +30,15 @@ after(() => { for (const db of opened) db.close(); fs.rmSync(tmp, { recursive: t
 
 describe("safe-path: the files API never serves a sign-in or a key home", () => {
   const denied = [
-    "/data/tarsee/.codex-home/auth.json",
-    "/data/tarsee/.codex-home-keys/config.toml",
-    "/data/tarsee/.codex/sessions/x.jsonl",
-    "/data/tarsee/.claude-home-deepseek/settings.json",
-    "/data/tarsee/.claude-home-openrouter/.claude.json",
-    "/data/tarsee/.claude-home-anthropic/projects/a.jsonl",
-    "/data/tarsee/tool-output/turn1/call1.txt",
-    "/data/tarsee/workspace/project/auth.json",
-    "/data/tarsee/workspace/AUTH.JSON",
+    "/data/atlas/.codex-home/auth.json",
+    "/data/atlas/.codex-home-keys/config.toml",
+    "/data/atlas/.codex/sessions/x.jsonl",
+    "/data/atlas/.claude-home-deepseek/settings.json",
+    "/data/atlas/.claude-home-openrouter/.claude.json",
+    "/data/atlas/.claude-home-anthropic/projects/a.jsonl",
+    "/data/atlas/tool-output/turn1/call1.txt",
+    "/data/atlas/workspace/project/auth.json",
+    "/data/atlas/workspace/AUTH.JSON",
     "C:\\Users\\me\\.Codex-Home\\auth.json",
     "C:\\Users\\me\\.CLAUDE-HOME-DEEPSEEK\\x",
     "C:\\Users\\me\\work\\auth.json.",
@@ -47,12 +47,12 @@ describe("safe-path: the files API never serves a sign-in or a key home", () => 
   for (const p of denied) it(`denies ${p}`, () => assert.equal(isSensitivePath(p), true));
 
   const allowed = [
-    "/data/tarsee/workspace/oauth.json",
-    "/data/tarsee/workspace/authors.json",
-    "/data/tarsee/workspace/my-auth.json",
-    "/data/tarsee/workspace/.codexrc",
-    "/data/tarsee/workspace/.claude-homework/notes.md",
-    "/data/tarsee/workspace/tool-outputs.md",
+    "/data/atlas/workspace/oauth.json",
+    "/data/atlas/workspace/authors.json",
+    "/data/atlas/workspace/my-auth.json",
+    "/data/atlas/workspace/.codexrc",
+    "/data/atlas/workspace/.claude-homework/notes.md",
+    "/data/atlas/workspace/tool-outputs.md",
   ];
   for (const p of allowed) it(`still serves ${p}`, () => assert.equal(isSensitivePath(p), false));
 
@@ -128,7 +128,7 @@ describe("security audit: the AI providers", () => {
   let dbn = 0;
   function fresh() {
     const state = fs.mkdtempSync(path.join(tmp, `state-${++dbn}-`));
-    const db = initDb(path.join(state, "tarsee.db"));
+    const db = initDb(path.join(state, "atlas.db"));
     opened.push(db);
     return { state, store: new SettingsStore(db) };
   }

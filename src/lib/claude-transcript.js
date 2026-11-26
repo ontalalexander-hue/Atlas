@@ -11,7 +11,7 @@
  * (design 4.5 R1, ai/engine-env.js homeFor):
  *   the Claude plan                     ~/.claude (on Railway entrypoint.sh
  *                                       symlinks /home/node/.claude to the
- *                                       volume, /data/tarsee/.claude-code-home)
+ *                                       volume, /data/atlas/.claude-code-home)
  *   anthropic, deepseek, openrouter     <state dir>/.claude-home-<id>
  * Those homes are named here explicitly. CLAUDE_CONFIG_DIR is not read: every
  * turn strips it from the engine's environment (AUTH_ENV_RE), so the plan's
@@ -47,7 +47,7 @@ const MB = 1048576;
  * sessions that are still perfectly healthy. 8 MB is the equivalent headroom.
  */
 export const SESSION_JSONL_MAX_MB =
-  Number(process.env.TARSEE_SESSION_JSONL_MAX_MB) || 8;
+  Number(process.env.ATLAS_SESSION_JSONL_MAX_MB) || 8;
 
 /** The providers with a Claude Code home of their own: every one that runs on Claude Code except the plan. */
 const KEY_HOME_PROVIDERS = PROVIDER_IDS.filter((id) => id !== "claude" && PROVIDERS[id].engines.includes(CLAUDE_CODE));
@@ -60,14 +60,14 @@ const KEY_HOME_PROVIDERS = PROVIDER_IDS.filter((id) => id !== "claude" && PROVID
  * is not what you would expect. The Dockerfile declares no USER, so the
  * ENTRYPOINT runs as root with HOME=/root, and `gosu node` drops the uid
  * WITHOUT rewriting HOME. Meanwhile entrypoint.sh symlinks /home/node/.claude
- * to the persistent volume at /data/tarsee/.claude-code-home. So
+ * to the persistent volume at /data/atlas/.claude-code-home. So
  * os.homedir()/$HOME can point at /root while the real transcripts live under
  * /home/node — or directly on the volume. Rather than bet on one of those,
  * probe all of them. The key homes are where engine-env.js puts them, under
  * the state folder.
  *
  * opts: stateDir (default config.STATE_DIR), homeDir (default os.homedir()),
- * env (default process.env: HOME and TARSEE_STATE_DIR).
+ * env (default process.env: HOME and ATLAS_STATE_DIR).
  */
 export function providerHomes({ stateDir = config.STATE_DIR, homeDir = null, env = process.env } = {}) {
   const home = homeDir || (() => { try { return os.homedir(); } catch { return null; } })();
@@ -75,7 +75,7 @@ export function providerHomes({ stateDir = config.STATE_DIR, homeDir = null, env
     env?.HOME && path.join(env.HOME, ".claude"),
     "/home/node/.claude",
     home && path.join(home, ".claude"),
-    env?.TARSEE_STATE_DIR && path.join(env.TARSEE_STATE_DIR, ".claude-code-home"),
+    env?.ATLAS_STATE_DIR && path.join(env.ATLAS_STATE_DIR, ".claude-code-home"),
     stateDir && path.join(stateDir, ".claude-code-home"),
   ].filter(Boolean).map((h) => ({ provider: "claude", home: h }));
   const keys = stateDir ? KEY_HOME_PROVIDERS.map((id) => ({ provider: id, home: homeFor(id, CLAUDE_CODE, { stateDir }) })) : [];

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Tarsee.png" alt="Atlas" width="120">
+  <img src="Atlas.png" alt="Atlas" width="120">
 </p>
 
 <h1 align="center">Atlas</h1>
@@ -10,11 +10,7 @@
 
 > **Choose your AI.** Atlas works on seven kinds of AI account, and you can switch at any time, even for a single chat. An agent that works all day uses a lot: on a plan, a bigger plan lasts much longer; on an API key, set a spending limit at the provider. See [Choose your AI](#choose-your-ai).
 
-<p align="center">
-  <a href="https://railway.com/deploy/tarsee?referralCode=sIH3US&utm_medium=integration&utm_source=template&utm_campaign=generic"><img src="https://railway.com/button.svg" alt="Deploy on Railway"></a>
-</p>
-
-> **Atlas is a fork of [Tarsee](https://github.com/projectservan8n/Tarsee), used under the MIT license.** The Deploy on Railway button above deploys the original Tarsee template, not this fork. To run Atlas itself, create a Railway service from this repository.
+> **Atlas is a fork of [Tarsee](https://github.com/projectservan8n/Tarsee), used under the MIT license.** To run Atlas, create a Railway service from this repository.
 
 ---
 
@@ -70,7 +66,7 @@ Atlas wraps the vendors' own agents — not a fork, not a rewrite. Claude models
 
 ## Quick Start (Railway)
 
-1. Click **Deploy on Railway** above
+1. In Railway, create a new project from this GitHub repository and add a volume mounted at `/data`
 2. **Change the `SETUP_PASSWORD`** — this is your 4-digit PIN to access the web UI. Everything else is pre-configured.
 3. Deploy — open the URL, log in with your PIN
 4. The setup wizard asks you to **Choose your AI**: **My Claude plan**, **My ChatGPT plan**, or **My own API key**. Follow the steps it shows (they are also in [docs/providers.md](docs/providers.md)):
@@ -80,7 +76,7 @@ Atlas wraps the vendors' own agents — not a fork, not a rewrite. Claude models
 
 That's it. Sign-ins are kept on the Railway volume and survive restarts and redeploys; keys are stored encrypted in Atlas's database. To set it up without the wizard, use Railway variables instead (see [Choose your AI](#choose-your-ai)).
 
-The image pins both agents: the Claude Code CLI at the version the Agent SDK bundles (`CLAUDE_CODE_VERSION`, 2.1.319, in the Dockerfile; the build stops if the two differ) and Codex at the `@openai/codex-sdk` version in package.json. Neither updates itself, and a rebuild keeps them. Set `TARSEE_AUTO_UPDATE_CLI=1` to install the latest Claude Code CLI on every boot instead. The Claude model list comes with that CLI, so newly released Claude models show up after a version bump; ChatGPT's list comes from your account.
+The image pins both agents: the Claude Code CLI at the version the Agent SDK bundles (`CLAUDE_CODE_VERSION`, 2.1.319, in the Dockerfile; the build stops if the two differ) and Codex at the `@openai/codex-sdk` version in package.json. Neither updates itself, and a rebuild keeps them. Set `ATLAS_AUTO_UPDATE_CLI=1` to install the latest Claude Code CLI on every boot instead. The Claude model list comes with that CLI, so newly released Claude models show up after a version bump; ChatGPT's list comes from your account.
 
 ### Staying Updated
 
@@ -105,7 +101,7 @@ Atlas runs on any of these seven, and you can connect several at once. Pick the 
 | **OpenAI API key** | `OPENAI_API_KEY` from the OpenAI Platform | Pay per use, billed by OpenAI | Give the project a monthly budget with a hard limit. Replies arrive a message at a time |
 | **OpenRouter** | `OPENROUTER_API_KEY` from openrouter.ai | Pay per use at each model's price; models marked Free cost nothing | Hundreds of models with one key. Claude and OpenAI models work straight away; any other needs one click on **Verify** first. Give the key a credit limit |
 | **DeepSeek** | `DEEPSEEK_API_KEY` from platform.deepseek.com | Pay per use from a balance you top up: the cheapest per message | DeepSeek Flash for everyday use; DeepSeek Pro thinks harder but can't see pictures |
-| **Local AI** | `TARSEE_LOCAL_AI_URL`: the address of your Ollama, LM Studio or llama.cpp server (and `TARSEE_LOCAL_AI_KEY`, only if it asks for one) | Free: it runs on your own hardware | Verify a model before you rely on it: small models use tools poorly. On Railway, run it as another service on the private network |
+| **Local AI** | `ATLAS_LOCAL_AI_URL`: the address of your Ollama, LM Studio or llama.cpp server (and `ATLAS_LOCAL_AI_KEY`, only if it asks for one) | Free: it runs on your own hardware | Verify a model before you rely on it: small models use tools poorly. On Railway, run it as another service on the private network |
 
 Each one's full setup, the same steps the app shows, is in **[docs/providers.md](docs/providers.md)**.
 
@@ -115,11 +111,11 @@ Each one's full setup, the same steps the app shows, is in **[docs/providers.md]
 
 ### API keys only
 
-**Settings > AI** has a switch, **Only use API keys**. With it on, Atlas never uses a Claude or ChatGPT plan sign-in: every message is billed to an API key. The Railway variable `TARSEE_KEYS_ONLY=1` locks it on, so it can't be switched off from the dashboard.
+**Settings > AI** has a switch, **Only use API keys**. With it on, Atlas never uses a Claude or ChatGPT plan sign-in: every message is billed to an API key. The Railway variable `ATLAS_KEYS_ONLY=1` locks it on, so it can't be switched off from the dashboard.
 
 ### Set it up with Railway variables only
 
-Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`, plus that AI's key (or `TARSEE_LOCAL_AI_URL`, or `CLAUDE_CODE_OAUTH_TOKEN` for the Claude plan), and once that AI is ready the setup wizard is skipped. `TARSEE_AI_MODEL` picks its model (empty: that AI's default; for Local AI, the first model its server lists, so set it to pin one). A choice made later in Settings > AI wins over these.
+Set `ATLAS_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`, plus that AI's key (or `ATLAS_LOCAL_AI_URL`, or `CLAUDE_CODE_OAUTH_TOKEN` for the Claude plan), and once that AI is ready the setup wizard is skipped. `ATLAS_AI_MODEL` picks its model (empty: that AI's default; for Local AI, the first model its server lists, so set it to pin one). A choice made later in Settings > AI wins over these.
 
 ### Keeping the cost down
 
@@ -139,13 +135,13 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Problems in plain words** — instead of a "401 / Failed to authenticate" error arriving as the reply, the chat says what happened and what to do, the same on every channel: the Claude sign-in expired (run `claude auth login` in the Terminal, the `>_` button, on phones too), the ChatGPT sign-in expired (sign in again from Settings > AI), the balance is empty or a key's limit is reached (with where to top up).
 - **Telegram** — Text, photos, PDFs, voice messages, video notes. Group @mention support, inline buttons, forwarded message detection.
 - **Discord** — Text, images, PDFs, voice messages. Always-online bot with presence status.
-- **Email** — Real-time over IMAP IDLE + SMTP. Mention keyword (default `@tarsee`) gates replies; CC/BCC/forwards are absorbed as context without an outbound. Works with any mailbox that allows IMAP + SMTP with an app password (Gmail, iCloud, Zoho, FastMail, Yahoo, self-hosted; not Outlook.com or Microsoft 365).
+- **Email** — Real-time over IMAP IDLE + SMTP. Mention keyword (default `@atlas`) gates replies; CC/BCC/forwards are absorbed as context without an outbound. Works with any mailbox that allows IMAP + SMTP with an app password (Gmail, iCloud, Zoho, FastMail, Yahoo, self-hosted; not Outlook.com or Microsoft 365).
 - **WhatsApp** — Text, images, PDFs, voice notes (Whisper-transcribed), and documents via [WHAPI Cloud](https://whapi.cloud) (free tier OK). Direct messages only. Per-channel webhook secret in URL, auto-generated on first enable.
-- **Slack** — DMs, and channels by @mention. Every reply goes in a thread and each thread is its own conversation; a thread Atlas is in needs no more mentions, and a mention in someone else's thread reads the thread first. Replies stream with Slack's native AI streaming, a live card for each tool it runs, and Slack's stop button; where a workspace has no native streaming, replies are posted and edited instead. Markdown renders as written (tables and code included). Images, PDFs, voice clips (Whisper-transcribed) and any other file in; files out as real uploads. `/tarsee` for questions and commands. Socket Mode, so no public URL; the app is made from a manifest Settings copies for you.
+- **Slack** — DMs, and channels by @mention. Every reply goes in a thread and each thread is its own conversation; a thread Atlas is in needs no more mentions, and a mention in someone else's thread reads the thread first. Replies stream with Slack's native AI streaming, a live card for each tool it runs, and Slack's stop button; where a workspace has no native streaming, replies are posted and edited instead. Markdown renders as written (tables and code included). Images, PDFs, voice clips (Whisper-transcribed) and any other file in; files out as real uploads. `/atlas` for questions and commands. Socket Mode, so no public URL; the app is made from a manifest Settings copies for you.
 - **Attachment save-to-disk** — every image, PDF, voice note, and document sent via Discord, Telegram, email, WhatsApp, Slack, or web lands in `workspace/uploads/` so the AI can read, transform, and reference it across turns (not just in the message it arrived on).
 - **Live on every device** — one durable timeline per conversation (messages, turn start/end and every tool step) that every channel feeds and every device follows over WebSocket. A device that sleeps or reconnects catches up from the last event it saw, even across a restart, and a Telegram, Discord, WhatsApp, Slack or email turn can be watched (and stopped) live from the dashboard. Sends are optimistic and never lost; a message sent while a reply is running queues behind it instead of cancelling it.
 - **Session recap** — resume a conversation idle >30 min and a dismissible "Last time" card summarizes the last few exchanges before the first new message. Zero AI cost (extractive summary).
-- **Web Push notifications** — iOS/Android/desktop push via VAPID when cron jobs finish, webhooks fire, or the agent proactively pings you via the `tarsee_push_notification` tool. Opt-in from Settings > Appearance.
+- **Web Push notifications** — iOS/Android/desktop push via VAPID when cron jobs finish, webhooks fire, or the agent proactively pings you via the `atlas_push_notification` tool. Opt-in from Settings > Appearance.
 - **All channels share** the same AI, memory, and tools.
 
 ### Voice Calls
@@ -160,7 +156,7 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Works out of the box** — the Docker image ships faster-whisper and the base.en model (outside the `/data` volume, so it is never hidden), and checks at build time that it loads. Other models download from Settings > Voice > Speech-to-text, each with a progress bar and a Delete button, from the official Systran models on Hugging Face (pinned revisions, every file's size and hash checked), onto the volume, so they survive redeploys.
 - **One-click install without Docker** — on Windows, macOS or Linux, Settings > Voice > Speech-to-text has an **Install faster-whisper** button: it uses a Python 3.9+ found on the computer, or downloads a standalone Python ([python-build-standalone](https://github.com/astral-sh/python-build-standalone), pinned, sha256-checked) into Atlas's state folder, then installs the pinned faster-whisper from pypi.org into its own folder. Phonon's install uses the same Python, so Phonon works on Windows too.
 - **Local text-to-speech by default** — [Phonon](https://huggingface.co/gradium/phonon-31m-en), Gradium's open 31M model, runs on the server's CPU through one warm worker: no API key, no per-character cost, 25 English voices (Toby by default) and a speed setting. Peso amounts ("₱2,500", "PHP 2,500") are read as pesos; reading a bare "P2,500" that way is an opt-in setting.
-- **Downloads itself** — the model and voices (about 70 MB) go to the data volume, not the image. On first boot Atlas fetches them in the background from pinned Hugging Face revisions, checking the weights' sha256; Settings > Voice shows the progress and has an **Install Phonon** button (and Retry if it fails). Turn the automatic download off with `TARSEE_PHONON_AUTO_INSTALL=0`, or run `node src/voice/phonon-install.js` from a terminal.
+- **Downloads itself** — the model and voices (about 70 MB) go to the data volume, not the image. On first boot Atlas fetches them in the background from pinned Hugging Face revisions, checking the weights' sha256; Settings > Voice shows the progress and has an **Install Phonon** button (and Retry if it fails). Turn the automatic download off with `ATLAS_PHONON_AUTO_INSTALL=0`, or run `node src/voice/phonon-install.js` from a terminal.
 - **Free fallback** — Microsoft Edge TTS (19 voices, 3 retries, markdown stripping, no API key) speaks while Phonon downloads, and for any sentence Phonon fails; after three failures in a row Phonon is skipped for five minutes. Atlas never falls back to a paid engine on its own: ElevenLabs and Piper are used only when you pick them (or Auto) in Settings > Voice. An install that already has an ElevenLabs key but never saved an engine keeps ElevenLabs; pick Phonon in Settings > Voice to switch.
 - **Speech that sounds like speech** — on a call the AI is told every word is spoken, and anything chat-shaped that slips through (lists, links, code, symbols) becomes plain sentences before the voice reads it; the chat keeps the full answer.
 
@@ -174,10 +170,10 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 ### Tools & Automation
 - **20+ MCP tools** — send messages, schedule tasks, remember facts, search the web, create canvases, manage files, encrypted vault, calculator, browser, push notifications, email threads, and more.
 - **Calculator** — precise math tool so the AI never hallucinates numbers. Arithmetic, percentages, Math.* functions.
-- **Sends files** — ask for a report, an export or a picture on Telegram, Discord, WhatsApp or Slack and `tarsee_send_file` sends it as a real attachment to that chat (Telegram up to 50 MB, Discord 25 MB, WhatsApp 16 MB, Slack 100 MB; on Slack into the same thread). Email files go as attachments through `tarsee_send_email_thread`.
+- **Sends files** — ask for a report, an export or a picture on Telegram, Discord, WhatsApp or Slack and `atlas_send_file` sends it as a real attachment to that chat (Telegram up to 50 MB, Discord 25 MB, WhatsApp 16 MB, Slack 100 MB; on Slack into the same thread). Email files go as attachments through `atlas_send_email_thread`.
 - **Files in the dashboard chat** — every file the agent sends and every file people send in shows on the message it came with, in any chat: a picture or video as a tile, a PDF with its first page, a sound as a waveform player. A click opens it in the viewer (pictures zoom, PDFs show their pages, CSV as a table, text and code as text), with Download always there. Kept copies live in the workspace's `uploads` folder for 30 days.
-- **Keys by name** — the vault's keys are in the agent's environment, so its scripts read `OPENAI_API_KEY` and the like by name and a key never goes into a command. Not when `get_key` is denied in Tool Permissions; `TARSEE_AGENT_ENV_KEYS` limits or turns it off.
-- **Discord admin** — `tarsee_discord_admin` lists, makes and edits Discord channels (public, private for listed people and roles, or copying another channel's access) and makes webhooks, using Atlas's own logged-in bot, so the agent never needs the bot token in a command. Every change needs the owner's go, passed as `approved_by` and written to the server's audit log. A new webhook's URL goes straight into the vault under a key name and comes back masked. Nothing in the tool deletes.
+- **Keys by name** — the vault's keys are in the agent's environment, so its scripts read `OPENAI_API_KEY` and the like by name and a key never goes into a command. Not when `get_key` is denied in Tool Permissions; `ATLAS_AGENT_ENV_KEYS` limits or turns it off.
+- **Discord admin** — `atlas_discord_admin` lists, makes and edits Discord channels (public, private for listed people and roles, or copying another channel's access) and makes webhooks, using Atlas's own logged-in bot, so the agent never needs the bot token in a command. Every change needs the owner's go, passed as `approved_by` and written to the server's audit log. A new webhook's URL goes straight into the vault under a key name and comes back masked. Nothing in the tool deletes.
 - **Stealth browser** — Playwright with anti-detection (real fingerprints, no webdriver flag). Navigate, fill forms, screenshot, scroll, wait, run JS.
 - **Captcha solver** — auto-detect and solve reCAPTCHA, hCaptcha, Cloudflare Turnstile via 2Captcha or Capsolver API.
 - **Proactive briefings** — `/briefing on` schedules a daily morning summary pushed to all channels.
@@ -185,7 +181,7 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Deep memory search** — AI reads all memories semantically when keyword search fails.
 - **Cron scheduler** — recurring AI tasks or direct tool actions. One-time reminders auto-delete. A task the AI schedules in a chat is saved paused, and runs only once you switch it on in Settings > Automation > Scheduled tasks or with `/cron on <id>`. A scheduled run, the heartbeat and BOOT.md can't schedule more tasks. A new task that asks the AI runs at most once every 15 minutes; tasks saved before this version keep the schedules they had. A run still going when its next time comes is skipped. On a chat platform, `/cron`, `/briefing` and `/webhook` answer only the owner: someone whose own user ID (on WhatsApp, their number) is on that platform's allowlist.
 - **What the AI sets up waits for your OK** — scheduled tasks, the heartbeat (HEARTBEAT.md, every 30 minutes) and the startup checklist (BOOT.md, when Atlas restarts) that the AI sets up don't run, or spend anything, until you say so. HEARTBEAT.md and BOOT.md run only text you typed in their editors in Settings > Automation, or OK'd there. When something else changes one (most likely the AI, with its file tools in a chat), Settings > Automation shows the new text under "Changed outside Settings, waiting for your OK", with a **Let it run** button (for BOOT.md, **Run at each restart**). Only your own signed-in dashboard can give that OK: the API token can't. The first time this version starts, the HEARTBEAT.md and BOOT.md already there count as OK'd, so an existing install runs exactly as before. This stops the AI starting paid work on its own in the normal course of a chat, but it isn't a locked door: the AI's shell runs as the same user as Atlas, so the database where your OK is kept is not out of its reach. A spending limit on each key at its provider is the real guard.
-- **Railway tool** — `tarsee_railway` lists your Railway projects, services and variable names, sets a variable and redeploys a service, with an account or workspace token from the vault (`RAILWAY_API_TOKEN`). A secret goes in by vault key name (`from_key`), so it never passes through a chat or a command; values are never read back. Changes need someone's go (`approved_by`), and nothing in it deletes. On Railway, leaving out the project means Atlas's own service, and redeploying that restarts Atlas.
+- **Railway tool** — `atlas_railway` lists your Railway projects, services and variable names, sets a variable and redeploys a service, with an account or workspace token from the vault (`RAILWAY_API_TOKEN`). A secret goes in by vault key name (`from_key`), so it never passes through a chat or a command; values are never read back. Changes need someone's go (`approved_by`), and nothing in it deletes. On Railway, leaving out the project means Atlas's own service, and redeploying that restarts Atlas.
 - **Web terminal** — browser-based shell access via xterm.js.
 - **File manager** — browse, edit, and create workspace files from the UI.
 - **REST API** — `/api/v1/message` endpoint for iOS Shortcuts, scripts, and automations.
@@ -206,7 +202,7 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Credentials encrypted at rest** — bot tokens, IMAP/SMTP passwords and webhook secrets are encrypted field-by-field inside channel configs, and are never returned to the browser (the API reports `hasToken` / `hasPassword` instead).
 - **SSRF protection** — the fetch and browser tools refuse loopback, RFC1918 and link-local targets, including the `169.254.169.254` cloud metadata endpoint.
 - **Scoped file access** — the file manager is confined to the workspace and cannot reach the AI sign-ins, encryption key, API token or database.
-- **Credentials kept apart** — each AI's sign-in and key lives in its own folder and only reaches its own turns, and a key is only ever sent to its own provider's address. A key set as a variable never changes which AI answers or how you are billed: only your choice in Settings > AI (or `TARSEE_AI_PROVIDER`) does.
+- **Credentials kept apart** — each AI's sign-in and key lives in its own folder and only reaches its own turns, and a key is only ever sent to its own provider's address. A key set as a variable never changes which AI answers or how you are billed: only your choice in Settings > AI (or `ATLAS_AI_PROVIDER`) does.
 - **Isolated canvases** — model-authored pages require a login and run in a sandboxed null origin, so a prompt-injected canvas cannot reach Atlas's API or storage.
 
 ### Models
@@ -219,10 +215,10 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Automatic fallback on Claude** — every turn ships a `--fallback-model` ladder one tier below whatever you chose, so an overloaded Fable turn degrades to Opus instead of failing.
 
 ### Search & Analytics
-- **Context kept lean** — ported from TarseeMacOS, where they were measured on long jobs: the chat's context is summarized at 180k tokens (`TARSEE_COMPACT_WINDOW`), a long Bash output or tool result goes to a file the agent can read (`TARSEE_BASH_OUTPUT_MAX_CHARS`, `TARSEE_TOOL_RESULT_MAX_CHARS`), each quick memory is one line of at most 300 characters and each skill a short description in the system prompt, a workspace file may be 12 KB there (a longer one is cut and the cut is logged), and `MEMORY.md` is never inlined or read whole: the agent greps it for what a task needs.
-- **Live context meter** — the session bar shows a real-time prompt-token fill % against the window Claude Code works in: the auto-compact window (180k by default, `TARSEE_COMPACT_WINDOW`), or the model's own (1M for Opus/Sonnet, 200K for Haiku) when that is smaller or compaction is off. Near the top Claude Code summarizes the older part and the chat carries on. Counts cache reads and cache writes too — that's the actual prompt size hitting the model. Bar turns yellow at 75%, red and pulsing at 90%, with a dismissible banner above the composer. At 95% (reached when compaction is off) Atlas writes a mechanical snapshot to `CHECKPOINT.md` automatically; if a turn still trips "prompt is too long", the snapshot is written from the catch path and a recovery card is shown in chat with a one-click "Start fresh session" button. The next boot reads that checkpoint as the handoff so you pick up mid-thought.
-- **Usage page** (`/usage`, from the sidebar) — every model call's tokens (input, cache read, cache write, output), read from Claude Code's own session transcripts: today, the last 5 hours and 7 days, a 14-day and 24-hour chart, tokens by model, channel and chat, output and total tokens per second, and each job (a chat's turns until it sits idle 45 minutes; each cron run on its own) with its turns, which you can rename, merge and split. Each reply gets a quiet line with its turn's tokens, speed and time, and a chat's menu shows its running total. Days are counted in `TARSEE_TIMEZONE`.
-- **Token Health** (Settings > Token Health) — a per-conversation view of how full each context window actually is, alongside the Claude session transcript (`.jsonl`) size, which is the real driver of bloat-hangs. Fill is measured point-in-time (the most recent turn's prompt size, counting cache reads and cache writes), not a running total of every token the chat ever spent — the lifetime figure is reported separately so the two can't be confused. Conversations whose transcript passes `TARSEE_SESSION_JSONL_MAX_MB` are flagged `resets next turn`, and the provider enforces that same cap by refusing to resume, so the flag reflects real behaviour rather than predicting it. Conversations with no recorded telemetry are labelled `est.` rather than shown as if measured. All channels (Telegram, Discord, WhatsApp, Slack, email, web) now record token usage — previously only web chat did, so channel conversations had no data at all.
+- **Context kept lean** — ported from the macOS app, where they were measured on long jobs: the chat's context is summarized at 180k tokens (`ATLAS_COMPACT_WINDOW`), a long Bash output or tool result goes to a file the agent can read (`ATLAS_BASH_OUTPUT_MAX_CHARS`, `ATLAS_TOOL_RESULT_MAX_CHARS`), each quick memory is one line of at most 300 characters and each skill a short description in the system prompt, a workspace file may be 12 KB there (a longer one is cut and the cut is logged), and `MEMORY.md` is never inlined or read whole: the agent greps it for what a task needs.
+- **Live context meter** — the session bar shows a real-time prompt-token fill % against the window Claude Code works in: the auto-compact window (180k by default, `ATLAS_COMPACT_WINDOW`), or the model's own (1M for Opus/Sonnet, 200K for Haiku) when that is smaller or compaction is off. Near the top Claude Code summarizes the older part and the chat carries on. Counts cache reads and cache writes too — that's the actual prompt size hitting the model. Bar turns yellow at 75%, red and pulsing at 90%, with a dismissible banner above the composer. At 95% (reached when compaction is off) Atlas writes a mechanical snapshot to `CHECKPOINT.md` automatically; if a turn still trips "prompt is too long", the snapshot is written from the catch path and a recovery card is shown in chat with a one-click "Start fresh session" button. The next boot reads that checkpoint as the handoff so you pick up mid-thought.
+- **Usage page** (`/usage`, from the sidebar) — every model call's tokens (input, cache read, cache write, output), read from Claude Code's own session transcripts: today, the last 5 hours and 7 days, a 14-day and 24-hour chart, tokens by model, channel and chat, output and total tokens per second, and each job (a chat's turns until it sits idle 45 minutes; each cron run on its own) with its turns, which you can rename, merge and split. Each reply gets a quiet line with its turn's tokens, speed and time, and a chat's menu shows its running total. Days are counted in `ATLAS_TIMEZONE`.
+- **Token Health** (Settings > Token Health) — a per-conversation view of how full each context window actually is, alongside the Claude session transcript (`.jsonl`) size, which is the real driver of bloat-hangs. Fill is measured point-in-time (the most recent turn's prompt size, counting cache reads and cache writes), not a running total of every token the chat ever spent — the lifetime figure is reported separately so the two can't be confused. Conversations whose transcript passes `ATLAS_SESSION_JSONL_MAX_MB` are flagged `resets next turn`, and the provider enforces that same cap by refusing to resume, so the flag reflects real behaviour rather than predicting it. Conversations with no recorded telemetry are labelled `est.` rather than shown as if measured. All channels (Telegram, Discord, WhatsApp, Slack, email, web) now record token usage — previously only web chat did, so channel conversations had no data at all.
 - **Audit log** — timestamped log of all tool executions, logins, and settings changes.
 - **QR code** — scan from desktop to instantly open Atlas on your phone.
 - **Typing indicator** — see when you're typing on another device in real-time.
@@ -235,7 +231,7 @@ Set `TARSEE_AI_PROVIDER` to `claude`, `anthropic`, `chatgpt`, `openai`, `openrou
 - **Checkpoints** — `CHECKPOINT.md` on the volume survives redeploys. Read once on the next boot, then archived to `memory/checkpoints/<timestamp>.md` for grep-able history.
 
 ### Appearance & Controls
-- **Themes** — `warm-charcoal` (default, terracotta accent), `noir` (pure black OLED-friendly), `solarized-light` (daylight), `jarvis-blue` (cyan accent). Switch from Settings > Appearance or via `/theme <name>`. Plugin-shipped themes are loaded from `ui.themes.plugin` automatically.
+- **Themes** — `atlas` (default, electric-blue accent on near-black), `warm-charcoal` (terracotta accent), `noir` (pure black OLED-friendly), `solarized-light` (daylight), `jarvis-blue` (cyan accent). Switch from Settings > Appearance or via `/theme <name>`. Plugin-shipped themes are loaded from `ui.themes.plugin` automatically.
 - **Model and effort picker** — the button beside Send ("Sonnet 5.5 · Medium") opens a picker like Claude Code's: a group for each ready AI with its models (number keys pick the ones on top), Effort (Low, Medium, High, Extra, Max, as far as that model goes) and search. Claude's list is Claude Code's own model catalog and ChatGPT's comes from your account, so new models appear with no code change. Each chat keeps its own pick; `/effort` opens the Effort list.
 - **Your own icon** — Settings > Appearance takes a PNG, JPG, WebP or SVG, crops it square, and serves it as the favicon, tab, home-screen and app icon.
 - **Own dialogs** — every confirmation is the dashboard's own dialog, never the browser's `confirm()` / `prompt()`.
@@ -288,11 +284,11 @@ Configure in **Settings > Channels** after deploying (the setup wizard's last st
 | Discord | [Developer Portal](https://discord.com/developers) | Text, images, PDFs, voice messages, reactions, presence |
 | Email | IMAP + SMTP (any provider — see below) | Real-time mail, `@mention` gate, CC/BCC context absorb, threaded replies |
 | WhatsApp | [WHAPI Cloud](https://panel.whapi.cloud) | Text, images, PDFs, voice notes (Whisper-transcribed), documents. DMs only. |
-| Slack | [api.slack.com/apps](https://api.slack.com/apps?new_app=1), from Atlas's manifest | DMs and @mentions, a thread per conversation, native streaming with tool cards, files both ways, voice clips, `/tarsee` |
+| Slack | [api.slack.com/apps](https://api.slack.com/apps?new_app=1), from Atlas's manifest | DMs and @mentions, a thread per conversation, native streaming with tool cards, files both ways, voice clips, `/atlas` |
 
 **Telegram:** send [@BotFather](https://t.me/BotFather) `/newbot`, pick a name and a username ending in `bot`, and paste the token it gives you. In groups the bot answers @mentions and replies to it; to have it read every group message (mention mode off), also send BotFather `/setprivacy` → Disable, then remove and re-add the bot to the group. A chat ID for the allowlist shows in the Console (`[telegram] … chat <id>`) when someone messages the bot.
 
-**Discord:** In the [Developer Portal](https://discord.com/developers/applications): **New Application** → **Bot** → **Reset Token** and copy it; on the same page turn on **Message Content Intent** and save. Paste the token in Atlas; once it says *Connected*, an **Add the bot to a server** button appears with the permissions it needs (View Channels, Send Messages, Send Messages in Threads, Read Message History, Attach Files, Embed Links, Add Reactions). For `tarsee_discord_admin`, also give the bot's role Manage Channels, Manage Roles (to set who can see a channel) and Manage Webhooks; without them the tool says which permission is missing and changes nothing.
+**Discord:** In the [Developer Portal](https://discord.com/developers/applications): **New Application** → **Bot** → **Reset Token** and copy it; on the same page turn on **Message Content Intent** and save. Paste the token in Atlas; once it says *Connected*, an **Add the bot to a server** button appears with the permissions it needs (View Channels, Send Messages, Send Messages in Threads, Read Message History, Attach Files, Embed Links, Add Reactions). For `atlas_discord_admin`, also give the bot's role Manage Channels, Manage Roles (to set who can see a channel) and Manage Webhooks; without them the tool says which permission is missing and changes nothing.
 
 **WhatsApp:** Atlas uses [WHAPI Cloud](https://whapi.cloud) as the WhatsApp gateway (free tier is enough for personal use). Setup:
 
@@ -312,21 +308,21 @@ Direct messages only; group messages are silently ignored. Voice notes are trans
 2. At [api.slack.com/apps](https://api.slack.com/apps?new_app=1): **Create an App → Paste a manifest → Continue**, open the **YAML** tab, replace what's there with the manifest, pick your workspace, **Next → Create**.
 3. **Install App → Install to *your workspace* → Allow**, then copy the **Bot User OAuth Token** (`xoxb-…`). (Some workspaces need an admin to approve new apps first.)
 4. **Basic Information → App-Level Tokens → Generate Token and Scopes**: any name, **Add Scope** `connections:write`, **Generate**, copy the token (`xapp-…`).
-5. Back in Atlas, paste both tokens and click Save. The section says ✓ *Connected as @tarsee in your workspace* once the bot is in.
+5. Back in Atlas, paste both tokens and click Save. The section says ✓ *Connected as @atlas in your workspace* once the bot is in.
 6. DM the app (Apps → Atlas), or add it to a channel (**Add people or agents**, or `/invite @Atlas`) and @mention it there.
 
-How it behaves: DMs are always answered; in channels and group DMs it answers an @mention (Settings > Bot Behavior can make it answer everything) and follows up without one in a thread it is already in. Mentioned in a thread it wasn't part of, it reads the thread's first message and latest 40 first, with anyone from another workspace, other bots and people not on the allowlist marked as such. `@Atlas /stop` in a thread stops the reply running there. Each reply goes in a thread, and each thread is its own conversation in the sidebar. Replies stream with Slack's native streaming and a task card per tool; Slack ends one streamed message after 10 minutes or 12,000 characters, so a long reply carries on in the next message of the thread. If the workspace can't stream natively (Slack keeps some AI features for paid plans), replies are posted and edited instead, the way Discord's are. `/tarsee <a question>` starts a thread of its own and answers there; `/tarsee help` and `/tarsee status` (one word) or `/tarsee /model opus` (written with its slash) run a command privately; a command about one conversation (`/clear`, `/export`, `/think`) goes in its thread as `@Atlas /clear`. Allowlist (Settings > Channels > Allowlist) takes member IDs (`U…`) and channel IDs (`C…`); people from another workspace (Slack Connect) are only answered when their own member ID is listed. Files up to 100 MB each way.
+How it behaves: DMs are always answered; in channels and group DMs it answers an @mention (Settings > Bot Behavior can make it answer everything) and follows up without one in a thread it is already in. Mentioned in a thread it wasn't part of, it reads the thread's first message and latest 40 first, with anyone from another workspace, other bots and people not on the allowlist marked as such. `@Atlas /stop` in a thread stops the reply running there. Each reply goes in a thread, and each thread is its own conversation in the sidebar. Replies stream with Slack's native streaming and a task card per tool; Slack ends one streamed message after 10 minutes or 12,000 characters, so a long reply carries on in the next message of the thread. If the workspace can't stream natively (Slack keeps some AI features for paid plans), replies are posted and edited instead, the way Discord's are. `/atlas <a question>` starts a thread of its own and answers there; `/atlas help` and `/atlas status` (one word) or `/atlas /model opus` (written with its slash) run a command privately; a command about one conversation (`/clear`, `/export`, `/think`) goes in its thread as `@Atlas /clear`. Allowlist (Settings > Channels > Allowlist) takes member IDs (`U…`) and channel IDs (`C…`); people from another workspace (Slack Connect) are only answered when their own member ID is listed. Files up to 100 MB each way.
 
 ---
 
 ### Email channel
 
-Atlas can live in any mailbox you own and reply in real-time. Inbound mail where the body contains `@tarsee` (configurable) triggers a reply; everything else is absorbed silently so Claude remembers the thread and can answer questions about it later. CC'd, BCC'd, and forwarded mail never triggers an outbound reply.
+Atlas can live in any mailbox you own and reply in real-time. Inbound mail where the body contains `@atlas` (configurable) triggers a reply; everything else is absorbed silently so Claude remembers the thread and can answer questions about it later. CC'd, BCC'd, and forwarded mail never triggers an outbound reply.
 
 **Setup (two paths — pick one):**
 
 1. **Settings UI** — open `Settings > Channels > Email`, click your provider (it fills in the servers and says where to make the app password), paste your email + app password, save.
-2. **Chat** — tell Atlas in conversation: *"Set up email. Mailbox `tarsee@example.com`, Gmail app password `xxxx-xxxx-xxxx-xxxx`, only allow `you@example.com`."* Atlas calls the `tarsee_configure_email_channel` MCP tool and the channel starts immediately.
+2. **Chat** — tell Atlas in conversation: *"Set up email. Mailbox `atlas@example.com`, Gmail app password `xxxx-xxxx-xxxx-xxxx`, only allow `you@example.com`."* Atlas calls the `atlas_configure_email_channel` MCP tool and the channel starts immediately.
 
 Both paths write to the same `channel.email` record. The Settings UI renders whatever's configured regardless of which path set it.
 
@@ -344,9 +340,9 @@ Both paths write to the same `channel.email` record. The Settings UI renders wha
 
 Self-hosted IMAP/SMTP works too — pick `Custom` and fill in your host/port.
 
-**Mention keyword** — defaults to `@tarsee`. Change it in Settings to `@jarvis`, `@bot`, or whatever alias you want. The leading `@` is part of what you type so it's obvious what you're setting.
+**Mention keyword** — defaults to `@atlas`. Change it in Settings to `@jarvis`, `@bot`, or whatever alias you want. The leading `@` is part of what you type so it's obvious what you're setting.
 
-**Reply-all** — opt-in only. Include `[reply-all]` in the subject (or type `@tarsee reply-all` in the body) and Atlas will reply to everyone in To + CC. Default is reply-to-sender only.
+**Reply-all** — opt-in only. Include `[reply-all]` in the subject (or type `@atlas reply-all` in the body) and Atlas will reply to everyone in To + CC. Default is reply-to-sender only.
 
 **Sender allowlist** — strongly recommended. Only emails from listed addresses get processed. Leave empty for dev mode (not safe for production mailboxes). Newsletters and auto-reply loops are always dropped regardless (RFC 3834 `Auto-Submitted` / `Precedence` / `List-Id` headers).
 
@@ -366,7 +362,7 @@ Self-hosted IMAP/SMTP works too — pick `Custom` and fill in your host/port.
 | `/model [provider] [model]` | Switch AI or model: `/model deepseek`, `/model openrouter`, `/model opus` (an alias tracks the latest), a pinned id like `claude-fable-5-1`, or a ref like `deepseek:deepseek-flash`. `/model` alone lists what each ready AI offers |
 | `/think low\|medium\|high\|xhigh\|max` | Set thinking effort for the session (ascending cost; `xhigh` sits between high and max; Medium is the default) |
 | `/effort` | Open the composer picker's Effort list |
-| `/theme [name]` | List or switch themes: warm-charcoal, noir, solarized-light, jarvis-blue |
+| `/theme [name]` | List or switch themes: atlas, warm-charcoal, noir, solarized-light, jarvis-blue |
 | `/auto [on\|off]` | Toggle auto model routing (your AI's small, everyday or top model by complexity) |
 | `/briefing [on\|off\|time]` | Morning briefing — run now, schedule daily, or set time |
 | `/send telegram\|discord\|whatsapp\|slack\|web` | Forward conversation context to another channel |
@@ -415,42 +411,42 @@ Self-hosted IMAP/SMTP works too — pick `Custom` and fill in your host/port.
 | `SETUP_PASSWORD` | Yes | — | 4-digit PIN for the web UI. **Required in production** — the server refuses to boot without it, because nobody could log in and the web terminal would be exposed. |
 | `ENCRYPTION_KEY` | Yes | made on the volume | AES-256 key for everything Atlas stores encrypted: keys saved in Settings > AI, channel tokens, the vault. Make one with `openssl rand -hex 32` and set it before you save any key in Settings; keep the same one for good. Without it, one is made and kept on the volume next to the data it protects. |
 | `NODE_ENV` | Yes | — | Set to `production` |
-| `TARSEE_STATE_DIR` | No | `/data/tarsee` with a volume at `/data`, else `~/.tarsee` | The folder Atlas keeps everything in: each AI's sign-in, and its database (with the keys saved in Settings > AI) and workspace unless `TARSEE_DATA_DIR` or `TARSEE_WORKSPACE_DIR` name other folders. With a volume, keep it inside `/data`, or it is lost on the next redeploy. Changing it later moves nothing: each sign-in, database and workspace stays in the folder it was made in, so set it back to find them again. The one exception is the upgrade from a version before multi-provider support, which kept the Claude plan sign-in in `/data/tarsee` whatever this said: if this names another folder in `/data`, the first boot moves that Claude plan sign-in and its chat history into it, one way, and nothing else. If that folder is already signed in, the old sign-in is renamed `.credentials.json.superseded` instead and is not used. |
-| `TARSEE_AI_PROVIDER` | No | `claude` | The default AI when Settings > AI hasn't chosen one: `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`. With that AI's key it skips the setup wizard. See [Choose your AI](#choose-your-ai). |
-| `TARSEE_AI_MODEL` | No | that AI's default | The default AI's model when Settings hasn't chosen one (for example `sonnet`, or `deepseek-flash`). Empty means that AI's default; for Local AI, the first model its server lists (set it to pin one). |
-| `TARSEE_KEYS_ONLY` | No | off | Set `1` to lock **Only use API keys** on: no Claude or ChatGPT plan sign-in is ever used. For a Atlas other people talk to. |
+| `ATLAS_STATE_DIR` | No | `/data/atlas` with a volume at `/data`, else `~/.atlas` | The folder Atlas keeps everything in: each AI's sign-in, and its database (with the keys saved in Settings > AI) and workspace unless `ATLAS_DATA_DIR` or `ATLAS_WORKSPACE_DIR` name other folders. With a volume, keep it inside `/data`, or it is lost on the next redeploy. Changing it later moves nothing: each sign-in, database and workspace stays in the folder it was made in, so set it back to find them again. The one exception is the upgrade from a version before multi-provider support, which kept the Claude plan sign-in in `/data/atlas` whatever this said: if this names another folder in `/data`, the first boot moves that Claude plan sign-in and its chat history into it, one way, and nothing else. If that folder is already signed in, the old sign-in is renamed `.credentials.json.superseded` instead and is not used. |
+| `ATLAS_AI_PROVIDER` | No | `claude` | The default AI when Settings > AI hasn't chosen one: `claude`, `anthropic`, `chatgpt`, `openai`, `openrouter`, `deepseek` or `local`. With that AI's key it skips the setup wizard. See [Choose your AI](#choose-your-ai). |
+| `ATLAS_AI_MODEL` | No | that AI's default | The default AI's model when Settings hasn't chosen one (for example `sonnet`, or `deepseek-flash`). Empty means that AI's default; for Local AI, the first model its server lists (set it to pin one). |
+| `ATLAS_KEYS_ONLY` | No | off | Set `1` to lock **Only use API keys** on: no Claude or ChatGPT plan sign-in is ever used. For a Atlas other people talk to. |
 | `ANTHROPIC_API_KEY` | No | — | Anthropic API key (`sk-ant-api…`), for **Anthropic API key**: Claude, billed per use. The Claude plan ignores it. A key saved in Settings > AI wins over this. |
 | `OPENAI_API_KEY` | No | — | OpenAI API key, for **OpenAI API key**, billed per use. Voice uses it only if you pick Whisper API in Settings > Voice. |
 | `OPENROUTER_API_KEY` | No | — | OpenRouter key (`sk-or-v1-…`), for hundreds of models with one key. Give the key a credit limit. |
 | `DEEPSEEK_API_KEY` | No | — | DeepSeek API key, the cheapest per message, spent from a balance you top up. |
-| `TARSEE_LOCAL_AI_URL` | No | — | Local AI: your Ollama, LM Studio or llama.cpp server, e.g. `http://localhost:11434/v1` (Ollama), `http://localhost:9931/v1` (llama.cpp; 8080 for older builds and its Docker image), or on Railway `http://ollama.railway.internal:11434/v1`. |
-| `TARSEE_LOCAL_AI_KEY` | No | — | Local AI's key, only if your server asks for one. Only ever sent to `TARSEE_LOCAL_AI_URL`. |
+| `ATLAS_LOCAL_AI_URL` | No | — | Local AI: your Ollama, LM Studio or llama.cpp server, e.g. `http://localhost:11434/v1` (Ollama), `http://localhost:9931/v1` (llama.cpp; 8080 for older builds and its Docker image), or on Railway `http://ollama.railway.internal:11434/v1`. |
+| `ATLAS_LOCAL_AI_KEY` | No | — | Local AI's key, only if your server asks for one. Only ever sent to `ATLAS_LOCAL_AI_URL`. |
 | `CLAUDE_CODE_OAUTH_TOKEN` | No | — | The Claude plan without the Terminal: the token `claude setup-token` prints (it lasts a year). Only the Claude plan ever sees it. |
-| `CLAUDE_DEFAULT_MODEL` | No | `sonnet` | The Claude plan's and Anthropic key's default model when Settings has none. Defaults to the **`sonnet` alias**, which Atlas resolves to the newest Sonnet in Claude Code's catalog before each turn. That catalog comes with the Claude Code version the image pins (`CLAUDE_CODE_VERSION` in the Dockerfile), so a model released later arrives when that version is bumped and redeployed, or on every boot with `TARSEE_AUTO_UPDATE_CLI=1`; the list Claude Code saves for your account when you use `claude` in the web terminal counts too, when it is newer. Set `opus` for the most capable default, a pinned id (e.g. `claude-opus-5`) if you need a frozen model, or `haiku` for a cheaper one. |
+| `CLAUDE_DEFAULT_MODEL` | No | `sonnet` | The Claude plan's and Anthropic key's default model when Settings has none. Defaults to the **`sonnet` alias**, which Atlas resolves to the newest Sonnet in Claude Code's catalog before each turn. That catalog comes with the Claude Code version the image pins (`CLAUDE_CODE_VERSION` in the Dockerfile), so a model released later arrives when that version is bumped and redeployed, or on every boot with `ATLAS_AUTO_UPDATE_CLI=1`; the list Claude Code saves for your account when you use `claude` in the web terminal counts too, when it is newer. Set `opus` for the most capable default, a pinned id (e.g. `claude-opus-5`) if you need a frozen model, or `haiku` for a cheaper one. |
 | `ELEVENLABS_API_KEY` | No | — | Premium TTS voices. Used when ElevenLabs (or Auto) is picked in Settings > Voice, or when the key is set and no engine was ever saved; otherwise the default engine, Phonon, and its fallback, Edge TTS, are free. |
 | `VAPID_SUBJECT` | No | your Railway `https://` address, else `mailto:admin@example.com` | The contact Web Push services are given for your server's notifications: a `mailto:` or `https:` URL, e.g. `mailto:you@yourdomain.com`. Apple's push service turns away subjects that aren't a real mailto/https address. |
-| `RAILWAY_API_TOKEN` | No | — | A Railway account or workspace token for the `tarsee_railway` tool (Railway: Account Settings > Tokens; a project token will not do). Better kept in the vault: tell Atlas to save it with `tarsee_set_key` as `RAILWAY_API_TOKEN`, which is read first. Railway does not set this one for you. |
-| `TARSEE_AGENT_ENV_KEYS` | No | every vault key | Which vault keys go into the agent's environment: a comma-separated list of names, or `off` for none. By default every key named in capitals, except Claude's, Anthropic's and Codex's own (login, billing and host) and names that change how programs run (`PATH`, `NODE_*`, proxies and the like). None while `get_key` is denied in Tool Permissions. |
-| `TARSEE_AUTO_UPDATE_CLI` | No | off | Set `1` to install the latest Claude Code CLI on every boot (adds up to ~60s to each boot). Chat turns keep running the Agent SDK's own copy, so the Terminal's `claude` and the turns then differ (the boot log says so). Off, the image keeps the version pinned in the Dockerfile (`CLAUDE_CODE_VERSION`). |
-| `TARSEE_PHONON_AUTO_INSTALL` | No | on | Set `0` to stop Atlas downloading Phonon's model in the background on boot when Phonon is the voice engine. The Install Phonon button in Settings > Voice still works. |
-| `TARSEE_PHONON_DIR` | No | `<data dir>/tts/phonon` | Where Phonon's model, voices and (if needed) Python venv live. On Railway that is `/data/tarsee/data/tts/phonon`, on the volume. |
-| `TARSEE_PHONON_PYTHON` | No | `python3` | Python interpreter with the `ptts` package for Phonon's worker. Without it Atlas uses `python3`, or a private venv it creates under `TARSEE_PHONON_DIR` when `python3` lacks `ptts` (made from the same Python as speech-to-text: one found on the computer, or Atlas's own). |
-| `TARSEE_STT_PYTHON` | No | — | A Python with faster-whisper that you manage yourself, for speech-to-text. Without it Atlas uses its own (Settings > Voice > Speech-to-text > Install faster-whisper, in `<state dir>/python`), or a Python on the computer that has faster-whisper (the Docker image's `python3`). |
-| `TARSEE_WHISPER_BUNDLED_DIR` | No | set by the Docker image | Where the image keeps the speech-to-text models it ships (`/opt/tarsee/whisper-models`, outside the volume). Downloaded models go to `<data dir>/whisper-models` (on Railway, `/data/tarsee/data/whisper-models`, on the volume). |
-| `TARSEE_PHONON_THREADS` | No | up to 4 | CPU threads for Phonon's worker. |
-| `TARSEE_CHANNEL_IDLE_ABORT_MS` | No | `1200000` (20 min) | Abandon a turn after this long with no stream event. Keep finite. |
-| `TARSEE_COMPACT_WINDOW` | No | `180000` | Context size (tokens) at which Claude Code summarizes the older part of a chat and carries on. Every model call re-reads the whole context, so a smaller window means fewer cached tokens per call (measured: about a quarter fewer than at 300k). Accepts `250000`, `150k`, or `off` for the CLI's own (the model's full window); the CLI holds it to 100k–1M. A `CLAUDE_CODE_AUTO_COMPACT_WINDOW` you set yourself is kept when this is unset. The context meter and Token Health measure against this window. |
-| `TARSEE_TOOL_RESULT_MAX_CHARS` | No | `12000` | A tool result (Atlas's own `tarsee_*` tools and any other MCP tool) longer than about this many characters is saved to a file by Claude Code, and the agent gets the path and how to read it. Passed as `MAX_MCP_OUTPUT_TOKENS` (characters ÷ 4; Claude Code's own default is 25000 tokens); a `MAX_MCP_OUTPUT_TOKENS` you set yourself is kept when this is unset. |
-| `TARSEE_BASH_OUTPUT_MAX_CHARS` | No | `8000` | A Bash output longer than this is saved to a file by Claude Code, and the agent gets a short preview plus the path (Claude Code's own default is 30000). Sets `BASH_MAX_OUTPUT_LENGTH` for each turn; a `BASH_MAX_OUTPUT_LENGTH` you set yourself is kept when this is unset. |
-| `TARSEE_SESSION_JSONL_MAX_MB` | No | `8` | Transcript size cap. Past it, the next turn starts a fresh session instead of resuming the bloat. |
-| `TARSEE_MODEL_CONTEXT_TOKENS` | No | from model registry | Override the context window assumed by Token Health. |
-| `TARSEE_SESSION_MAX_AGE_DAYS` | No | `30` | Login session lifetime. Sessions persist to SQLite and survive redeploys. |
-| `TARSEE_CSRF_MAX_AGE_HOURS` | No | `24` | CSRF token lifetime. |
-| `TARSEE_CHANNEL_HEALTH_MS` | No | `60000` | How often the watchdog probes for a wedged Telegram poller. |
-| `TARSEE_CLEAR_SESSIONS_ON_BOOT` | No | off | Set `1` to restore the old behaviour of wiping every chat's session id on boot. |
-| `TARSEE_TIMEZONE` | No | host zone | IANA zone the agent reasons in for "today", "tomorrow at 9", and cron schedules (e.g. `Europe/Berlin`). Railway containers run UTC, so set this or your 8am reminders fire at 8am UTC. An unrecognised zone falls back to UTC with a warning. The Usage page counts its days in this zone too. |
-| `TARSEE_USAGE_BACKFILL_DAYS` | No | `14` | How far back the Usage page's first read of the Claude session transcripts goes. Later reads only take what each transcript gained. |
-| `TARSEE_USAGE_RETENTION_DAYS` | No | `90` | Token usage rows older than this are deleted. |
+| `RAILWAY_API_TOKEN` | No | — | A Railway account or workspace token for the `atlas_railway` tool (Railway: Account Settings > Tokens; a project token will not do). Better kept in the vault: tell Atlas to save it with `atlas_set_key` as `RAILWAY_API_TOKEN`, which is read first. Railway does not set this one for you. |
+| `ATLAS_AGENT_ENV_KEYS` | No | every vault key | Which vault keys go into the agent's environment: a comma-separated list of names, or `off` for none. By default every key named in capitals, except Claude's, Anthropic's and Codex's own (login, billing and host) and names that change how programs run (`PATH`, `NODE_*`, proxies and the like). None while `get_key` is denied in Tool Permissions. |
+| `ATLAS_AUTO_UPDATE_CLI` | No | off | Set `1` to install the latest Claude Code CLI on every boot (adds up to ~60s to each boot). Chat turns keep running the Agent SDK's own copy, so the Terminal's `claude` and the turns then differ (the boot log says so). Off, the image keeps the version pinned in the Dockerfile (`CLAUDE_CODE_VERSION`). |
+| `ATLAS_PHONON_AUTO_INSTALL` | No | on | Set `0` to stop Atlas downloading Phonon's model in the background on boot when Phonon is the voice engine. The Install Phonon button in Settings > Voice still works. |
+| `ATLAS_PHONON_DIR` | No | `<data dir>/tts/phonon` | Where Phonon's model, voices and (if needed) Python venv live. On Railway that is `/data/atlas/data/tts/phonon`, on the volume. |
+| `ATLAS_PHONON_PYTHON` | No | `python3` | Python interpreter with the `ptts` package for Phonon's worker. Without it Atlas uses `python3`, or a private venv it creates under `ATLAS_PHONON_DIR` when `python3` lacks `ptts` (made from the same Python as speech-to-text: one found on the computer, or Atlas's own). |
+| `ATLAS_STT_PYTHON` | No | — | A Python with faster-whisper that you manage yourself, for speech-to-text. Without it Atlas uses its own (Settings > Voice > Speech-to-text > Install faster-whisper, in `<state dir>/python`), or a Python on the computer that has faster-whisper (the Docker image's `python3`). |
+| `ATLAS_WHISPER_BUNDLED_DIR` | No | set by the Docker image | Where the image keeps the speech-to-text models it ships (`/opt/atlas/whisper-models`, outside the volume). Downloaded models go to `<data dir>/whisper-models` (on Railway, `/data/atlas/data/whisper-models`, on the volume). |
+| `ATLAS_PHONON_THREADS` | No | up to 4 | CPU threads for Phonon's worker. |
+| `ATLAS_CHANNEL_IDLE_ABORT_MS` | No | `1200000` (20 min) | Abandon a turn after this long with no stream event. Keep finite. |
+| `ATLAS_COMPACT_WINDOW` | No | `180000` | Context size (tokens) at which Claude Code summarizes the older part of a chat and carries on. Every model call re-reads the whole context, so a smaller window means fewer cached tokens per call (measured: about a quarter fewer than at 300k). Accepts `250000`, `150k`, or `off` for the CLI's own (the model's full window); the CLI holds it to 100k–1M. A `CLAUDE_CODE_AUTO_COMPACT_WINDOW` you set yourself is kept when this is unset. The context meter and Token Health measure against this window. |
+| `ATLAS_TOOL_RESULT_MAX_CHARS` | No | `12000` | A tool result (Atlas's own `atlas_*` tools and any other MCP tool) longer than about this many characters is saved to a file by Claude Code, and the agent gets the path and how to read it. Passed as `MAX_MCP_OUTPUT_TOKENS` (characters ÷ 4; Claude Code's own default is 25000 tokens); a `MAX_MCP_OUTPUT_TOKENS` you set yourself is kept when this is unset. |
+| `ATLAS_BASH_OUTPUT_MAX_CHARS` | No | `8000` | A Bash output longer than this is saved to a file by Claude Code, and the agent gets a short preview plus the path (Claude Code's own default is 30000). Sets `BASH_MAX_OUTPUT_LENGTH` for each turn; a `BASH_MAX_OUTPUT_LENGTH` you set yourself is kept when this is unset. |
+| `ATLAS_SESSION_JSONL_MAX_MB` | No | `8` | Transcript size cap. Past it, the next turn starts a fresh session instead of resuming the bloat. |
+| `ATLAS_MODEL_CONTEXT_TOKENS` | No | from model registry | Override the context window assumed by Token Health. |
+| `ATLAS_SESSION_MAX_AGE_DAYS` | No | `30` | Login session lifetime. Sessions persist to SQLite and survive redeploys. |
+| `ATLAS_CSRF_MAX_AGE_HOURS` | No | `24` | CSRF token lifetime. |
+| `ATLAS_CHANNEL_HEALTH_MS` | No | `60000` | How often the watchdog probes for a wedged Telegram poller. |
+| `ATLAS_CLEAR_SESSIONS_ON_BOOT` | No | off | Set `1` to restore the old behaviour of wiping every chat's session id on boot. |
+| `ATLAS_TIMEZONE` | No | host zone | IANA zone the agent reasons in for "today", "tomorrow at 9", and cron schedules (e.g. `Europe/Berlin`). Railway containers run UTC, so set this or your 8am reminders fire at 8am UTC. An unrecognised zone falls back to UTC with a warning. The Usage page counts its days in this zone too. |
+| `ATLAS_USAGE_BACKFILL_DAYS` | No | `14` | How far back the Usage page's first read of the Claude session transcripts goes. Later reads only take what each transcript gained. |
+| `ATLAS_USAGE_RETENTION_DAYS` | No | `90` | Token usage rows older than this are deleted. |
 
 > **Note:** The plans' sign-ins aren't variables (apart from the optional `CLAUDE_CODE_OAUTH_TOKEN`): the Claude plan signs in from the Terminal and the ChatGPT plan from Settings > AI, and both stay on the volume. API keys go in Settings > AI or in these variables, never in a file. See [Choose your AI](#choose-your-ai).
 
@@ -459,25 +455,25 @@ Self-hosted IMAP/SMTP works too — pick `Custom` and fill in your host/port.
 ## Self-Hosting with Docker
 
 ```bash
-docker build -t tarsee .
+docker build -t atlas .
 
 # Make an encryption key once and keep it: Atlas needs the same one every time it starts.
 export ENCRYPTION_KEY="$(openssl rand -hex 32)"
 echo "$ENCRYPTION_KEY"   # save this somewhere safe
 
 docker run -d \
-  --name tarsee \
+  --name atlas \
   -p 3000:3000 \
-  -v tarsee-data:/data \
+  -v atlas-data:/data \
   -e NODE_ENV=production \
   -e SETUP_PASSWORD=your-4-digit-pin \
   -e ENCRYPTION_KEY \
-  tarsee
+  atlas
 ```
 
 Atlas listens on port 3000 (`PORT`). Open http://localhost:3000, log in with your PIN, and the setup wizard asks you to [choose your AI](#choose-your-ai). A plan signs in from the wizard (the Claude plan through Atlas's Terminal), and a key is pasted into Settings > AI.
 
-Everything Atlas keeps (its database with the keys saved in Settings > AI, each AI's sign-in, and the workspace) is in the `tarsee-data` volume, in `/data/tarsee` inside the container, so a rebuild or a new container still has it.
+Everything Atlas keeps (its database with the keys saved in Settings > AI, each AI's sign-in, and the workspace) is in the `atlas-data` volume, in `/data/atlas` inside the container, so a rebuild or a new container still has it.
 
 To give Atlas a key as a variable instead, put it in a `.env` file that you never commit (`.env.example` lists every name, with what each one is for) and add `--env-file .env` to `docker run`, so the key never appears in a command. `docker-compose.yml` reads the same `.env` file.
 
@@ -516,7 +512,7 @@ src/
     mcp-http.js                # Atlas's tools for Codex, on a private loopback endpoint
     codex-device-login.js      # ChatGPT sign-in with a one-time code
     verify-model.js            # One-click Verify for a model
-    tarsee-mcp.js              # 20+ MCP tools
+    atlas-mcp.js              # 20+ MCP tools
   lib/
     tools.js, commands.js      # Tool registry + chat commands
     cron.js                    # Scheduler
@@ -544,7 +540,7 @@ src/
   public/                      # Web UI (vanilla HTML/CSS/JS, PWA)
 ```
 
-Run `npm test` and `npm run lint` before a PR. The tests need no AI keys: every provider is checked against local fake servers. The Codex tests use the `codex` binary pinned in `package.json`. `TARSEE_CODEX_BIN` points the tests (and Atlas) at another copy; on Windows it must name `codex.exe` itself, not a `.cmd` launcher, which Node can't start without a shell (a turn is refused and says so).
+Run `npm test` and `npm run lint` before a PR. The tests need no AI keys: every provider is checked against local fake servers. The Codex tests use the `codex` binary pinned in `package.json`. `ATLAS_CODEX_BIN` points the tests (and Atlas) at another copy; on Windows it must name `codex.exe` itself, not a `.cmd` launcher, which Node can't start without a shell (a turn is refused and says so).
 
 ---
 

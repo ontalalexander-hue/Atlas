@@ -1,5 +1,5 @@
 /**
- * Railway for the agent (tarsee_railway): list projects, environments, services and variable names, set a service
+ * Railway for the agent (atlas_railway): list projects, environments, services and variable names, set a service
  * variable and redeploy a service, done by Atlas itself with a Railway token it reads from the vault. Without it the
  * only way to set a variable is a command carrying the value (`railway variables --set`, or a GraphQL call with the
  * token in it), which puts a secret into a command line, a transcript and the model's context, and which Claude
@@ -45,12 +45,12 @@ const VAR_NAME = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/;
 
 // The only documents this tool ever sends. None deletes; the upsert never passes `replace`.
 export const DOCS = Object.freeze({
-  projects: "query TarseeProjects { projects(first: 500) { edges { node { id name deletedAt } } } }",
-  project: "query TarseeProject($id: String!) { project(id: $id) { id name deletedAt environments { edges { node { id name deletedAt } } } services { edges { node { id name } } } } }",
-  variableNames: "query TarseeVariableNames($projectId: String!, $environmentId: String!) { environment(id: $environmentId, projectId: $projectId) { variables(first: 10000) { edges { node { name serviceId isSealed } } } } }",
-  upsert: "mutation TarseeVariableUpsert($projectId: String!, $environmentId: String!, $serviceId: String!, $variables: EnvironmentVariables!, $skipDeploys: Boolean) { variableCollectionUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, variables: $variables, skipDeploys: $skipDeploys }) }",
-  latestDeployment: "query TarseeLatestDeployment($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status createdAt } } } }",
-  redeploy: "mutation TarseeRedeploy($id: String!) { deploymentRedeploy(id: $id) { id } }",
+  projects: "query AtlasProjects { projects(first: 500) { edges { node { id name deletedAt } } } }",
+  project: "query AtlasProject($id: String!) { project(id: $id) { id name deletedAt environments { edges { node { id name deletedAt } } } services { edges { node { id name } } } } }",
+  variableNames: "query AtlasVariableNames($projectId: String!, $environmentId: String!) { environment(id: $environmentId, projectId: $projectId) { variables(first: 10000) { edges { node { name serviceId isSealed } } } } }",
+  upsert: "mutation AtlasVariableUpsert($projectId: String!, $environmentId: String!, $serviceId: String!, $variables: EnvironmentVariables!, $skipDeploys: Boolean) { variableCollectionUpsert(input: { projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId, variables: $variables, skipDeploys: $skipDeploys }) }",
+  latestDeployment: "query AtlasLatestDeployment($input: DeploymentListInput!) { deployments(input: $input, first: 1) { edges { node { id status createdAt } } } }",
+  redeploy: "mutation AtlasRedeploy($id: String!) { deploymentRedeploy(id: $id) { id } }",
 });
 
 // Values that look like a secret: these go through from_key, never value.
@@ -86,7 +86,7 @@ export function hereOf(env = process.env) {
 }
 
 /**
- * @param {object} args the tool's input (see tarsee_railway in src/ai/tarsee-mcp.js)
+ * @param {object} args the tool's input (see atlas_railway in src/ai/atlas-mcp.js)
  * @param {object} [deps]
  * @param {{ getKey: Function, getAllKeysDecrypted?: Function }} [deps.vault] defaults to lib/key-vault.js
  * @param {object} [deps.env] defaults to process.env (the token's fallback, and where Atlas runs)
@@ -146,7 +146,7 @@ function tokenOf(v, env) {
   if (val && String(val).trim()) return String(val).trim();
   const fromEnv = String(env?.[TOKEN_KEY] ?? "").trim();
   if (fromEnv) return fromEnv;
-  fail(`There is no Railway token: the vault has no ${TOKEN_KEY} and neither does the environment. Ask the owner for a Railway account or workspace token (Railway: Account Settings > Tokens, or the workspace's Settings > Tokens; a project token will not do) and save it with tarsee_set_key as ${TOKEN_KEY}. Nothing was done.`);
+  fail(`There is no Railway token: the vault has no ${TOKEN_KEY} and neither does the environment. Ask the owner for a Railway account or workspace token (Railway: Account Settings > Tokens, or the workspace's Settings > Tokens; a project token will not do) and save it with atlas_set_key as ${TOKEN_KEY}. Nothing was done.`);
 }
 
 // ---------------------------------------------------------------- the API
@@ -343,7 +343,7 @@ async function setVariable(ctx) {
     const keyName = String(args.from_key).trim();
     let raw = null;
     try { raw = v.getKey(keyName) ?? (keyName !== keyName.toUpperCase() ? v.getKey(keyName.toUpperCase()) : null); } catch (err) { fail(`The vault key ${keyName} could not be read (${err.message}).`); }
-    if (raw == null) fail(`The vault has no key named ${keyName}. tarsee_list_keys lists the names.`);
+    if (raw == null) fail(`The vault has no key named ${keyName}. atlas_list_keys lists the names.`);
     value = String(raw);
     if (!value) fail(`The vault key ${keyName} is empty, so there is nothing to set.`);
     note.secrets.push(value);
@@ -354,7 +354,7 @@ async function setVariable(ctx) {
     const inVault = vaultKeyHolding(v, value);
     if (inVault) fail(`That value is the vault key ${inVault}. Pass from_key: "${inVault}" instead, so the value never goes through a chat or a command.`);
     const shape = SECRET_SHAPES.find(([re]) => re.test(value.trim()));
-    if (shape) fail(`value looks like a secret (${shape[1]}). Save it in the vault with tarsee_set_key and pass from_key with that key name instead, so it never goes through a chat or a command.`);
+    if (shape) fail(`value looks like a secret (${shape[1]}). Save it in the vault with atlas_set_key and pass from_key with that key name instead, so it never goes through a chat or a command.`);
     note.extra.push("value=plain");
     shown = `"${value.length > 200 ? `${value.slice(0, 200)}...` : value}" (plain value)`;
   }

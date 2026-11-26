@@ -12,10 +12,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-settings-keys-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-settings-keys-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 // A test-only encryption key, so values really are encrypted at rest here.
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 
@@ -32,7 +32,7 @@ const ENV_CANARIES = {
   OPENAI_API_KEY: "sk-test-canary-EnvOpenai7Wx",
   DEEPSEEK_API_KEY: "sk-test-canary-EnvDeepseek3Kp",
   ANTHROPIC_API_KEY: "sk-ant-api03-test-canary-EnvAnth5Rz",
-  TARSEE_LOCAL_AI_KEY: "test-canary-EnvLocal8Mn",
+  ATLAS_LOCAL_AI_KEY: "test-canary-EnvLocal8Mn",
 };
 for (const def of Object.values(AI_PROVIDERS)) {
   if (def.envKey && !(def.envKey in ENV_CANARIES)) ENV_CANARIES[def.envKey] = `sk-test-canary-${def.envKey}`;
@@ -185,14 +185,14 @@ describe("getKeyWithSource: where a provider's key comes from", () => {
     });
   });
 
-  it("each provider reads its own variable; Local AI's is TARSEE_LOCAL_AI_KEY", () => {
+  it("each provider reads its own variable; Local AI's is ATLAS_LOCAL_AI_KEY", () => {
     const { store } = fresh();
     withEnv(ENV_CANARIES, () => {
       assert.equal(store.getKeyWithSource("anthropic").source, "env:ANTHROPIC_API_KEY");
       assert.equal(store.getKeyWithSource("deepseek").source, "env:DEEPSEEK_API_KEY");
       assert.equal(store.getKeyWithSource("openai").source, "env:OPENAI_API_KEY");
       assert.equal(store.getKeyWithSource("openrouter").source, "env:OPENROUTER_API_KEY");
-      assert.deepEqual(store.getKeyWithSource("local"), { key: ENV_CANARIES.TARSEE_LOCAL_AI_KEY, source: "env:TARSEE_LOCAL_AI_KEY", hint: "…l8Mn" });
+      assert.deepEqual(store.getKeyWithSource("local"), { key: ENV_CANARIES.ATLAS_LOCAL_AI_KEY, source: "env:ATLAS_LOCAL_AI_KEY", hint: "…l8Mn" });
       assert.equal(store.getKeyWithSource("local", { envName: "SOME_OTHER_NAME" }).source, null, "an explicit env name is the only one read");
     });
   });

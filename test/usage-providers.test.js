@@ -9,10 +9,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-usage-prov-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "state", "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "state", "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-usage-prov-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "state", "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "state", "data");
 const savedHome = process.env.HOME;
 process.env.HOME = path.join(tmp, "home");   // the Claude plan's home is <HOME>/.claude
 
@@ -370,18 +370,18 @@ describe("the tool registry (Settings > Security)", () => {
       { name: "send_message", description: "Send a message." },
     ];
     const mcpTools = [
-      { name: "tarsee_send_message", description: "Send a message to a channel. Use this to notify the user." },
-      { name: "tarsee_push_notification", description: "Send a Web Push notification to all the user's registered devices." },
-      { name: "tarsee_pdf_read", description: "Read a PDF's text, a page range at a time." },
-      { name: "tarsee_brand_new", description: "Something added later." },
+      { name: "atlas_send_message", description: "Send a message to a channel. Use this to notify the user." },
+      { name: "atlas_push_notification", description: "Send a Web Push notification to all the user's registered devices." },
+      { name: "atlas_pdf_read", description: "Read a PDF's text, a page range at a time." },
+      { name: "atlas_brand_new", description: "Something added later." },
     ];
     const list = buildToolRegistry({ toolDefs, mcpTools });
     const by = Object.fromEntries(list.map((t) => [t.name, t]));
     assert.equal(list.filter((t) => t.name === "send_message").length, 1, "once, though both lists have it");
-    assert.equal(by.send_message.mcpName, "tarsee_send_message");
-    assert.equal(by.push_notification.mcpName, "tarsee_push_notification");
+    assert.equal(by.send_message.mcpName, "atlas_send_message");
+    assert.equal(by.push_notification.mcpName, "atlas_push_notification");
     assert.equal(by.push_notification.policyCovered, true);
-    assert.equal(by.pdf_read.mcpName, "tarsee_pdf_read");
+    assert.equal(by.pdf_read.mcpName, "atlas_pdf_read");
     assert.equal(by.pdf_read.description, "Read a PDF's text, a page range at a time.", "the agent's own description wins");
     assert.equal(by.exec.mcpName, null);
     assert.equal(by.brand_new.group, "Other");
@@ -416,9 +416,9 @@ describe("the tool registry (Settings > Security)", () => {
       const list = await res.json();
       assert.ok(Array.isArray(list));
       const by = Object.fromEntries(list.map((t) => [t.name, t]));
-      assert.equal(by.push_notification?.mcpName, "tarsee_push_notification");
+      assert.equal(by.push_notification?.mcpName, "atlas_push_notification");
       assert.equal(by.push_notification.policyCovered, true);
-      assert.ok(by.pdf_read, "pdf_read (tarsee_pdf_read to the agent)");
+      assert.ok(by.pdf_read, "pdf_read (atlas_pdf_read to the agent)");
       for (const name of ["get_key", "set_key", "list_keys", "delete_key", "send_file", "railway", "discord_admin"]) assert.ok(by[name], name);
       assert.equal(by.Bash.policyCovered, false);
       assert.equal(typeof by.exec.mode, "string", "the current Tool Permissions setting rides along");

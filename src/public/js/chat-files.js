@@ -1,5 +1,5 @@
 /**
- * The files in the dashboard's chat: cards in the messages, and the viewer they open in. Ported from TarseeMacOS.
+ * The files in the dashboard's chat: cards in the messages, and the viewer they open in. Ported from the macOS app.
  *
  * The agent's files (send_file to Telegram, Discord, WhatsApp or the dashboard; the ones it emails) are kept with the
  * chat (src/lib/chat-files.js) and come with its history and on the live feed; so do the files people send in.

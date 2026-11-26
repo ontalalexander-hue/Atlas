@@ -1,7 +1,7 @@
 // Atlas's icon (src/lib/brand-icon.js, the Settings routes for it, js/brand-icon.js): the PNG decoder on every colour
 // type, bit depth and row filter, the resizer, the ICO and the icon set, saving and resetting in a data folder of its
 // own, the middleware that serves an uploaded icon, the manifest with the version on every icon, the three routes,
-// and window.TarseeBrand on a stand-in page. Nothing here touches the network beyond 127.0.0.1.
+// and window.AtlasBrand on a stand-in page. Nothing here touches the network beyond 127.0.0.1.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
@@ -14,10 +14,10 @@ import express from "express";
 
 // Keep the module away from the real state directory (all three, so a folder set in the shell cannot win). Set
 // before the imports below: src/config/env.js reads them once, when it is first loaded.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-brand-icon-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-brand-icon-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 const bi = await import("../src/lib/brand-icon.js");
 const { settingsRouter } = await import("../src/routes/settings.js");
 const { initDb } = await import("../src/db/sqlite.js");
@@ -591,7 +591,7 @@ describe("brand icon: GET, POST and DELETE /api/settings/brand-icon", () => {
 
 /**
  * js/brand-icon.js run on a stand-in page (its icon links and pictures; no Settings section) whose server answers
- * GET /api/settings/brand-icon with `answer`. signIn: fire "tarsee:signed-in", as app.js does once there is a session.
+ * GET /api/settings/brand-icon with `answer`. signIn: fire "atlas:signed-in", as app.js does once there is a session.
  */
 async function page({ answer, signIn = true }) {
   const { default: vm } = await import("node:vm");
@@ -634,14 +634,14 @@ async function page({ answer, signIn = true }) {
   };
   win.window = win;
   vm.runInNewContext(fs.readFileSync(path.join(PUBLIC, "js/brand-icon.js"), "utf8"), win);
-  if (signIn) win.dispatchEvent({ type: "tarsee:signed-in" });
+  if (signIn) win.dispatchEvent({ type: "atlas:signed-in" });
   for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
   const attr = (i) => els[i].getAttribute(els[i].tagName === "img" ? "src" : "href");
-  return { asked, heard, attr, brand: win.TarseeBrand };
+  return { asked, heard, attr, brand: win.AtlasBrand };
 }
 const answered = (status, body) => ({ ok: status === 200, status, json: async () => body });
 
-describe("brand icon: TarseeBrand on the page", () => {
+describe("brand icon: AtlasBrand on the page", () => {
   it("before sign-in: nothing is asked, there is no version, and the addresses stay as they are", async () => {
     const { asked, brand, attr } = await page({ answer: answered(200, { custom: false, version: "d1" }), signIn: false });
     assert.deepEqual(asked, []);
@@ -651,7 +651,7 @@ describe("brand icon: TarseeBrand on the page", () => {
     assert.ok(Object.isFrozen(brand) && brand.paths.includes("/favicon.ico"));
   });
 
-  it("signed in: the version from GET /api/settings/brand-icon on every icon address, and tarsee:icon-changed", async () => {
+  it("signed in: the version from GET /api/settings/brand-icon on every icon address, and atlas:icon-changed", async () => {
     const { asked, brand, heard, attr } = await page({ answer: answered(200, { custom: true, version: "def456", updatedAt: "2026-01-01T00:00:00.000Z" }) });
     assert.deepEqual(asked, ["/api/settings/brand-icon"]);
     assert.equal(brand.version, "def456");
@@ -664,7 +664,7 @@ describe("brand icon: TarseeBrand on the page", () => {
       "/icon-32.png?v=def456", "/apple-touch-icon.png?v=def456", "/manifest.json?v=def456", "/css/style.css",
       "/icon-192.png?v=def456", "https://app.example/icon-32.png?v=def456", "/img/photo.png",
     ]);
-    const changed = heard.filter((e) => e.type === "tarsee:icon-changed");
+    const changed = heard.filter((e) => e.type === "atlas:icon-changed");
     assert.equal(changed.length, 1);
     assert.deepEqual({ ...changed[0].detail }, { version: "def456", initial: true });
   });

@@ -2,7 +2,7 @@
  * Piper TTS engine — ultra-fast local text-to-speech.
  * Sub-500ms latency, runs on CPU, no API key, no internet needed.
  * Uses ONNX voice models (.onnx + .onnx.json pairs).
- * Models stored on volume at /data/tarsee/piper-voices/
+ * Models stored on volume at /data/atlas/piper-voices/
  */
 
 import { TTSEngine } from "./tts-interface.js";
@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
-const VOICES_DIR = path.join(process.env.TARSEE_DATA_DIR || process.env.TARSEE_STATE_DIR || "/data/tarsee", "piper-voices");
+const VOICES_DIR = path.join(process.env.ATLAS_DATA_DIR || process.env.ATLAS_STATE_DIR || "/data/atlas", "piper-voices");
 
 export class PiperTTSEngine extends TTSEngine {
   constructor(defaultVoice) {

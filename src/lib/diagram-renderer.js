@@ -189,7 +189,7 @@ ${legendHtml}
       const question = questions[nodeId];
       try {
         window.parent.postMessage({
-          type: 'tarsee:diagram-click',
+          type: 'atlas:diagram-click',
           diagramId, nodeId, label, sublabel, question,
         }, '*');
       } catch (e) { /* sandboxed */ }

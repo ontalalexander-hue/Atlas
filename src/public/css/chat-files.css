@@ -1,6 +1,6 @@
 /* ==========================================================================
    The files in the dashboard's chat (js/chat-files.js): a card for each,
-   which opens the viewer (css/file-viewer.css). Ported from TarseeMacOS. A picture or a video is a
+   which opens the viewer (css/file-viewer.css). Ported from the macOS app. A picture or a video is a
    tile of its own; anything else a card with a small face (a PDF's first
    page, or its kind in letters), its name, its kind and size. No icons.
    ========================================================================== */

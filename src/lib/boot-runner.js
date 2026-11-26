@@ -21,7 +21,7 @@ import { gateAutomation, upgradeApproval } from "./automation-approval.js";
 const BOOT_MARKER = path.join(config.STATE_DIR, ".boot-checklist-ran");
 
 function bootFingerprint(content) {
-  const build = process.env.TARSEE_COMMIT_SHA || "dev";
+  const build = process.env.ATLAS_COMMIT_SHA || "dev";
   return `${build}:${crypto.createHash("sha256").update(content).digest("hex").slice(0, 16)}`;
 }
 

@@ -1,4 +1,4 @@
-// The files of a chat, in the dashboard's chat (ported from TarseeMacOS): every file the agent sends is kept with the
+// The files of a chat, in the dashboard's chat (ported from the macOS app): every file the agent sends is kept with the
 // chat (src/lib/chat-files.js, src/lib/sent-files.js) and the history and the live feed bring it, on the reply of the
 // turn that sent it; files people send in are kept on their message; each opens from GET /api/chat/file, which only
 // serves the uploads folder. The pure parts of the page (public/js/file-viewer-core.js) are tested here too.
@@ -10,10 +10,10 @@ import os from "node:os";
 import path from "node:path";
 import express from "express";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-chat-files-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-chat-files-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -311,7 +311,7 @@ describe("the viewer's rules (public/js/file-viewer-core.js)", () => {
   });
 
   it("a link to one of the chat's files opens in the viewer; anything else stays a link", () => {
-    const origin = "https://tarsee.example";
+    const origin = "https://atlas.example";
     assert.equal(core.fileLink("/api/chat/file?p=%2Fw%2Fuploads%2Fa.pdf", origin).path, "/w/uploads/a.pdf");
     assert.equal(core.fileLink("https://elsewhere.example/api/chat/file?p=x", origin), null);
     assert.equal(core.fileLink("/api/files/download?path=x", origin), null);

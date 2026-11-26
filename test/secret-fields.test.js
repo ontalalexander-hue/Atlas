@@ -24,11 +24,11 @@ describe("secret fields inside structured settings", () => {
     const out = encryptSecretFields({
       enabled: true,
       token: "bot-secret-123",
-      mentionKeyword: "tarsee",
+      mentionKeyword: "atlas",
     });
     assert.ok(isEncrypted(out.token), "token was not encrypted");
     assert.equal(out.enabled, true);
-    assert.equal(out.mentionKeyword, "tarsee", "non-secret field should stay readable");
+    assert.equal(out.mentionKeyword, "atlas", "non-secret field should stay readable");
   });
 
   it("reaches credentials nested inside sub-objects", () => {
@@ -74,7 +74,7 @@ describe("secret fields inside structured settings", () => {
 });
 
 describe("SettingsStore end to end", () => {
-  const TEST_DB = path.join("/tmp", `tarsee-secret-${Date.now()}.db`);
+  const TEST_DB = path.join("/tmp", `atlas-secret-${Date.now()}.db`);
   let db, store;
 
   before(() => {
@@ -111,24 +111,24 @@ describe("SettingsStore end to end", () => {
 
 describe("file API boundaries", () => {
   it("refuses credential and database files inside an allowed root", () => {
-    const root = "/tmp/tarsee-fileroot";
-    for (const bad of [".credentials.json", "api.token", ".encryption-key", "tarsee.db", "vault.json"]) {
+    const root = "/tmp/atlas-fileroot";
+    for (const bad of [".credentials.json", "api.token", ".encryption-key", "atlas.db", "vault.json"]) {
       assert.throws(() => safePath(bad, [root]), /not accessible/, `${bad} was reachable`);
     }
   });
 
   it("still allows ordinary workspace files", () => {
-    const root = "/tmp/tarsee-fileroot";
+    const root = "/tmp/atlas-fileroot";
     assert.ok(safePath("notes.md", [root]).endsWith("notes.md"));
     assert.ok(safePath("memory/2026-01-01.md", [root]).includes("memory"));
   });
 
   it("still refuses traversal out of the root", () => {
-    assert.throws(() => safePath("../../etc/passwd", ["/tmp/tarsee-fileroot"]), /outside allowed/);
+    assert.throws(() => safePath("../../etc/passwd", ["/tmp/atlas-fileroot"]), /outside allowed/);
   });
 
   it("flags the Claude credential directory at any depth", () => {
-    assert.equal(isSensitivePath("/data/tarsee/.claude-code-home/.credentials.json"), true);
-    assert.equal(isSensitivePath("/data/tarsee/workspace/notes.md"), false);
+    assert.equal(isSensitivePath("/data/atlas/.claude-code-home/.credentials.json"), true);
+    assert.equal(isSensitivePath("/data/atlas/workspace/notes.md"), false);
   });
 });

@@ -241,7 +241,7 @@ export function getHeartbeatStatus() {
  * Give the heartbeat a channel manager after the fact.
  *
  * Channels start asynchronously and after the heartbeat timer, so wiring this
- * at construction time is not possible. Without it, `tarsee_send_message` from
+ * at construction time is not possible. Without it, `atlas_send_message` from
  * a heartbeat task had no transport and failed silently.
  */
 export function setHeartbeatChannelManager(channelManager) {

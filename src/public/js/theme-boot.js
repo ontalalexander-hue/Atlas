@@ -3,7 +3,7 @@
 // inline script entirely.
 (function () {
   try {
-    var t = localStorage.getItem("tarsee_theme");
+    var t = localStorage.getItem("atlas_theme");
     // Alias the old hardcoded "dark" value (was in HTML pre-theme-switcher).
     if (t === "dark") t = "warm-charcoal";
     if (t) document.documentElement.setAttribute("data-theme", t);

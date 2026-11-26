@@ -1,6 +1,6 @@
 /* ==========================================================================
    Design Tokens — Atlas UI
-   Claude Desktop warm charcoal palette
+   The Atlas logo palette: near-black with an electric-blue accent
 
    This file is the single source of truth for ALL visual constants.
    No other CSS file should hardcode colors, spacing, font sizes,
@@ -11,29 +11,29 @@
 
   /* ---------- Colors ---------- */
 
-  --bg:                 #1a1a1a;
-  --bg-surface:         #2b2a27;
-  --bg-surface-hover:   #353430;
-  --bg-elevated:        #2b2a27;
-  --bg-input:           #1f1e1b;
-  --bg-sidebar:         #1e1e1c;
+  --bg:                 #070b14;
+  --bg-surface:         #0f1726;
+  --bg-surface-hover:   #162238;
+  --bg-elevated:        #111b2d;
+  --bg-input:           #0a101c;
+  --bg-sidebar:         #060a12;
 
-  --border:             #3a3935;
-  --border-light:       #2f2e2b;
-  --border-hover:       #4a4945;
+  --border:             #1e2c45;
+  --border-light:       #162034;
+  --border-hover:       #2c4368;
 
-  --text:               #ececec;
-  --text-secondary:     #a8a8a0;
+  --text:               #e8f1ff;
+  --text-secondary:     #9fb2cf;
   /* --text-muted lightened from #6b6b63 (contrast 1.9:1 — fails WCAG AA)
-     to #9a9a92 (≈4.6:1 on --bg #1a1a1a). Used for timestamps, typing
+     to a lighter tone (readable on --bg). Used for timestamps, typing
      labels, and disabled states — must remain readable. */
-  --text-muted:         #9a9a92;
-  --text-inverse:       #1a1a1a;
+  --text-muted:         #8296b5;
+  --text-inverse:       #070b14;
 
-  --accent:             #c45a35;
-  --accent-hover:       #d4663d;
-  --accent-subtle:      rgba(196, 90, 53, 0.12);
-  --accent-glow:        rgba(196, 90, 53, 0.25);
+  --accent:             #1f7ae0;
+  --accent-hover:       #3a8ff0;
+  --accent-subtle:      rgba(31, 122, 224, 0.14);
+  --accent-glow:        rgba(47, 155, 255, 0.32);
 
   /* Overlay variants */
   --overlay-light:      rgba(0, 0, 0, 0.3);
@@ -54,11 +54,11 @@
      with enough opacity that text contrast still passes WCAG AA.
      Fallback: when backdrop-filter isn't supported these degrade to a
      darker solid tone (--bg-glass-solid). */
-  --bg-glass:           rgba(26, 26, 26, 0.72);
-  --bg-glass-strong:    rgba(26, 26, 26, 0.86);
-  --bg-glass-surface:   rgba(43, 42, 39, 0.78);
-  --bg-glass-sidebar:   rgba(30, 30, 28, 0.82);
-  --bg-glass-solid:     #1f1f1d;            /* fallback for no-backdrop-filter */
+  --bg-glass:           rgba(7, 11, 20, 0.72);
+  --bg-glass-strong:    rgba(7, 11, 20, 0.88);
+  --bg-glass-surface:   rgba(15, 23, 38, 0.78);
+  --bg-glass-sidebar:   rgba(6, 10, 18, 0.84);
+  --bg-glass-solid:     #0b111d;            /* fallback for no-backdrop-filter */
   --blur-sm:            blur(16px) saturate(160%);
   --blur-md:            blur(28px) saturate(180%);
   --blur-lg:            blur(40px) saturate(180%);

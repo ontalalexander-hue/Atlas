@@ -7,7 +7,7 @@
  * the items become the same events Claude Code's turns give, with Claude Code's tool names:
  *
  *   command_execution   Bash {command}             (the shell's own "bash -lc" / PowerShell wrapper taken off)
- *   mcp_tool_call       mcp__<server>__<tool>      (Atlas's tools: mcp__tarsee__tarsee_<name>), input = arguments
+ *   mcp_tool_call       mcp__<server>__<tool>      (Atlas's tools: mcp__atlas__atlas_<name>), input = arguments
  *   file_change         Write {file_path} for an added file, Edit {file_path} for an update or a delete
  *                       ({change: "delete"}), one per file in the patch
  *   todo_list           TodoWrite {todos}, each time the list changes
@@ -104,7 +104,7 @@ export function usageDelta(now, baseline) {
 }
 
 /** Codex's usage as Atlas's (Anthropic's shape): its input_tokens includes the cached and cache-written parts. */
-function tarseeUsage(d) {
+function atlasUsage(d) {
   return {
     input_tokens: Math.max(0, d.input_tokens - d.cached_input_tokens - d.cache_write_input_tokens),
     cache_read_input_tokens: d.cached_input_tokens,
@@ -272,7 +272,7 @@ function failureEvents(state, rawMessage) {
  * rollout recorded for a turn that ended any other way): this turn's share, the total less the baseline.
  */
 export function usageEvents(state, totals) {
-  const usage = tarseeUsage(usageDelta(totals, state.baseline));
+  const usage = atlasUsage(usageDelta(totals, state.baseline));
   return [
     { type: "usage", usage },
     {

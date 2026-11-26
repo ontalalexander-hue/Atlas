@@ -25,7 +25,7 @@ import { activeTarget, credentialPresence, codexHomeFor, savedKeyProviders } fro
 const KEY_HOMES = [".claude-home-anthropic", ".claude-home-deepseek", ".claude-home-openrouter", ".codex-home-keys"];
 
 /** Where entrypoint.sh keeps the encryption key it generates when ENCRYPTION_KEY isn't set. */
-const VOLUME_KEY_FILE = "/data/tarsee/.encryption-key";
+const VOLUME_KEY_FILE = "/data/atlas/.encryption-key";
 
 /**
  * True when ENCRYPTION_KEY is the one entrypoint.sh generated and keeps in a file on the volume: then a copy of the

@@ -41,7 +41,7 @@ import { costSaverEnv } from "./context-limits.js";
  * model or host a turn uses. None of them is needed by the Claude plan (it signs in from its home's .credentials.json
  * or PLAN_SIGN_IN_NAMES).
  */
-export const AUTH_ENV_RE = /^(ANTHROPIC_|CLAUDE_CODE_USE_|CLAUDE_CODE_OAUTH_|CLAUDE_CODE_SESSION_ACCESS_TOKEN$|CLAUDE_CODE_API_BASE_URL$|CLAUDE_CODE_API_KEY_|CLAUDE_CODE_CUSTOM_OAUTH_URL$|CLAUDE_LOCAL_OAUTH_|CLAUDE_TRUSTED_DEVICE_TOKEN$|CLAUDE_SESSION_INGRESS_TOKEN_FILE$|CLAUDE_BG_AUTH_SNAPSHOT_PATH$|CLAUDE_[A-Z0-9_]*_FILE_DESCRIPTOR$|CLAUDE_BG_(?:CLAIM|PTY|RV)_AUTH$|CLAUDE_BG_SOCKET_TOKENS_PATH$|CLAUDE_BRIDGE_(?:BASE_URL|OAUTH_TOKEN|SESSION_INGRESS_URL)$|CLAUDE_REMOTE_TOOLS_BRIDGE_URL$|CLAUDE_CODE_ARTIFACTS_API_(?:BASE_URL|TOKEN)$|CLAUDE_CODE_ARTIFACT_(?:ASSET|LIVE|SYNC|VIEWER)_BASE_URL$|CLAUDE_CODE_MEMORY_API_|CLAUDE_CODE_GATEWAY_TOKEN$|CLAUDE_CODE_GB_BASE_URL$|CLAUDE_CODE_SESSIONS_OAUTH_TOKEN$|CLAUDE_CODE_(?:MCP_SERVE_AUTH|MESSAGING|SLACK_TAG|HFI_BEARER)_TOKEN$|CLAUDE_CODE_DESIGN_OAUTH_CLIENT_ID$|CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST$|CLAUDE_CODE_HOST_AUTH_|CLAUDE_CODE_HOST_CREDS_FILE$|CLAUDE_CODE_MODEL_CATALOG|CLAUDE_CODE_CLIENT_DATA_URL$|CLAUDE_CODE_REMOTE_SDK_URL$|CLAUDE_RUNNER_API_BASE_URL$|CLAUDE_CODE_SUBAGENT_MODEL$|CLAUDE_CONFIG_DIR$|CODEX_|OPENAI_BASE_URL$|AWS_BEARER_TOKEN_BEDROCK$|TARSEE_PROVIDER_KEY$|TARSEE_CHATGPT_ACCESS_TOKEN$|TARSEE_MCP_TOKEN$)/;
+export const AUTH_ENV_RE = /^(ANTHROPIC_|CLAUDE_CODE_USE_|CLAUDE_CODE_OAUTH_|CLAUDE_CODE_SESSION_ACCESS_TOKEN$|CLAUDE_CODE_API_BASE_URL$|CLAUDE_CODE_API_KEY_|CLAUDE_CODE_CUSTOM_OAUTH_URL$|CLAUDE_LOCAL_OAUTH_|CLAUDE_TRUSTED_DEVICE_TOKEN$|CLAUDE_SESSION_INGRESS_TOKEN_FILE$|CLAUDE_BG_AUTH_SNAPSHOT_PATH$|CLAUDE_[A-Z0-9_]*_FILE_DESCRIPTOR$|CLAUDE_BG_(?:CLAIM|PTY|RV)_AUTH$|CLAUDE_BG_SOCKET_TOKENS_PATH$|CLAUDE_BRIDGE_(?:BASE_URL|OAUTH_TOKEN|SESSION_INGRESS_URL)$|CLAUDE_REMOTE_TOOLS_BRIDGE_URL$|CLAUDE_CODE_ARTIFACTS_API_(?:BASE_URL|TOKEN)$|CLAUDE_CODE_ARTIFACT_(?:ASSET|LIVE|SYNC|VIEWER)_BASE_URL$|CLAUDE_CODE_MEMORY_API_|CLAUDE_CODE_GATEWAY_TOKEN$|CLAUDE_CODE_GB_BASE_URL$|CLAUDE_CODE_SESSIONS_OAUTH_TOKEN$|CLAUDE_CODE_(?:MCP_SERVE_AUTH|MESSAGING|SLACK_TAG|HFI_BEARER)_TOKEN$|CLAUDE_CODE_DESIGN_OAUTH_CLIENT_ID$|CLAUDE_CODE_PROVIDER_MANAGED_BY_HOST$|CLAUDE_CODE_HOST_AUTH_|CLAUDE_CODE_HOST_CREDS_FILE$|CLAUDE_CODE_MODEL_CATALOG|CLAUDE_CODE_CLIENT_DATA_URL$|CLAUDE_CODE_REMOTE_SDK_URL$|CLAUDE_RUNNER_API_BASE_URL$|CLAUDE_CODE_SUBAGENT_MODEL$|CLAUDE_CONFIG_DIR$|CODEX_|OPENAI_BASE_URL$|AWS_BEARER_TOKEN_BEDROCK$|ATLAS_PROVIDER_KEY$|ATLAS_CHATGPT_ACCESS_TOKEN$|ATLAS_MCP_TOKEN$)/;
 
 /**
  * The operator's Claude sign-in variables: `claude setup-token`'s CLAUDE_CODE_OAUTH_TOKEN, or a refresh-token login
@@ -54,13 +54,13 @@ export const PLAN_SIGN_IN_NAMES = Object.freeze([
 ]);
 
 /** Atlas's own secrets: never in any engine's environment. */
-export const TARSEE_SECRETS = Object.freeze(["ENCRYPTION_KEY", "SETUP_PASSWORD", "TARSEE_API_TOKEN"]);
+export const ATLAS_SECRETS = Object.freeze(["ENCRYPTION_KEY", "SETUP_PASSWORD", "ATLAS_API_TOKEN"]);
 
 /**
  * The Railway (server environment) copies of the provider keys. They reach an engine only as that provider's own
  * credential, never by name: a key the owner wants scripts to read goes in Settings > Vault instead.
  */
-export const PROVIDER_KEY_NAMES = Object.freeze(["OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY"]);
+export const PROVIDER_KEY_NAMES = Object.freeze(["OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY"]);
 
 export const CLAUDE_CODE = "claude-code";
 export const CODEX = "codex";
@@ -94,7 +94,7 @@ export function isAuthEnvName(name) {
   return AUTH_ENV_RE.test(String(name).toUpperCase());
 }
 
-const SECRET_NAMES = new Set(TARSEE_SECRETS);
+const SECRET_NAMES = new Set(ATLAS_SECRETS);
 const RAILWAY_KEY_NAMES = new Set(PROVIDER_KEY_NAMES);
 
 /** True for a name R2 strips from the server's environment before anything is merged in. */
@@ -220,13 +220,13 @@ function plainHttpUrl(raw) {
 }
 
 /**
- * The test-only base-URL override TARSEE_TEST_BASE_URL_<ID>, or null. Honored only when NODE_ENV is exactly "test"
+ * The test-only base-URL override ATLAS_TEST_BASE_URL_<ID>, or null. Honored only when NODE_ENV is exactly "test"
  * and the URL is plain http(s) on a loopback host with no user info, so a fake server in a test can stand in for a
  * provider and nothing in production can point a stored key anywhere else.
  */
 export function testBaseUrl(providerId, env = process.env) {
   if (env?.NODE_ENV !== "test") return null;
-  const name = `TARSEE_TEST_BASE_URL_${String(providerId).toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
+  const name = `ATLAS_TEST_BASE_URL_${String(providerId).toUpperCase().replace(/[^A-Z0-9]/g, "_")}`;
   const raw = String(env[name] ?? "").trim();
   if (!raw) return null;
   const url = plainHttpUrl(raw);
@@ -237,7 +237,7 @@ export function testBaseUrl(providerId, env = process.env) {
  * The host a provider's turn goes to on an engine, the one way to get it (Codex's config and Claude Code's
  * ANTHROPIC_BASE_URL are both built from it):
  *   claude, chatgpt   null: a sign-in plan signs in to the engine's own host, and no key goes with it
- *   local             the owner's server address (opts.localUrl: ai.local.baseUrl, else TARSEE_LOCAL_AI_URL), which
+ *   local             the owner's server address (opts.localUrl: ai.local.baseUrl, else ATLAS_LOCAL_AI_URL), which
  *                     must be a plain http(s) URL; none refuses the turn with needs-setup
  *   every key provider  the entry's code constant for that engine; none refuses the turn with wrong-engine, so a key
  *                     never falls through to an engine's default host (Codex's is OpenAI's)
@@ -410,14 +410,14 @@ export function claudeEnvFor(provider, opts = {}) {
  * opts: env, vaultEnv, key, mcpToken (required: the per-turn token for Atlas's MCP endpoint), home, stateDir
  * (config.STATE_DIR, required unless `home` is given).
  *
- * Blocks (all get CODEX_HOME and TARSEE_MCP_TOKEN):
+ * Blocks (all get CODEX_HOME and ATLAS_MCP_TOKEN):
  *   chatgpt     nothing else: Codex's own sign-in in its home (.codex-home)
  *   openai      nothing else in env: pass the key as the Codex SDK's apiKey, which sets CODEX_API_KEY in the child only.
  *               The key is still required here, so a missing one refuses the turn before anything starts.
- *   openrouter, deepseek   TARSEE_PROVIDER_KEY (the custom provider's env_key)
- *   local       TARSEE_PROVIDER_KEY holds the Local AI bridge's per-turn token (codex-options.js passes it as `key`),
+ *   openrouter, deepseek   ATLAS_PROVIDER_KEY (the custom provider's env_key)
+ *   local       ATLAS_PROVIDER_KEY holds the Local AI bridge's per-turn token (codex-options.js passes it as `key`),
  *               never the owner's key: the bridge (local-bridge.js) adds that on the way to the owner's server.
- *               Optional here, so a caller with no bridge token gets no TARSEE_PROVIDER_KEY at all.
+ *               Optional here, so a caller with no bridge token gets no ATLAS_PROVIDER_KEY at all.
  */
 export function codexEnvFor(provider, opts = {}) {
   const entry = entryOf(provider);
@@ -426,12 +426,12 @@ export function codexEnvFor(provider, opts = {}) {
   const mcpToken = String(opts.mcpToken ?? "").trim();
   if (!mcpToken || /[\r\n\0]/.test(mcpToken)) throw new CredentialError("needs-mcp-token", "This turn has no token for Atlas's tools.", id);
   const merged = finalizeEnv({ env, vaultEnv: opts.vaultEnv, stripNames: [entry.envKey] });
-  const block = { CODEX_HOME: opts.home || homeFor(id, CODEX, opts), TARSEE_MCP_TOKEN: mcpToken };
+  const block = { CODEX_HOME: opts.home || homeFor(id, CODEX, opts), ATLAS_MCP_TOKEN: mcpToken };
   if (id === "openai") {
     requireKey(entry, id, opts.key);
   } else if (id !== "chatgpt") {
     const key = requireKey(entry, id, opts.key, { optional: KEY_OPTIONAL.has(id) });
-    if (key) block.TARSEE_PROVIDER_KEY = key;
+    if (key) block.ATLAS_PROVIDER_KEY = key;
   }
   return { ...merged, ...block };
 }
@@ -443,13 +443,13 @@ export function codexEnvFor(provider, opts = {}) {
  * *TOKEN* excludes switched off), so the vault's keys still reach scripts by name.
  */
 export const CODEX_SHELL_EXCLUDED = Object.freeze([
-  "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "TARSEE_MCP_TOKEN", "TARSEE_PROVIDER_KEY", "TARSEE_CHATGPT_ACCESS_TOKEN",
+  "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "ATLAS_MCP_TOKEN", "ATLAS_PROVIDER_KEY", "ATLAS_CHATGPT_ACCESS_TOKEN",
 ]);
 
 /**
  * The ChatGPT sign-in's hosts in a test, or null (always, outside one). The ChatGPT plan sends its sign-in only to
  * Codex's own hosts (hostFor() gives null), so a test that runs the real Codex on it points both of ChatGPT's hosts at
- * a fake server through TARSEE_TEST_BASE_URL_CHATGPT (its origin): the backend (chatgpt_base_url) and the model
+ * a fake server through ATLAS_TEST_BASE_URL_CHATGPT (its origin): the backend (chatgpt_base_url) and the model
  * requests (openai_base_url, which Codex also uses for ChatGPT's /codex/responses and /codex/models). Honored only
  * as testBaseUrl() honors it: NODE_ENV exactly "test" and a loopback http(s) URL.
  */

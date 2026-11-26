@@ -75,21 +75,21 @@ export function plainHttpUrl(raw) {
   return url;
 }
 
-/** Local AI's server address as the owner set it: ai.local.baseUrl, else TARSEE_LOCAL_AI_URL. "" when neither. */
+/** Local AI's server address as the owner set it: ai.local.baseUrl, else ATLAS_LOCAL_AI_URL. "" when neither. */
 export function localUrlFor(store, env = process.env) {
-  return nonEmpty(readSetting(store, "ai.local.baseUrl")) ?? nonEmpty(env?.TARSEE_LOCAL_AI_URL) ?? "";
+  return nonEmpty(readSetting(store, "ai.local.baseUrl")) ?? nonEmpty(env?.ATLAS_LOCAL_AI_URL) ?? "";
 }
 
 /**
- * The model the owner chose for a provider: its ai.<storageId>.model setting, else TARSEE_AI_MODEL when
- * TARSEE_AI_PROVIDER names this provider (the Railway-only setup). null when neither is set.
+ * The model the owner chose for a provider: its ai.<storageId>.model setting, else ATLAS_AI_MODEL when
+ * ATLAS_AI_PROVIDER names this provider (the Railway-only setup). null when neither is set.
  */
 export function chosenModel(idOrAlias, store, env = process.env) {
   const p = getProvider(idOrAlias);
   if (!p) return null;
   const own = nonEmpty(readSetting(store, `ai.${p.storageId}.model`));
   if (own) return own;
-  if (normalizeProviderId(env?.TARSEE_AI_PROVIDER) === p.id) return nonEmpty(env?.TARSEE_AI_MODEL);
+  if (normalizeProviderId(env?.ATLAS_AI_PROVIDER) === p.id) return nonEmpty(env?.ATLAS_AI_MODEL);
   return null;
 }
 
@@ -268,7 +268,7 @@ function blockedKeysOnly(p, env) {
   return result(p, "blocked-keys-only", {
     detail: `"API keys only" is on, so the ${p.label} isn't used.`,
     fix: locked
-      ? "The Railway variable TARSEE_KEYS_ONLY=1 keeps API keys only on. Remove it to use a plan sign-in again."
+      ? "The Railway variable ATLAS_KEYS_ONLY=1 keeps API keys only on. Remove it to use a plan sign-in again."
       : "Turn off \"API keys only\" in Settings > AI to use it.",
   });
 }
@@ -390,14 +390,14 @@ export function credentialPresence(idOrAlias, deps = {}) {
     if (!raw) {
       return result(p, "needs-setup", {
         detail: "Local AI has no server address yet.",
-        fix: "Add your server's address in Settings > AI (its buttons fill in the usual ones, such as http://localhost:11434/v1), or set the Railway variable TARSEE_LOCAL_AI_URL.",
+        fix: "Add your server's address in Settings > AI (its buttons fill in the usual ones, such as http://localhost:11434/v1), or set the Railway variable ATLAS_LOCAL_AI_URL.",
         cred: safeCred, encrypted,
       });
     }
     if (!plainHttpUrl(raw)) {
       return result(p, "needs-setup", {
         detail: "Local AI's address must start with http:// or https:// and have no password in it.",
-        fix: "Fix the address in Settings > AI (or TARSEE_LOCAL_AI_URL).",
+        fix: "Fix the address in Settings > AI (or ATLAS_LOCAL_AI_URL).",
         cred: safeCred, encrypted,
       });
     }
@@ -405,7 +405,7 @@ export function credentialPresence(idOrAlias, deps = {}) {
     if (!model) {
       return result(p, "needs-setup", {
         detail: `Local AI at ${raw} has no model chosen yet.`,
-        fix: "Choose a model on the Local AI card in Settings > AI (Test lists what your server has), or set the Railway variable TARSEE_AI_MODEL to one of your server's models.",
+        fix: "Choose a model on the Local AI card in Settings > AI (Test lists what your server has), or set the Railway variable ATLAS_AI_MODEL to one of your server's models.",
         cred: safeCred, encrypted,
       });
     }
@@ -482,7 +482,7 @@ export async function providerStatus(idOrAlias, deps = {}) {
 export function activeTarget(store, { env = process.env, isShipped } = {}) {
   const provider = activeProviderId(store, { env, isShipped });
   const p = PROVIDERS[provider];
-  const chosenBy = nonEmpty(readSetting(store, "ai.activeProvider")) ? "settings" : nonEmpty(env?.TARSEE_AI_PROVIDER) ? "env" : "default";
+  const chosenBy = nonEmpty(readSetting(store, "ai.activeProvider")) ? "settings" : nonEmpty(env?.ATLAS_AI_PROVIDER) ? "env" : "default";
   const model = resolveModelFor(provider, chosenModel(provider, store, env), store);
   const engine = engineFor(provider, model, store);
   return { provider, label: p.label, model, engine, chosenBy };

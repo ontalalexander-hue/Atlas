@@ -270,7 +270,7 @@ ${sendFileHint("telegram")}`,
     // ~2e9 (23 days), which is only safe there because its PTY pool has a
     // heartbeat + dead-socket detector. This build has neither, so an infinite
     // value would wedge a turn forever with no console to kill it from.
-    const IDLE_ABORT_MS = Number(process.env.TARSEE_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
+    const IDLE_ABORT_MS = Number(process.env.ATLAS_CHANNEL_IDLE_ABORT_MS) || 20 * 60_000;
     const idleTimer = setInterval(() => {
       if (Date.now() - lastEventAt > IDLE_ABORT_MS) {
         idleAborted = true;
@@ -750,7 +750,7 @@ ${sendFileHint("telegram")}`,
   // once polling is "ready", which on a flaky network can take >90s or never
   // resolve. If it never resolves, createTelegramBot() never returns and
   // ChannelManager never registers the bot — breaking every outbound tool
-  // (tarsee_send_message, send_message) even though inbound still flows.
+  // (atlas_send_message, send_message) even though inbound still flows.
   // Worse, B starts channels serially, so a wedged Telegram also prevents
   // Discord, Email and WhatsApp from ever starting.
   //

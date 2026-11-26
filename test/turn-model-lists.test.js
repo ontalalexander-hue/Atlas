@@ -12,11 +12,11 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-turn-lists-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY"]) {
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-turn-lists-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
@@ -30,7 +30,7 @@ const { setCatalogModels, catalogModels } = await import("../src/ai/provider-reg
 const { forgetLocalModelsRead } = await import("../src/ai/provider-models.js");
 const { createFakeEngine } = await import("./fakes/fake-engine.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 live.initLiveBus(db);
 const settings = new SettingsStore(db);
 const DEEPSEEK_KEY = "sk-testcanarydeepseek0000000000";
@@ -79,8 +79,8 @@ beforeEach(() => {
   setCatalogModels("chatgpt-models", []);
   setCatalogModels("local-models", []);
   forgetLocalModelsRead();
-  delete process.env.TARSEE_LOCAL_AI_URL;
-  delete process.env.TARSEE_AI_MODEL;
+  delete process.env.ATLAS_LOCAL_AI_URL;
+  delete process.env.ATLAS_AI_MODEL;
   seams();
   useEngines();
 });
@@ -167,7 +167,7 @@ describe("Local AI set up only through Railway variables, after a restart", () =
   it("with no model named, the first turn reads the server's list and runs on its first model instead of refusing", async () => {
     const server = await localServer(["llama3.1:8b", "qwen3"]);
     try {
-      process.env.TARSEE_LOCAL_AI_URL = server.url;
+      process.env.ATLAS_LOCAL_AI_URL = server.url;
       const events = await collect(runTurn({ provider: "local", messages: [user("hi")], toolCtx: ctx() }));
       assert.equal(events.filter((e) => e.type === "error").length, 0, JSON.stringify(events));
       assert.equal(events[0].model, "llama3.1:8b");
@@ -180,25 +180,25 @@ describe("Local AI set up only through Railway variables, after a restart", () =
     }
   });
 
-  it("a model named (TARSEE_AI_MODEL) needs no read; a server that can't be reached is refused with both ways to fix it", async () => {
+  it("a model named (ATLAS_AI_MODEL) needs no read; a server that can't be reached is refused with both ways to fix it", async () => {
     const server = await localServer(["llama3.1:8b"]);
     try {
-      process.env.TARSEE_LOCAL_AI_URL = server.url;
-      process.env.TARSEE_AI_PROVIDER = "local";
-      process.env.TARSEE_AI_MODEL = "qwen3";
+      process.env.ATLAS_LOCAL_AI_URL = server.url;
+      process.env.ATLAS_AI_PROVIDER = "local";
+      process.env.ATLAS_AI_MODEL = "qwen3";
       const events = await collect(runTurn({ messages: [user("hi")], toolCtx: ctx() }));
       assert.equal(events[0].model, "qwen3");
       assert.equal(server.requests.length, 0);
     } finally {
-      delete process.env.TARSEE_AI_PROVIDER;
+      delete process.env.ATLAS_AI_PROVIDER;
       await server.close();
     }
-    delete process.env.TARSEE_AI_MODEL;
-    process.env.TARSEE_LOCAL_AI_URL = "http://127.0.0.1:9/v1";
+    delete process.env.ATLAS_AI_MODEL;
+    process.env.ATLAS_LOCAL_AI_URL = "http://127.0.0.1:9/v1";
     const refused = await collect(runTurn({ provider: "local", messages: [user("hi")], toolCtx: ctx() }));
     assert.equal(refused.at(-1).stopReason, "not-ready");
     assert.match(refused[0].content, /no model chosen/);
-    assert.match(refused[0].content, /TARSEE_AI_MODEL/);
+    assert.match(refused[0].content, /ATLAS_AI_MODEL/);
     assert.equal(engines.codex.calls.length, 1, "the refused turn never started");
   });
 });

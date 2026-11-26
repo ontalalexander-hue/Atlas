@@ -14,7 +14,7 @@ export function aiName(route) {
 
 /**
  * An error the turn reported, as the channel says it.
- *   clearHint: how /clear is typed in this channel ("/clear"; in Slack, "reply `@tarsee /clear`")
+ *   clearHint: how /clear is typed in this channel ("/clear"; in Slack, "reply `@atlas /clear`")
  *   plain: no emoji (email)
  */
 export function turnErrorNote(route, message, { clearHint = "/clear", plain = false } = {}) {

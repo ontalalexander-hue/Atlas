@@ -8,10 +8,10 @@ import path from "node:path";
 import { formatQuotesForDiscord, formatForDiscord, DISCORD_EMPTY_QUOTE_LINE as E } from "../src/lib/discord-format.js";
 
 // src/channels/discord.js loads the app's config, which seeds a workspace: keep it in a folder of its own.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-discord-format-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-discord-format-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 const { displayForDiscord } = await import("../src/channels/discord.js");
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 

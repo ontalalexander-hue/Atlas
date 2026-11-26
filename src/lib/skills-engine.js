@@ -203,7 +203,7 @@ export function getSkillsPromptContext() {
 
   // Names plus a short description: the full description is in each SKILL.md,
   // which is read before using a skill anyway. At full length 68 skills took
-  // 18.5KB on TarseeMacOS, which pushed the end of the list past the 50KB prompt
+  // 18.5KB on the macOS app, which pushed the end of the list past the 50KB prompt
   // budget (the last skills were cut off) and cost about 4.6k tokens a call.
   // A skill's folder is named in the list when it is not the skill's name (a
   // SKILL.md can name itself), so the cat below finds it.

@@ -10,10 +10,10 @@ import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-conv-settings-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-conv-settings-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -22,7 +22,7 @@ const { ConversationStore } = await import("../src/db/conversations.js");
 const { initLiveBus } = await import("../src/lib/live-bus.js");
 const { cleanupOrphanedReferences } = await import("../src/lib/retention.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 initLiveBus(db);
 const settings = new SettingsStore(db);
 const convs = new ConversationStore(db);

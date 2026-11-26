@@ -2,7 +2,7 @@
 /**
  * smoke-backends.mjs: run Verify's four-step probe (src/ai/verify-model.js) on each AI and print the results.
  *
- * Each AI gets the same check the owner's Verify button runs: a plain reply, a call to Atlas's tarsee_datetime tool,
+ * Each AI gets the same check the owner's Verify button runs: a plain reply, a call to Atlas's atlas_datetime tool,
  * a shell command, and a resumed turn that must remember the first. Run it on every engine bump (design 4.11): the
  * shipped verified list must not go stale. --json prints the results in the shape that list is built from.
  *
@@ -11,7 +11,7 @@
  *   options: --json   --engines=claude-code,codex   --no-efforts   --help
  *
  * Credentials come from environment variables ONLY: ANTHROPIC_API_KEY, OPENAI_API_KEY, OPENROUTER_API_KEY,
- * DEEPSEEK_API_KEY, TARSEE_LOCAL_AI_URL (and TARSEE_LOCAL_AI_KEY if the server wants one). The run uses a fresh,
+ * DEEPSEEK_API_KEY, ATLAS_LOCAL_AI_URL (and ATLAS_LOCAL_AI_KEY if the server wants one). The run uses a fresh,
  * empty settings database, so a key saved in Settings is never picked up. The Claude plan runs on its own sign-in
  * (CLAUDE_CODE_OAUTH_TOKEN, or `claude login`) and the ChatGPT plan on Codex's sign-in: name them to run them (the
  * Claude plan also runs by itself when CLAUDE_CODE_OAUTH_TOKEN is set). No ChatGPT model is ever named: the account's
@@ -181,9 +181,9 @@ export async function main({ argv = process.argv.slice(2), env = process.env, ve
 
 /** The real probe: a scratch settings database (keys from the environment only), Atlas's turn layer, no recording. */
 async function prepareReal({ env, err }) {
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-smoke-"));
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-smoke-"));
   // Before anything reads the config: the settings database lives here, empty, so no saved key can be used.
-  process.env.TARSEE_DATA_DIR = scratch;
+  process.env.ATLAS_DATA_DIR = scratch;
   let db = null;
   const close = async () => {
     try { db?.close(); } catch { /* closed */ }
@@ -288,7 +288,7 @@ function table(results, clean) {
 /** Every credential-looking value in the environment, longest first, so no output can carry one. */
 function secretValues(env) {
   const names = new Set([...PROVIDER_IDS.flatMap((id) => (PROVIDERS[id].envKey ? [PROVIDERS[id].envKey] : [])), ...PLAN_ENV,
-    "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "ENCRYPTION_KEY", "SETUP_PASSWORD", "TARSEE_API_TOKEN"]);
+    "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "ENCRYPTION_KEY", "SETUP_PASSWORD", "ATLAS_API_TOKEN"]);
   const values = [];
   for (const [name, value] of Object.entries(env || {})) {
     if (typeof value !== "string") continue;

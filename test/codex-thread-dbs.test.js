@@ -14,7 +14,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { pruneCodexThreadDbs } from "../src/lib/codex-thread-dbs.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-codex-dbs-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-codex-dbs-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 const DAY = 86_400_000;
@@ -181,7 +181,7 @@ describe("Codex's thread databases in the daily sweep", () => {
       assert.deepEqual(leftIn(home, "GONE-WORDS"), [], "no copy of the removed chat's words in any database or log");
       assert.equal(codex[1].prepare("SELECT COUNT(*) AS c FROM thread_items WHERE thread_id = ?").get(ID.kept).c, 153, "the kept chat's rows are all there");
       assert.ok(leftIn(home, "KEPT-WORDS").includes("thread_history_1.sqlite"));
-      assert.equal(fs.existsSync(path.join(home, ".tarsee-vacuum-pending")), false);
+      assert.equal(fs.existsSync(path.join(home, ".atlas-vacuum-pending")), false);
     } finally {
       for (const db of codex) db.close();
     }
@@ -207,7 +207,7 @@ describe("Codex's thread databases in the daily sweep", () => {
         reader.close();
       }
       assert.equal(threadIds(home).includes(ID.gone), false, "the rows went");
-      const pending = JSON.parse(fs.readFileSync(path.join(home, ".tarsee-vacuum-pending"), "utf8"));
+      const pending = JSON.parse(fs.readFileSync(path.join(home, ".atlas-vacuum-pending"), "utf8"));
       assert.deepEqual(pending, ["thread_history_1.sqlite"], "and the sweep remembers the file it couldn't rebuild");
       assert.ok(warn.mock.calls.some((c) => /thread_history_1\.sqlite.*next sweep/.test(String(c.arguments[0]))), "and says so");
       assert.ok(leftIn(home, "GONE-WORDS").length, "the words are still on disk until a sweep rebuilds the file");
@@ -215,7 +215,7 @@ describe("Codex's thread databases in the daily sweep", () => {
       // The next sweep: no chat is due, but the rebuild left over is done.
       assert.equal(pruneCodexThreadDbs({ homes: [home], maxAgeDays: 30, now: NOW }), 0);
       assert.deepEqual(leftIn(home, "GONE-WORDS"), []);
-      assert.equal(fs.existsSync(path.join(home, ".tarsee-vacuum-pending")), false, "nothing is left to do");
+      assert.equal(fs.existsSync(path.join(home, ".atlas-vacuum-pending")), false, "nothing is left to do");
       assert.equal(codex.prepare("SELECT COUNT(*) AS c FROM thread_items WHERE thread_id = ?").get(ID.kept).c, 153, "Codex still reads what stays");
     } finally {
       codex.close();
@@ -254,13 +254,13 @@ describe("Codex's thread databases in the daily sweep", () => {
       const r = killedSweep(home, "thread_history_1.sqlite");
       assert.equal(r.status, 137, `the sweep was stopped dead: ${r.stderr}`);
       assert.equal(threadIds(home).includes(ID.gone), true, "state_5 goes last, so its rows wait for the next sweep");
-      const pending = JSON.parse(fs.readFileSync(path.join(home, ".tarsee-vacuum-pending"), "utf8"));
+      const pending = JSON.parse(fs.readFileSync(path.join(home, ".atlas-vacuum-pending"), "utf8"));
       assert.ok(pending.includes("thread_history_1.sqlite"), "the history's rebuild was noted before it started");
       assert.ok(leftIn(home, "GONE-WORDS").length, "the words are still on disk");
 
       assert.equal(pruneCodexThreadDbs({ homes: [home], maxAgeDays: 30, now: NOW }), 1);
       assert.deepEqual(leftIn(home, "GONE-WORDS"), [], "the next sweep removes what is left and rebuilds the file");
-      assert.equal(fs.existsSync(path.join(home, ".tarsee-vacuum-pending")), false);
+      assert.equal(fs.existsSync(path.join(home, ".atlas-vacuum-pending")), false);
     } finally {
       for (const db of codex) db.close();
     }
@@ -274,13 +274,13 @@ describe("Codex's thread databases in the daily sweep", () => {
       const r = killedSweep(home, "state_5.sqlite");
       assert.equal(r.status, 137, `the sweep was stopped dead: ${r.stderr}`);
       assert.equal(threadIds(home).includes(ID.gone), false, "state_5's rows went before its rebuild started");
-      assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".tarsee-vacuum-pending"), "utf8")), ["state_5.sqlite"],
+      assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home, ".atlas-vacuum-pending"), "utf8")), ["state_5.sqlite"],
         "the history was rebuilt; state_5's rebuild is the one noted");
       assert.ok(leftIn(home, "GONE-WORDS").includes("state_5.sqlite"), "the person's first words are still in state_5");
 
       assert.equal(pruneCodexThreadDbs({ homes: [home], maxAgeDays: 30, now: NOW }), 0, "no chat is due any more");
       assert.deepEqual(leftIn(home, "GONE-WORDS"), [], "yet state_5 is rebuilt, and the words are gone");
-      assert.equal(fs.existsSync(path.join(home, ".tarsee-vacuum-pending")), false);
+      assert.equal(fs.existsSync(path.join(home, ".atlas-vacuum-pending")), false);
       assert.equal(codex[0].prepare("SELECT first_user_message AS m FROM threads WHERE id = ?").get(ID.kept).m, `the person's words in ${ID.kept}`);
     } finally {
       for (const db of codex) db.close();
@@ -300,7 +300,7 @@ describe("Codex's thread databases in the daily sweep", () => {
     });
     assert.equal(pruneCodexThreadDbs({ homes: [home], maxAgeDays: 30, now: NOW }), 1);
     assert.deepEqual(vacuumed.sort(), ["logs_2.sqlite", "state_5.sqlite", "thread_history_1.sqlite"], "goals_1 had none of the thread's rows");
-    assert.equal(fs.existsSync(path.join(home, ".tarsee-vacuum-pending")), false);
+    assert.equal(fs.existsSync(path.join(home, ".atlas-vacuum-pending")), false);
   });
 
   it("removes nothing at a cutoff the threads haven't reached", () => {

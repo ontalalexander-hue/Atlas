@@ -1,6 +1,6 @@
 /**
  * The files of a chat, kept with its conversation (table chat_files), so the dashboard's chat shows them: after a
- * reload, on every device, on the message they belong to. Ported from TarseeMacOS.
+ * reload, on every device, on the message they belong to. Ported from the macOS app.
  *
  * What is kept here:
  *   out  every file the agent sends into a chat: send_file to any channel (the dashboard's own chats too), and the

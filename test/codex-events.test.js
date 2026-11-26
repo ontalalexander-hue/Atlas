@@ -53,7 +53,7 @@ describe("captured turns", () => {
     const { out, state } = replay("tools");
     const uses = of(out, "tool_use");
     const results = of(out, "tool_result");
-    assert.deepEqual(uses.map((u) => u.name), ["Bash", "Bash", "mcp__tarsee__tarsee_datetime", "mcp__tarsee__tarsee_fail", "Write", "Edit", "Edit"]);
+    assert.deepEqual(uses.map((u) => u.name), ["Bash", "Bash", "mcp__atlas__atlas_datetime", "mcp__atlas__atlas_fail", "Write", "Edit", "Edit"]);
     assert.deepEqual(uses.map((u) => u.id), results.map((r) => r.id), "each use has its result, in order");
     assert.equal(new Set(uses.map((u) => u.id)).size, uses.length, "ids are unique");
     assert.deepEqual(results.map((r) => r.ok), [true, false, true, false, true, true, true]);
@@ -71,7 +71,7 @@ describe("captured turns", () => {
     const ends = steps(out, "tool_end");
     assert.deepEqual(starts.map((s) => s.id), uses.map((u) => u.id));
     assert.deepEqual(ends.map((s) => s.id), results.map((r) => r.id));
-    assert.equal(starts[2].name, "tarsee_datetime");
+    assert.equal(starts[2].name, "atlas_datetime");
     assert.equal(starts[0].rawName, "Bash");
     // Tools started, for maxTurns: two commands, two MCP calls, one patch.
     assert.equal(state.toolCount, 5);

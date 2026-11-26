@@ -52,23 +52,23 @@ function extractBearerToken(req) {
  */
 function extractSessionToken(req) {
   const cookies = req.headers.cookie || "";
-  const match = cookies.match(/(?:^|;\s*)tarsee_session=([^;]+)/);
+  const match = cookies.match(/(?:^|;\s*)atlas_session=([^;]+)/);
   return match ? match[1].trim() : null;
 }
 
 // --- Active sessions ---
-// A sign-in's id is the tarsee_session cookie, and only the browser keeps it. Atlas keeps a hash of it (sessionKey),
+// A sign-in's id is the atlas_session cookie, and only the browser keeps it. Atlas keeps a hash of it (sessionKey),
 // in this Map and in the sessions table, and looks a cookie up by its hash. The AI's shell runs as the same user and
-// can read tarsee.db, so with the id itself stored there it could act as the signed-in owner (a free CSRF token from
+// can read atlas.db, so with the id itself stored there it could act as the signed-in owner (a free CSRF token from
 // GET /api/auth/csrf does the rest). A hash read from the database signs nobody in: no cookie hashes to it.
 const sessions = new Map(); // sessionKey(id) → { createdAt, ip }
 // Persisted to SQLite (see initSessionStore): the in-memory Map is a
 // write-through cache hydrated from disk on boot, so a restart or a Railway
 // deploy no longer logs the whole team out. Railway REPLACES the container on
 // every deploy, so without this every deploy signed everyone out.
-// Override with TARSEE_SESSION_MAX_AGE_DAYS.
+// Override with ATLAS_SESSION_MAX_AGE_DAYS.
 const SESSION_MAX_AGE_MS =
-  (Number(process.env.TARSEE_SESSION_MAX_AGE_DAYS) || 30) * 24 * 60 * 60 * 1000;
+  (Number(process.env.ATLAS_SESSION_MAX_AGE_DAYS) || 30) * 24 * 60 * 60 * 1000;
 let _sessionDb = null;
 
 /** How a stored sign-in is marked as a hash: an older Atlas stored the id itself (64 hex characters, no mark). */
@@ -192,7 +192,7 @@ export function isLiveSession(sessionId) {
   return true;
 }
 
-/** The id of the request's sign-in (its tarsee_session cookie) while it is on, else null. */
+/** The id of the request's sign-in (its atlas_session cookie) while it is on, else null. */
 export function liveSessionId(req) {
   const sessionId = extractSessionToken(req);
   return sessionId && isLiveSession(sessionId) ? sessionId : null;

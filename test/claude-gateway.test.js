@@ -1,6 +1,6 @@
 // The Claude Code engine with the REAL bundled CLI (Agent SDK 0.3.319, Claude Code 2.1.319) against a loopback fake of
 // the Messages API (test/fixtures/fake-anthropic.js), through engine-env's test-only base-URL seam (NODE_ENV "test",
-// TARSEE_TEST_BASE_URL_<ID>). Design 4.5 (R1, R2, R5, R6, R10), 4.7 and Phase 2's tests: what each provider sends, to
+// ATLAS_TEST_BASE_URL_<ID>). Design 4.5 (R1, R2, R5, R6, R10), 4.7 and Phase 2's tests: what each provider sends, to
 // where, with which key, and what the owner sees when it fails. No real key is used; nothing leaves the machine.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -10,13 +10,13 @@ import os from "node:os";
 import path from "node:path";
 import { cliInstalled, PROXY_NAMES } from "./fixtures/claude-cli.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-claude-gateway-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-claude-gateway-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 
 const { query: sdkQuery } = await import("@anthropic-ai/claude-agent-sdk");
 const { run, buildQueryOptions, AUTH_EXPIRED_MESSAGE } = await import("../src/ai/providers/claude-code.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const { startFakeAnthropic, hasToolResult, lastUserBlocks, toolNames } = await import("./fixtures/fake-anthropic.js");
 
 const SKIP = cliInstalled() ? false : "the Agent SDK's bundled Claude Code CLI isn't installed here";
@@ -73,7 +73,7 @@ async function turn(providerId, fake, { prompt = "say hi", deps = {}, envExtra =
     const it = sdkQuery(patch ? { ...args, options: patch(args.options) } : args);
     return (async function* () { for await (const m of it) { raw.push(m); yield m; } })();
   };
-  const env = serverEnv({ [`TARSEE_TEST_BASE_URL_${providerId.toUpperCase()}`]: fake.url, ...envExtra });
+  const env = serverEnv({ [`ATLAS_TEST_BASE_URL_${providerId.toUpperCase()}`]: fake.url, ...envExtra });
   const events = [];
   for await (const e of run({
     target: { providerId, model: opts.model },
@@ -172,13 +172,13 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     assert.equal(usage.contextWindow, 200_000, "CLAUDE_CODE_MAX_CONTEXT_TOKENS sets a gateway model's window");
   });
 
-  it("a scripted mcp__tarsee__tarsee_datetime call runs in Atlas's tool server and its result goes back to the model", async () => {
-    reset((req) => (toolNames(req.body).includes("mcp__tarsee__tarsee_datetime") && !hasToolResult(req.body))
-      ? { toolUse: { id: "toolu_datetime_1", name: "mcp__tarsee__tarsee_datetime", input: { timezone: "UTC" } } }
+  it("a scripted mcp__atlas__atlas_datetime call runs in Atlas's tool server and its result goes back to the model", async () => {
+    reset((req) => (toolNames(req.body).includes("mcp__atlas__atlas_datetime") && !hasToolResult(req.body))
+      ? { toolUse: { id: "toolu_datetime_1", name: "mcp__atlas__atlas_datetime", input: { timezone: "UTC" } } }
       : { text: "The time is noted." });
-    const { events } = await turn("deepseek", fake, { prompt: "what time is it?", deps: { mcpServer: createTarseeMcp({}) } });
+    const { events } = await turn("deepseek", fake, { prompt: "what time is it?", deps: { mcpServer: createAtlasMcp({}) } });
     assert.deepEqual(dones(events), [{ type: "done", stopReason: "end_turn" }]);
-    assert.deepEqual(events.find((e) => e.type === "tool_use"), { type: "tool_use", id: "toolu_datetime_1", name: "mcp__tarsee__tarsee_datetime", input: { timezone: "UTC" } });
+    assert.deepEqual(events.find((e) => e.type === "tool_use"), { type: "tool_use", id: "toolu_datetime_1", name: "mcp__atlas__atlas_datetime", input: { timezone: "UTC" } });
     const result = events.find((e) => e.type === "tool_result");
     assert.equal(result.id, "toolu_datetime_1");
     assert.equal(result.ok, true, result.result);
@@ -188,7 +188,7 @@ describe("the real Claude Code CLI against a fake gateway", { skip: SKIP, timeou
     const block = lastUserBlocks(second.body).find((b) => b.type === "tool_result");
     assert.equal(block.tool_use_id, "toolu_datetime_1");
     assert.match(JSON.stringify(block.content), /20\d\d/);
-    assert.ok(toolNames(fake.messages()[0].body).includes("mcp__tarsee__tarsee_datetime"), "Atlas's tools are offered");
+    assert.ok(toolNames(fake.messages()[0].body).includes("mcp__atlas__atlas_datetime"), "Atlas's tools are offered");
   });
 
   it("Stop in the middle of a streamed answer: done aborted, once", async () => {

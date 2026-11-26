@@ -25,7 +25,7 @@ let root;
 let fakeBin;
 let n = 0;
 before(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-codex-login-"));
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-codex-login-"));
   // A copy, so the POSIX shim can be made executable whatever git recorded for its mode.
   const bin = path.join(root, "bin");
   fs.cpSync(FIXTURES, bin, { recursive: true });
@@ -35,7 +35,7 @@ before(() => {
 after(() => { fs.rmSync(root, { recursive: true, force: true }); });
 
 // Credentials a host might have set; none may reach the codex child.
-const CANARIES = ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_BASE_URL", "ENCRYPTION_KEY", "ANTHROPIC_API_KEY", "TARSEE_PROVIDER_KEY"];
+const CANARIES = ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_BASE_URL", "ENCRYPTION_KEY", "ANTHROPIC_API_KEY", "ATLAS_PROVIDER_KEY"];
 
 /** A fresh case: its own CODEX_HOME (not yet created), log and pid files, and the env the fake reads its scenario from. */
 function scenario(vars = {}) {

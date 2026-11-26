@@ -1,6 +1,6 @@
 // Readiness (design 4.14 "Readiness consumers" and Phase 5): every place that asks "is an AI connected?" reads the
 // same providerStatus().
-//   - /api/settings/setup-status: a fresh install needs setup; Railway variables alone (TARSEE_AI_PROVIDER plus a
+//   - /api/settings/setup-status: a fresh install needs setup; Railway variables alone (ATLAS_AI_PROVIDER plus a
 //     key, or the Claude plan's CLAUDE_CODE_OAUTH_TOKEN) skip it; the old fake "subscription" key and the
 //     CLAUDE_OAUTH_CREDENTIALS check are gone.
 //   - POST /api/settings/provider: the old wizard's route, a thin shim over the same checks.
@@ -14,14 +14,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-readiness-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-readiness-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 process.env.ENCRYPTION_KEY = "test-only-encryption-key-" + "0".repeat(40);
 const CLEARED = [
-  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_KEY",
-  "TARSEE_LOCAL_AI_URL", "TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
+  "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_KEY",
+  "ATLAS_LOCAL_AI_URL", "ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "CLAUDE_CODE_OAUTH_TOKEN",
   "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID", "CLAUDE_CODE_HOME",
   "CLAUDE_OAUTH_CREDENTIALS", "CODEX_HOME",
 ];
@@ -41,7 +41,7 @@ const KEYS = {
   openrouter: "sk-or-v1-testcanaryRouter9Q",
 };
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const store = new SettingsStore(db);
 const raw = (key) => db.prepare("SELECT value FROM settings WHERE key = ?").get(key)?.value ?? null;
 let server;
@@ -90,8 +90,8 @@ describe("GET /api/settings/setup-status", () => {
     assert.ok(body.ai && typeof body.ai.state === "string", JSON.stringify(body));
   });
 
-  it("Railway variables alone (TARSEE_AI_PROVIDER plus the key) skip setup, and say which variable", async () => {
-    process.env.TARSEE_AI_PROVIDER = "deepseek";
+  it("Railway variables alone (ATLAS_AI_PROVIDER plus the key) skip setup, and say which variable", async () => {
+    process.env.ATLAS_AI_PROVIDER = "deepseek";
     process.env.DEEPSEEK_API_KEY = KEYS.deepseek;
     const { body } = await call("GET", "/api/settings/setup-status");
     assert.equal(body.needsSetup, false);
@@ -102,8 +102,8 @@ describe("GET /api/settings/setup-status", () => {
     assert.deepEqual(body.railway.find((r) => r.id === "deepseek"), { id: "deepseek", label: "DeepSeek", envKey: "DEEPSEEK_API_KEY" });
   });
 
-  it("TARSEE_AI_PROVIDER without its key still needs setup, saying what's missing", async () => {
-    process.env.TARSEE_AI_PROVIDER = "deepseek";
+  it("ATLAS_AI_PROVIDER without its key still needs setup, saying what's missing", async () => {
+    process.env.ATLAS_AI_PROVIDER = "deepseek";
     const { body } = await call("GET", "/api/settings/setup-status");
     assert.equal(body.needsSetup, true);
     assert.equal(body.ai.provider, "deepseek");
@@ -123,7 +123,7 @@ describe("GET /api/settings/setup-status", () => {
   });
 
   it("Local AI through Railway variables with no model named: its models are read first, so setup is skipped", async () => {
-    // TARSEE_LOCAL_AI_URL alone (no TARSEE_AI_MODEL): Local AI runs on the first model its server lists, but that list
+    // ATLAS_LOCAL_AI_URL alone (no ATLAS_AI_MODEL): Local AI runs on the first model its server lists, but that list
     // lives only in memory, so right after a restart it looked "not set up" and the wizard came back.
     const http = await import("node:http");
     const requests = [];
@@ -136,8 +136,8 @@ describe("GET /api/settings/setup-status", () => {
     try {
       setCatalogModels("local-models", []);
       forgetLocalModelsRead();
-      process.env.TARSEE_AI_PROVIDER = "local";
-      process.env.TARSEE_LOCAL_AI_URL = `http://127.0.0.1:${local.address().port}/v1`;
+      process.env.ATLAS_AI_PROVIDER = "local";
+      process.env.ATLAS_LOCAL_AI_URL = `http://127.0.0.1:${local.address().port}/v1`;
       const { body } = await call("GET", "/api/settings/setup-status");
       assert.equal(body.ai.state, "ready", JSON.stringify(body.ai));
       assert.equal(body.needsSetup, false);

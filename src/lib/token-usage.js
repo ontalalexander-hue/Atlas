@@ -59,7 +59,7 @@
  * BACKFILL_DAYS; older rows are dropped after RETENTION_DAYS.
  *
  * Days and hours are counted in the configured timezone (config.TIMEZONE, from
- * TARSEE_TIMEZONE or the host's zone).
+ * ATLAS_TIMEZONE or the host's zone).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -79,9 +79,9 @@ export { zoneOffsetMs, localDay, localMidnight, dayStarts };
 const H = 3_600_000;
 const DAY = 24 * H;
 /** How far back the first read of the transcripts goes (by each file's last change). */
-export const BACKFILL_DAYS = Math.max(1, Number(process.env.TARSEE_USAGE_BACKFILL_DAYS) || 14);
+export const BACKFILL_DAYS = Math.max(1, Number(process.env.ATLAS_USAGE_BACKFILL_DAYS) || 14);
 /** Calls and turns older than this are deleted, so the tables do not grow forever. */
-export const RETENTION_DAYS = Math.max(BACKFILL_DAYS, Number(process.env.TARSEE_USAGE_RETENTION_DAYS) || 90);
+export const RETENTION_DAYS = Math.max(BACKFILL_DAYS, Number(process.env.ATLAS_USAGE_RETENTION_DAYS) || 90);
 const CHUNK = 1 << 20;                 // read 1 MB at a time
 const SLICE_MS = 25;                   // then let the event loop breathe
 const MAX_GEN_MS = 20 * 60_000;        // a "generation time" longer than this is a gap in the record, not a call

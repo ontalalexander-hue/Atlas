@@ -5,7 +5,7 @@
  * All functions are pure. No network, no filesystem, no state.
  * Unit-tested in test/email-parser.test.js.
  *
- * Design principle: quote-strip FIRST, then match. A quoted `@tarsee`
+ * Design principle: quote-strip FIRST, then match. A quoted `@atlas`
  * from the earlier turn of a thread must NOT re-trigger a reply on
  * every subsequent reply.
  */
@@ -65,17 +65,17 @@ export function stripQuotedReply(text) {
  * keyword. Case-insensitive word-boundary match on `@<keyword>`.
  *
  * Importantly, this must NOT match when the keyword appears inside an
- * email address like `foo@tarsee.example.com`. The regex uses a
+ * email address like `foo@atlas.example.com`. The regex uses a
  * negative-alternation character class `[^A-Za-z0-9._%+\-]` on the
  * character immediately preceding `@` to rule that out — if the
  * character before `@` looks like it could be part of an email local-part,
  * we don't treat it as a mention.
  *
  * @param {string} stripped  body after stripQuotedReply()
- * @param {string} keyword   default "tarsee"; strip leading "@" if present
+ * @param {string} keyword   default "atlas"; strip leading "@" if present
  * @returns {boolean}
  */
-export function hasMention(stripped, keyword = "tarsee") {
+export function hasMention(stripped, keyword = "atlas") {
   if (!stripped) return false;
   // Accept keyword with or without a leading "@"
   const kw = keyword.startsWith("@") ? keyword.slice(1) : keyword;
@@ -99,11 +99,11 @@ export function hasMention(stripped, keyword = "tarsee") {
  * @param {object} opts
  * @param {string} opts.stripped   stripped body
  * @param {string} opts.subject    full subject line
- * @param {string} [opts.keyword]  mention keyword (default "tarsee")
+ * @param {string} [opts.keyword]  mention keyword (default "atlas")
  * @param {string} [opts.marker]   reply-all subject marker (default "[reply-all]")
  * @returns {boolean}
  */
-export function isReplyAll({ stripped, subject, keyword = "tarsee", marker = "[reply-all]" }) {
+export function isReplyAll({ stripped, subject, keyword = "atlas", marker = "[reply-all]" }) {
   if (subject && marker && subject.toLowerCase().includes(marker.toLowerCase())) {
     return true;
   }

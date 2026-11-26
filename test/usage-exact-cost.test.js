@@ -9,10 +9,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-usage-exact-"));
-process.env.TARSEE_STATE_DIR = path.join(tmp, "state");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "state", "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "state", "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-usage-exact-"));
+process.env.ATLAS_STATE_DIR = path.join(tmp, "state");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "state", "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "state", "data");
 const savedHome = process.env.HOME;
 process.env.HOME = path.join(tmp, "home");
 

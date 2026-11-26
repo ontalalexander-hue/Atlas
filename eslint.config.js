@@ -32,8 +32,8 @@ const appGlobals = {
   Settings: "readonly",     // js/settings.js
   Setup: "readonly",        // js/setup.js
   SpeechToText: "readonly", // js/voice.js
-  TarseeBrand: "readonly",  // js/brand-icon.js
-  TarseeDialog: "readonly", // js/dialogs.js
+  AtlasBrand: "readonly",  // js/brand-icon.js
+  AtlasDialog: "readonly", // js/dialogs.js
   Usage: "readonly",        // js/usage.js
   UsageCore: "readonly",    // js/usage-core.js
   Voice: "readonly",        // js/voice.js

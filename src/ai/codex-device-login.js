@@ -261,7 +261,7 @@ function toLoginError(err) {
  * (device-code sign-in switched off, no connection, an unsafe config.toml, codex missing...).
  *
  * opts: codexHome (required), env (the server's environment; credentials are stripped from it), codexBin (else
- * TARSEE_CODEX_BIN, else the pinned binary), timeoutMs (default and maximum: what the CLI says, 15 minutes),
+ * ATLAS_CODEX_BIN, else the pinned binary), timeoutMs (default and maximum: what the CLI says, 15 minutes),
  * startTimeoutMs (how long codex may take to show the code; 30 s), pollMs (how often auth.json is checked; 1 s).
  */
 export async function startDeviceLogin({ codexHome, codexBin, env, timeoutMs = LOGIN_TTL_MS, startTimeoutMs = 30_000, pollMs = 1000 } = {}) {

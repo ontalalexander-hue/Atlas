@@ -3,7 +3,7 @@ name: fewer-permission-prompts
 description: Scan recent tool usage in the audit log and propose an allowlist for Atlas's security manager so the user stops seeing permission prompts for routine actions.
 metadata:
   {
-    "tarsee":
+    "atlas":
       {
         "emoji": "🔓",
         "category": "security",
@@ -28,14 +28,14 @@ prompts for tools they've already approved dozens of times.
 
 1. **Check audit log.** Read recent entries from the audit log DB table:
    ```
-   sqlite3 /data/tarsee/data/tarsee.db "SELECT action, target, COUNT(*) c FROM audit_log WHERE action LIKE 'tool.%' AND created_at > datetime('now', '-7 days') GROUP BY action, target ORDER BY c DESC LIMIT 50"
+   sqlite3 /data/atlas/data/atlas.db "SELECT action, target, COUNT(*) c FROM audit_log WHERE action LIKE 'tool.%' AND created_at > datetime('now', '-7 days') GROUP BY action, target ORDER BY c DESC LIMIT 50"
    ```
    (If path differs, resolve `config.DB_PATH` first via `/status` output.)
 
 2. **Read current security settings.** Pull the existing tool permission
    map so the proposal only touches tools that aren't already allowed:
    ```
-   cat /data/tarsee/data/tarsee.db-settings 2>/dev/null || sqlite3 /data/tarsee/data/tarsee.db "SELECT value FROM settings WHERE key = 'security.toolPermissions'"
+   cat /data/atlas/data/atlas.db-settings 2>/dev/null || sqlite3 /data/atlas/data/atlas.db "SELECT value FROM settings WHERE key = 'security.toolPermissions'"
    ```
 
 3. **Propose a JSON patch.** Group tools by usage count. Criteria:
@@ -56,7 +56,7 @@ prompts for tools they've already approved dozens of times.
    |---|---|---|---|
    | Bash(ls) | warn | always_allow | 47 |
    | Read | warn | always_allow | 128 |
-   | tarsee_search_memories | warn | always_allow | 22 |
+   | atlas_search_memories | warn | always_allow | 22 |
    | Bash(rm) | warn | warn (kept — dangerous) | 3 |
    ```
 
@@ -67,7 +67,7 @@ prompts for tools they've already approved dozens of times.
 6. **On yes, apply via SettingsStore.** Write the new merged permission
    map to the setting key `security.toolPermissions`:
    ```
-   sqlite3 /data/tarsee/data/tarsee.db "UPDATE settings SET value = ? WHERE key = 'security.toolPermissions'" "<new-json>"
+   sqlite3 /data/atlas/data/atlas.db "UPDATE settings SET value = ? WHERE key = 'security.toolPermissions'" "<new-json>"
    ```
    Or better: use the `/api/admin/tool-permissions` endpoint if the user
    is in a session that can reach the API.

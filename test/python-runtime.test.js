@@ -13,10 +13,10 @@ import { fakePython, fakeInterpreter } from "./fakes/fake-python.js";
 import { fakeDownloadHost } from "./fakes/fake-download-host.js";
 import { makeTarGz } from "./fakes/tar.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-python-runtime-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-python-runtime-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const rt = await import("../src/voice/python-runtime.js");
 const {
@@ -126,8 +126,8 @@ describe("finding a Python on this computer", () => {
     py.set({ pythons: { python3: { version: "3.12.1" } } });
     await assert.rejects(runPython(cand("python3"), ["-I", "-c", "import faster_whisper"]), /No module named 'faster_whisper'/);
     const lines = [];
-    await runPython(cand("python3"), ["-I", "-c", "print('TARSEE-PROBE')"], { onLine: (l) => lines.push(l) });
-    assert.ok(lines.some((l) => l.startsWith("TARSEE-PROBE ")));
+    await runPython(cand("python3"), ["-I", "-c", "print('ATLAS-PROBE')"], { onLine: (l) => lines.push(l) });
+    assert.ok(lines.some((l) => l.startsWith("ATLAS-PROBE ")));
   });
 });
 
@@ -168,7 +168,7 @@ describe("downloading a standalone Python", () => {
     const host = fakeDownloadHost({ [api]: release(), [dl]: { redirect: cdn }, [cdn]: { body: archive, chunk: 64, delayMs: 1 } });
     const seen = [];
     const ref = await ensureBasePython({ allowDownload: true, fetch: host.fetch, pin, onProgress: (p) => seen.push(p) });
-    assert.equal(ref.source, "tarsee");
+    assert.equal(ref.source, "atlas");
     assert.equal(ref.version, "3.12.16");
     assert.equal(ref.cmd, interpreterIn(standaloneDir(pin)));
     assert.ok(standaloneReady(pin));
@@ -180,7 +180,7 @@ describe("downloading a standalone Python", () => {
     const again = await ensureBasePython({ allowDownload: true, fetch: host.fetch, pin });
     assert.equal(again.cmd, ref.cmd);
     assert.equal(host.hits[api], 1, "no second download");
-    assert.equal((await findBasePython()).source, "tarsee", "Atlas's own Python comes first once it is there");
+    assert.equal((await findBasePython()).source, "atlas", "Atlas's own Python comes first once it is there");
   });
 
   it("a usable Python on this computer is used, and nothing is downloaded", async () => {

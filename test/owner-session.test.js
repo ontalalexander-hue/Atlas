@@ -1,6 +1,6 @@
-// The owner is the person signed in to the dashboard: a live sign-in (the tarsee_session cookie), never the API token
+// The owner is the person signed in to the dashboard: a live sign-in (the atlas_session cookie), never the API token
 // alone. The dashboard sends the token with every request too (js/api.js), and the AI's shell runs as the same user, so
-// it can read the token (api.token in the state folder) and Atlas's database (tarsee.db). So:
+// it can read the token (api.token in the state folder) and Atlas's database (atlas.db). So:
 //   - the owner's chat commands (/cron, /briefing, /webhook) run only with a live sign-in: the chat route and the
 //     WebSocket name the dashboard ("web") only then, and anything else is refused by commands.js as not the owner;
 //   - the database keeps a hash of each sign-in's id, never the id: an id copied from it signs nobody in, and the ids
@@ -22,13 +22,13 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import WebSocket from "ws";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-owner-session-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-// No TARSEE_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
-delete process.env.TARSEE_API_TOKEN;
-delete process.env.TARSEE_SESSION_MAX_AGE_DAYS;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-owner-session-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+// No ATLAS_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
+delete process.env.ATLAS_API_TOKEN;
+delete process.env.ATLAS_SESSION_MAX_AGE_DAYS;
 process.env.SETUP_PASSWORD = "test-owner-pin-4821";
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
 
@@ -46,7 +46,7 @@ const cron = await import("../src/lib/cron.js");
 
 /** What the AI's shell reads: the token file in the state folder. */
 const TOKEN = fs.readFileSync(path.join(tmp, "api.token"), "utf8").trim();
-const DB_PATH = path.join(tmp, "tarsee.db");
+const DB_PATH = path.join(tmp, "atlas.db");
 const db = initDb(DB_PATH);
 initSessionStore(db);
 const settings = new SettingsStore(db);
@@ -109,7 +109,7 @@ async function signIn() {
     body: JSON.stringify({ password: process.env.SETUP_PASSWORD }),
   });
   assert.equal(res.status, 200, await res.clone().text());
-  const id = /tarsee_session=([^;]+)/.exec(res.headers.get("set-cookie") || "")?.[1];
+  const id = /atlas_session=([^;]+)/.exec(res.headers.get("set-cookie") || "")?.[1];
   assert.ok(id, "the sign-in sets its cookie");
   return id;
 }
@@ -117,7 +117,7 @@ async function signIn() {
 /** A fresh CSRF token, as the page gets one (GET /api/auth/csrf): anyone can have one. */
 async function freshCsrf() {
   const res = await fetch(`${base}/api/auth/csrf`);
-  const csrf = /tarsee_csrf=([^;]+)/.exec(res.headers.get("set-cookie") || "")?.[1];
+  const csrf = /atlas_csrf=([^;]+)/.exec(res.headers.get("set-cookie") || "")?.[1];
   assert.ok(csrf, "a CSRF token");
   return csrf;
 }
@@ -125,9 +125,9 @@ async function freshCsrf() {
 /** The AI's shell: curl with the token it read from the state folder. */
 const asToken = () => ({ Authorization: `Bearer ${TOKEN}` });
 /** The owner's dashboard (js/api.js): the sign-in's cookie, the CSRF token, and the API token alongside. */
-const asDashboard = (sessionId, csrf) => ({ Authorization: `Bearer ${TOKEN}`, Cookie: `tarsee_session=${sessionId}; tarsee_csrf=${csrf}`, "X-CSRF-Token": csrf });
+const asDashboard = (sessionId, csrf) => ({ Authorization: `Bearer ${TOKEN}`, Cookie: `atlas_session=${sessionId}; atlas_csrf=${csrf}`, "X-CSRF-Token": csrf });
 /** The owner's OK as js/settings.js _ownerPost sends it: the sign-in's cookie and the CSRF token, no API token. */
-const asOwnerPost = (sessionId, csrf) => ({ Cookie: `tarsee_session=${sessionId}; tarsee_csrf=${csrf}`, "X-CSRF-Token": csrf });
+const asOwnerPost = (sessionId, csrf) => ({ Cookie: `atlas_session=${sessionId}; atlas_csrf=${csrf}`, "X-CSRF-Token": csrf });
 
 async function call(method, url, body, headers = {}) {
   const res = await fetch(`${base}${url}`, {
@@ -161,7 +161,7 @@ const until = async (fn, ms = 3000) => {
 /** A WebSocket to the chat, with the API token (?token=, as a script would) and/or a sign-in's cookie. */
 async function openSocket({ token, sessionId } = {}) {
   const url = `ws://127.0.0.1:${port}/${token ? `?token=${encodeURIComponent(token)}` : ""}`;
-  const ws = new WebSocket(url, sessionId ? { headers: { Cookie: `tarsee_session=${sessionId}` } } : {});
+  const ws = new WebSocket(url, sessionId ? { headers: { Cookie: `atlas_session=${sessionId}` } } : {});
   const got = [];
   ws.on("message", (raw) => got.push(JSON.parse(String(raw))));
   await new Promise((r, j) => { ws.once("open", r); ws.once("error", j); });
@@ -181,7 +181,7 @@ async function openSocket({ token, sessionId } = {}) {
 
 const statusOf = (id) => cron.getCronStatus().jobs.find((j) => j.id === id);
 const stateOf = (id) => [statusOf(id).state, statusOf(id).enabled, statusOf(id).scheduled];
-/** A task the AI scheduled in a chat (tarsee_schedule_task): switched off, waiting for the owner's OK. */
+/** A task the AI scheduled in a chat (atlas_schedule_task): switched off, waiting for the owner's OK. */
 const aiTask = (over = {}) => cron.addCronJob({ schedule: "0 9 * * 1", prompt: "Plan the week", name: "Week", createdBy: "ai", ...over });
 const seenOf = (job) => ({ schedule: job.schedule, prompt: job.prompt });
 const switchOn = (job, headers) => call("PATCH", `/api/settings/cron/${encodeURIComponent(job.id)}`, { enabled: true, seen: seenOf(job) }, headers);
@@ -282,10 +282,10 @@ describe("the owner's chat commands need the owner's live sign-in", () => {
   it("signing out ends the sign-in on the server, also from the dashboard (which sends the API token too)", async () => {
     const sessionId = createSession("127.0.0.1");
     const csrf = await freshCsrf();
-    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${sessionId}` })).body.authenticated, true);
+    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${sessionId}` })).body.authenticated, true);
     const out = await call("POST", "/api/auth/logout", undefined, asDashboard(sessionId, csrf));
     assert.equal(out.status, 200);
-    const after = await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${sessionId}` });
+    const after = await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${sessionId}` });
     assert.equal(after.body.authenticated, false, "the cookie signs nobody in once signed out");
   });
 });
@@ -298,13 +298,13 @@ describe("the database keeps no sign-in id", () => {
     assert.ok(!ids.includes(sessionId), "not the id itself");
     assert.ok(ids.every((id) => !id.includes(sessionId)), "nor anything holding it");
     assert.equal(databaseBytes().indexOf(Buffer.from(sessionId)), -1, "nowhere in the database's files");
-    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${sessionId}` })).body.method, "session", "the owner's cookie still signs them in");
+    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${sessionId}` })).body.method, "session", "the owner's cookie still signs them in");
 
-    // The AI's shell: an id read from tarsee.db, a free CSRF token, the API token, and a task it scheduled.
+    // The AI's shell: an id read from atlas.db, a free CSRF token, the API token, and a task it scheduled.
     const job = aiTask();
     for (const stored of ids) {
       for (const copied of new Set([stored, stored.split(":").pop()])) {
-        const status = await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${copied}` });
+        const status = await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${copied}` });
         assert.equal(status.body.authenticated, false, copied);
         const csrf = await freshCsrf();
         const res = await switchOn(job, asDashboard(copied, csrf));
@@ -328,7 +328,7 @@ describe("the database keeps no sign-in id", () => {
     assert.equal(ids.length, new Set(ids).size);
     assert.equal(databaseBytes().indexOf(Buffer.from(legacy)), -1, "nor do the database's files");
     for (const id of [legacy, kept]) {
-      const status = await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${id}` });
+      const status = await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${id}` });
       assert.deepEqual([status.body.authenticated, status.body.method], [true, "session"], id === legacy ? "the older sign-in" : "a sign-in already hashed isn't hashed again");
     }
     const job = aiTask();
@@ -336,7 +336,7 @@ describe("the database keeps no sign-in id", () => {
 
     initSessionStore(db);   // and the start after: nothing to do, everyone still signed in
     assert.deepEqual(storedIds().sort(), ids.sort());
-    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${legacy}` })).body.authenticated, true);
+    assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${legacy}` })).body.authenticated, true);
   });
 
   it("a sign-in that has run out is dropped at the next start", async () => {
@@ -345,8 +345,8 @@ describe("the database keeps no sign-in id", () => {
     await later(31, async () => {
       const fresh = createSession("127.0.0.1");
       initSessionStore(db);
-      assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${old}` })).body.authenticated, false);
-      assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `tarsee_session=${fresh}` })).body.authenticated, true);
+      assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${old}` })).body.authenticated, false);
+      assert.equal((await call("GET", "/api/auth/status", undefined, { Cookie: `atlas_session=${fresh}` })).body.authenticated, true);
       assert.equal(storedIds().length, 1, `${before} sign-ins ran out; only the fresh one is left`);
     });
   });
@@ -400,10 +400,10 @@ describe("an owner-only action after the sign-in has run out", () => {
     assert.match(cookie, /HttpOnly/i);
     assert.match(cookie, /SameSite=Strict/i);
     // A page load renews the cookie of a sign-in made before (GET /api/auth/status, the first thing the dashboard asks).
-    const id = /tarsee_session=([^;]+)/.exec(cookie)[1];
-    const status = await fetch(`${base}/api/auth/status`, { headers: { Cookie: `tarsee_session=${id}` } });
+    const id = /atlas_session=([^;]+)/.exec(cookie)[1];
+    const status = await fetch(`${base}/api/auth/status`, { headers: { Cookie: `atlas_session=${id}` } });
     const renewed = status.headers.get("set-cookie") || "";
-    assert.match(renewed, new RegExp(`tarsee_session=${id}`));
+    assert.match(renewed, new RegExp(`atlas_session=${id}`));
     assert.ok(Number(/Max-Age=(\d+)/i.exec(renewed)?.[1]) * 1000 > 31 * DAY, renewed);
   });
 });

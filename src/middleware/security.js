@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 // invalid or expired". The token is HMAC-signed and stateless, so a longer
 // bound is safe — it still expires, it just outlives a working day.
 const CSRF_TOKEN_MAX_AGE_MS =
-  (Number(process.env.TARSEE_CSRF_MAX_AGE_HOURS) || 24) * 60 * 60 * 1000;
+  (Number(process.env.ATLAS_CSRF_MAX_AGE_HOURS) || 24) * 60 * 60 * 1000;
 
 // Derive a stable CSRF secret from ENCRYPTION_KEY or generate a persistent one.
 // Using ENCRYPTION_KEY means tokens survive restarts as long as env is stable.
@@ -64,7 +64,7 @@ export function securityHeaders(_req, res, next) {
 export function generateCsrfCookie(_req, res, next) {
   const token = signCsrfToken(Date.now());
 
-  res.cookie("tarsee_csrf", token, {
+  res.cookie("atlas_csrf", token, {
     httpOnly: false,        // JS needs to read it for the double-submit pattern
     sameSite: "Strict",
     secure: process.env.NODE_ENV === "production",
@@ -76,7 +76,7 @@ export function generateCsrfCookie(_req, res, next) {
 
 /**
  * Middleware: Validates CSRF token on state-changing requests.
- * Expects X-CSRF-Token header to match the tarsee_csrf cookie.
+ * Expects X-CSRF-Token header to match the atlas_csrf cookie.
  * Skips validation for Bearer token auth (API clients don't need CSRF).
  */
 export function csrfProtect(req, res, next) {

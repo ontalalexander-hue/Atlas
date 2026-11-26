@@ -16,7 +16,7 @@ const {
 } = await import("../src/voice/whisper-models.js");
 const { gitBlobSha1 } = await import("../src/voice/install-common.js");
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-whisper-models-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-whisper-models-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 const sha = (b) => crypto.createHash("sha256").update(b).digest("hex");
 
@@ -130,8 +130,8 @@ describe("finding and deleting models", () => {
   const writeModel = (dir, entry, files, marker = true) => {
     fs.mkdirSync(dir, { recursive: true });
     for (const [n, b] of Object.entries(files)) fs.writeFileSync(path.join(dir, n), b);
-    if (marker) fs.writeFileSync(path.join(dir, ".tarsee-model.json"), JSON.stringify({ repo: entry.repo, revision: entry.revision }));
-    else fs.rmSync(path.join(dir, ".tarsee-model.json"), { force: true });
+    if (marker) fs.writeFileSync(path.join(dir, ".atlas-model.json"), JSON.stringify({ repo: entry.repo, revision: entry.revision }));
+    else fs.rmSync(path.join(dir, ".atlas-model.json"), { force: true });
   };
 
   it("one that comes with the image is found there and is never deleted", async () => {

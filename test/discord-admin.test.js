@@ -1,4 +1,4 @@
-// tarsee_discord_admin (src/lib/discord-admin.js): channels and webhooks done by Atlas's own logged-in bot, so the
+// atlas_discord_admin (src/lib/discord-admin.js): channels and webhooks done by Atlas's own logged-in bot, so the
 // agent never needs DISCORD_BOT_TOKEN in a command. Discord is never reached: the client is a stand-in (or a real
 // discord.js Client that never logs in, with its REST calls stubbed), and the vault is a stand-in or a temporary one.
 import { describe, it, before, after } from "node:test";
@@ -10,10 +10,10 @@ import { fileURLToPath } from "node:url";
 import { ChannelType, Client, ClientUser, GatewayIntentBits, OverwriteType, PermissionFlagsBits as P } from "discord.js";
 
 // Keep every module that reads config away from the real state dir, vault and DB.
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-discord-admin-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-discord-admin-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
 process.env.ENCRYPTION_KEY = "discord-admin-test-encryption-key-0123456789";
 const { discordAdmin, resolveGuild, ACTIONS, permFlag, maskWebhookUrl, keyNameFrom } = await import("../src/lib/discord-admin.js");
 
@@ -557,7 +557,7 @@ function realClient({ botRolePerms = P.ManageChannels | P.ManageWebhooks | P.Vie
   };
   client.rest.patch = async (route, opts) => { sent.push(["patch", route, opts?.body]); };
   client.rest.put = async (route, opts) => { sent.push(["put", route, opts?.body]); };
-  client.user = new ClientUser(client, { id: BOT, username: "tarsee", discriminator: "0", bot: true, avatar: null });
+  client.user = new ClientUser(client, { id: BOT, username: "atlas", discriminator: "0", bot: true, avatar: null });
   client.isReady = () => true;
   const role = (id, name, permissions, position) => ({ id, name, permissions: String(permissions), position, color: 0, hoist: false, managed: false, mentionable: false });
   const joined = new Date().toISOString();
@@ -569,7 +569,7 @@ function realClient({ botRolePerms = P.ManageChannels | P.ManageWebhooks | P.Vie
       { id: PROD, type: ChannelType.GuildText, name: "client-prod", parent_id: CAT, position: 0, permission_overwrites: [{ id: G, type: 0, allow: "0", deny: String(P.ViewChannel) }, { id: OPS, type: 0, allow: String(P.ViewChannel), deny: "0" }] },
     ],
     members: [
-      { user: { id: BOT, username: "tarsee", bot: true }, roles: ["400000000000000009"], joined_at: joined },
+      { user: { id: BOT, username: "atlas", bot: true }, roles: ["400000000000000009"], joined_at: joined },
       { user: { id: SAM, username: "sam_k" }, roles: [], joined_at: joined },
     ],
   });
@@ -650,21 +650,21 @@ describe("tools.js: discord_admin goes to the running Discord bot", () => {
   });
 });
 
-describe("the MCP server offers tarsee_discord_admin and runs it through the tool switch", () => {
+describe("the MCP server offers atlas_discord_admin and runs it through the tool switch", () => {
   it("lists the tool with its five actions and the right words, and a call reaches the running bot as discord_admin", async () => {
     const { Client: McpClient } = await import("@modelcontextprotocol/sdk/client/index.js");
     const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
-    const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+    const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
     const got = [];
     const ctx = { channelManager: { channels: new Map([["discord", { bot: { admin: async (a) => { got.push(a); return "admin ran"; } } }]]) } };
-    const server = createTarseeMcp(ctx);
+    const server = createAtlasMcp(ctx);
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const mcp = new McpClient({ name: "test", version: "1.0.0" }, { capabilities: {} });
     await Promise.all([server.instance.connect(serverTransport), mcp.connect(clientTransport)]);
     try {
       const { tools } = await mcp.listTools();
-      const tool = tools.find((t) => t.name === "tarsee_discord_admin");
-      assert.ok(tool, "tarsee_discord_admin is offered");
+      const tool = tools.find((t) => t.name === "atlas_discord_admin");
+      assert.ok(tool, "atlas_discord_admin is offered");
       assert.deepEqual(tool.inputSchema.properties.action.enum, [...ACTIONS]);
       assert.ok(tool.inputSchema.required?.includes("action"));
       const words = tool.description + JSON.stringify(tool.inputSchema);
@@ -676,10 +676,10 @@ describe("the MCP server offers tarsee_discord_admin and runs it through the too
       assert.match(tool.description, /approved_by/);
       assert.match(tool.description, /never for anything that goes into a chat/);
       assert.match(tool.description, /NOTHING HERE DELETES/);
-      const res = await mcp.callTool({ name: "tarsee_discord_admin", arguments: { action: "list_channels", channel_id: GEN } });
+      const res = await mcp.callTool({ name: "atlas_discord_admin", arguments: { action: "list_channels", channel_id: GEN } });
       assert.equal(res.content[0].text, "admin ran");
       assert.deepEqual(got.at(-1), { action: "list_channels", channel_id: GEN });
-      const bad = await mcp.callTool({ name: "tarsee_discord_admin", arguments: { action: "delete_channel", channel_id: GEN } }).catch((e) => ({ isError: true, content: [{ text: e.message }] }));
+      const bad = await mcp.callTool({ name: "atlas_discord_admin", arguments: { action: "delete_channel", channel_id: GEN } }).catch((e) => ({ isError: true, content: [{ text: e.message }] }));
       assert.ok(bad.isError, "a delete action does not pass the schema");
       assert.equal(got.length, 1, "and never reaches the bot");
     } finally {

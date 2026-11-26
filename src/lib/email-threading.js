@@ -3,7 +3,7 @@
  * References-chain management.
  *
  * Used when Atlas replies to an inbound email or starts a new thread
- * via the tarsee_send_email_thread MCP tool. Pure functions; no I/O.
+ * via the atlas_send_email_thread MCP tool. Pure functions; no I/O.
  */
 
 const MAX_REFERENCES = 10; // cap to keep outbound headers reasonable

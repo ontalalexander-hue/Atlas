@@ -156,7 +156,7 @@ describe("chat core: one line for each step", () => {
     assert.equal(C.summaryOf('{"x":1}'), "");
   });
   it("the others, present while running and past after", () => {
-    assert.equal(L("Read", "…/workspace/repos/tarsee-template/README.md", true), "Reading README.md");
+    assert.equal(L("Read", "…/workspace/repos/atlas-template/README.md", true), "Reading README.md");
     assert.equal(L("Read", "/a/b/c.js"), "Read c.js");
     assert.equal(L("Edit", "/a/style.css"), "Edited style.css");
     assert.equal(L("Write", "/a/new.md", true), "Writing new.md");
@@ -166,8 +166,8 @@ describe("chat core: one line for each step", () => {
     assert.equal(L("WebFetch", "https://www.shopee.ph/burgman-seat"), "Read shopee.ph");
     assert.equal(L("Agent", "Build cookie consent + policy, both sites"), "Asked a helper: Build cookie consent + policy, both sites");
     assert.equal(L("TodoWrite", "updating the task list", true), "Updating the plan");
-    assert.equal(L("mcp__tarsee__send_message", "photos"), "Sent a message: photos");
-    assert.equal(L("tarsee_canvas_create", "cookie banner diagram"), "Canvas create: cookie banner diagram");
+    assert.equal(L("mcp__atlas__send_message", "photos"), "Sent a message: photos");
+    assert.equal(L("atlas_canvas_create", "cookie banner diagram"), "Canvas create: cookie banner diagram");
     assert.equal(L("ToolSearch", ""), "Looked up tools");
   });
   it("short: a long description is cut", () => {

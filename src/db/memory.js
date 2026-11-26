@@ -168,7 +168,7 @@ export class MemoryStore {
     if (memories.length === 0) return "";
 
     // Each memory is a one-line reminder here, not the whole note: a row can
-    // hold a full write-up (on TarseeMacOS 10 rows were 14KB of a 50KB prompt,
+    // hold a full write-up (on the macOS app 10 rows were 14KB of a 50KB prompt,
     // about 3.5k tokens re-read on every model call). The full text stays in
     // the table and is found by searching memory.
     const lines = memories.map((m) => `- [${m.category}] ${clipMemory(m.content, maxChars)}`);

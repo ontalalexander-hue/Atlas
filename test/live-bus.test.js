@@ -13,7 +13,7 @@ import { stepsFromSdkMessage, toolResultsFromSdkMessage, displayToolName, summar
 import { withConversationTurn, claimQueuedTurn, removeQueuedTurn, currentQueuedTurn, QUEUE_REMOVED } from "../src/lib/conversation-lock.js";
 import { messageTools, slimMessage } from "../src/lib/message-tools.js";
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-live-"));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-live-"));
 const DB = path.join(dir, "live.db");
 let db;
 
@@ -175,7 +175,7 @@ describe("tool steps: from the SDK's messages", () => {
   });
 
   it("names Atlas's MCP tools plainly and summarises the common tools", () => {
-    assert.equal(displayToolName("mcp__tarsee__tarsee_send_message"), "tarsee_send_message");
+    assert.equal(displayToolName("mcp__atlas__atlas_send_message"), "atlas_send_message");
     assert.equal(displayToolName("Read"), "Read");
     assert.equal(summarizeToolInput("Grep", { pattern: "TODO", path: "src" }), "TODO in src");
     assert.equal(summarizeToolInput("TodoWrite", {}), "updating the task list");
@@ -206,10 +206,10 @@ describe("message tools: slim history and a reply's tools", () => {
   });
 
   it("a channel reply has its inline tool calls taken out and listed", () => {
-    const content = 'Looking.\n<tool_call>{"name":"mcp__tarsee__tarsee_web_search","arguments":{"query":"weather"}}</tool_call>\n<tool_response>sunny</tool_response>\n\n\n\nSunny today.';
+    const content = 'Looking.\n<tool_call>{"name":"mcp__atlas__atlas_web_search","arguments":{"query":"weather"}}</tool_call>\n<tool_response>sunny</tool_response>\n\n\n\nSunny today.';
     const slim = slimMessage({ id: "m2", role: "assistant", content });
     assert.equal(slim.content, "Looking.\n\nSunny today.");
-    assert.deepEqual(slim.tools, [{ name: "tarsee_web_search", summary: "weather" }]);
+    assert.deepEqual(slim.tools, [{ name: "atlas_web_search", summary: "weather" }]);
     const plain = { id: "m3", role: "user", content: "hi" };
     assert.equal(slimMessage(plain), plain, "a message with no tools is left alone");
   });

@@ -77,7 +77,7 @@ export function initAgentRegistry(settingsStore) {
 
 /**
  * Create workspace directories for all agents.
- * Each agent gets: /data/tarsee/agents/{id}/ with MEMORY.md, SOUL.md
+ * Each agent gets: /data/atlas/agents/{id}/ with MEMORY.md, SOUL.md
  */
 export function ensureAgentWorkspaces() {
   const baseDir = getAgentsBaseDir();
@@ -102,7 +102,7 @@ export function ensureAgentWorkspaces() {
  * Get the base directory for agent workspaces.
  */
 export function getAgentsBaseDir() {
-  return path.join(process.env.TARSEE_STATE_DIR || process.env.HOME || "/data/tarsee", "agents");
+  return path.join(process.env.ATLAS_STATE_DIR || process.env.HOME || "/data/atlas", "agents");
 }
 
 /**

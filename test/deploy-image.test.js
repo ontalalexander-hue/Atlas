@@ -5,10 +5,10 @@
 //   checks are run for real in sh against stand-in `claude`, `codex` and `pdftotext` commands.
 // - entrypoint.sh: every AI provider's sign-in folder exists on the volume, owner-only; /home/node/.claude and
 //   /home/node/.codex link to the plan homes; each Codex home has a config.toml with Atlas's three settings and never a
-//   key, that Codex's guard accepts; CODEX_HOME and TARSEE_STATE_DIR are exported before the server starts; one
-//   sign-in line per engine; an install upgraded from main with its own TARSEE_STATE_DIR keeps the Claude plan sign-in
-//   (and chat transcripts) main kept in /data/tarsee/.claude-code-home, once (an older sign-in that a newer one there
-//   supersedes is renamed, so a sign-out can't bring it back); changing TARSEE_STATE_DIR on this version moves nothing.
+//   key, that Codex's guard accepts; CODEX_HOME and ATLAS_STATE_DIR are exported before the server starts; one
+//   sign-in line per engine; an install upgraded from main with its own ATLAS_STATE_DIR keeps the Claude plan sign-in
+//   (and chat transcripts) main kept in /data/atlas/.claude-code-home, once (an older sign-in that a newer one there
+//   supersedes is renamed, so a sign-out can't bring it back); changing ATLAS_STATE_DIR on this version moves nothing.
 // The entrypoint's functions are sourced in sh (sourcing skips its main part). Needs a POSIX sh: on Windows, Git's.
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";
@@ -24,7 +24,7 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const DOCKERFILE = read("Dockerfile");
 const ENTRYPOINT = path.join(ROOT, "entrypoint.sh");
 const WIN = process.platform === "win32";
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-deploy-image-"));
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-deploy-image-"));
 after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
 /** A POSIX sh: `sh` on the PATH, else (Windows) the one that comes with Git. null when there is none. */
@@ -99,7 +99,7 @@ function fakeApp(name, { claudeCodeVersion, codexSdk }) {
   const sdkDir = path.join(dir, "node_modules", "@anthropic-ai", "claude-agent-sdk");
   fs.mkdirSync(sdkDir, { recursive: true });
   fs.writeFileSync(path.join(sdkDir, "package.json"), JSON.stringify({ name: "@anthropic-ai/claude-agent-sdk", version: agentSdk.version, claudeCodeVersion }));
-  fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "tarsee", dependencies: { "@openai/codex-sdk": codexSdk } }));
+  fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: "atlas", dependencies: { "@openai/codex-sdk": codexSdk } }));
   return dir;
 }
 /** Run one Dockerfile RUN step in sh, as the build would (ARGs are environment variables there). */
@@ -178,9 +178,9 @@ describe("Dockerfile: speech-to-text works on the first try", () => {
   const SRC_VOICE = path.join(ROOT, "src", "voice");
   const sttVersion = /export const FASTER_WHISPER_VERSION = "([\d.]+)"/.exec(read("src/voice/stt-install.js"))?.[1];
   const env = () => {
-    const step = RUNTIME.find((s) => s.op === "ENV" && /TARSEE_WHISPER_BUNDLED_DIR/.test(s.args));
-    assert.ok(step, "ENV TARSEE_WHISPER_BUNDLED_DIR, where speech-to-text finds the image's models");
-    return { i: RUNTIME.indexOf(step), dir: /TARSEE_WHISPER_BUNDLED_DIR[= ](\S+)/.exec(step.args)[1] };
+    const step = RUNTIME.find((s) => s.op === "ENV" && /ATLAS_WHISPER_BUNDLED_DIR/.test(s.args));
+    assert.ok(step, "ENV ATLAS_WHISPER_BUNDLED_DIR, where speech-to-text finds the image's models");
+    return { i: RUNTIME.indexOf(step), dir: /ATLAS_WHISPER_BUNDLED_DIR[= ](\S+)/.exec(step.args)[1] };
   };
 
   it("pins faster-whisper to the version Settings > Voice installs where there is no Docker", () => {
@@ -194,7 +194,7 @@ describe("Dockerfile: speech-to-text works on the first try", () => {
     assert.ok(path.posix.isAbsolute(dir));
     assert.ok(!/^\/data(\/|$)/.test(dir), `${dir}: Railway mounts the volume at /data, over anything the image put there`);
     const dl = runStep("whisper-models.js download");
-    assert.match(dl.cmd, /download base\.en "\$TARSEE_WHISPER_BUNDLED_DIR"/);
+    assert.match(dl.cmd, /download base\.en "\$ATLAS_WHISPER_BUNDLED_DIR"/);
     assert.ok(dl.i > runStep("pip3 install").i, "faster-whisper is installed first, for the check");
     assert.ok(envAt < dl.i);
     const default_ = /export const DEFAULT_WHISPER_MODEL = "([^"]+)"/.exec(read("src/voice/whisper-models.js"))?.[1];
@@ -229,7 +229,7 @@ describe("Dockerfile: speech-to-text works on the first try", () => {
     const models = path.join(tmp, "stt-image-models");
     const log = path.join(tmp, "stt-build.log");
     // The folders come from the environment (a path with an apostrophe breaks sh quoting). The two steps run in turn.
-    const cmd = [dl.cmd.replaceAll("/opt/tarsee/stt-build", "$STT_BUILD"), check.cmd.replaceAll("/opt/tarsee/stt-check", "$STT_CHECK")].join("\n");
+    const cmd = [dl.cmd.replaceAll("/opt/atlas/stt-build", "$STT_BUILD"), check.cmd.replaceAll("/opt/atlas/stt-check", "$STT_CHECK")].join("\n");
     const run = (pythonExit) => {
       for (const d of [build, checkDir]) { fs.rmSync(d, { recursive: true, force: true }); fs.mkdirSync(d, { recursive: true }); }
       fs.rmSync(log, { force: true });
@@ -237,7 +237,7 @@ describe("Dockerfile: speech-to-text works on the first try", () => {
         node: 'echo "node $* [$(cat package.json)]" >> "$STT_LOG"; mkdir -p "$4/$3"',
         python3: `echo "python3 HF_HUB_OFFLINE=$HF_HUB_OFFLINE $1 $2 ... \${4:-} \${5:-}" >> "$STT_LOG"; exit ${pythonExit}`,
       });
-      return runInSh(cmd, { bin, cwd: tmp, env: { STT_BUILD: posix(build), STT_CHECK: posix(checkDir), STT_LOG: posix(log), TARSEE_WHISPER_BUNDLED_DIR: posix(models) } });
+      return runInSh(cmd, { bin, cwd: tmp, env: { STT_BUILD: posix(build), STT_CHECK: posix(checkDir), STT_LOG: posix(log), ATLAS_WHISPER_BUNDLED_DIR: posix(models) } });
     };
     const ok = run(0);
     assert.equal(ok.status, 0, ok.stderr + ok.stdout);
@@ -353,7 +353,7 @@ describe("entrypoint.sh: the AI providers' sign-in folders", { skip: NO_SH }, ()
       'model = "a-model-the-terminal-chose"',
       'forced_login_method = "api"',
       "",
-      '[projects."/data/tarsee/workspace"]',
+      '[projects."/data/atlas/workspace"]',
       'trust_level = "trusted"',
       "",
     ].join("\n");
@@ -365,7 +365,7 @@ describe("entrypoint.sh: the AI providers' sign-in folders", { skip: NO_SH }, ()
     assert.equal(rootValue(plan, "model"), '"a-model-the-terminal-chose"', "Codex's own setting stays");
     assert.equal(rootValue(plan, "forced_login_method"), '"chatgpt"', "the plan home signs in with ChatGPT only");
     assert.equal(rootValue(plan, "cli_auth_credentials_store"), '"file"');
-    assert.match(plan, /\[projects\."\/data\/tarsee\/workspace"\]\r?\ntrust_level = "trusted"/, "the table and what's in it stay");
+    assert.match(plan, /\[projects\."\/data\/atlas\/workspace"\]\r?\ntrust_level = "trusted"/, "the table and what's in it stay");
     const shape = tomlShape(plan);
     for (const k of ["cli_auth_credentials_store", "check_for_update_on_startup", "forced_login_method"]) {
       assert.equal(shape.all.filter((x) => x === k).length, 1, `${k} once`);
@@ -441,13 +441,13 @@ function snapshot(dir) {
 const readIn = (dir, ...rel) => fs.readFileSync(path.join(dir, ...rel), "utf8");
 
 // Versions before multi-provider support (main, 7e5563d) kept the Claude plan's sign-in in
-// /data/tarsee/.claude-code-home whatever TARSEE_STATE_DIR said; this version keeps it in
-// $TARSEE_STATE_DIR/.claude-code-home. On the first boot after that upgrade, carry_plan_home moves it there once.
-describe("entrypoint.sh: an install upgraded from main with its own TARSEE_STATE_DIR keeps its Claude plan sign-in", { skip: NO_SH }, () => {
-  /** main's volume: <volume>/tarsee/.claude-code-home holding a sign-in and a chat's transcript, and no .codex-home. */
+// /data/atlas/.claude-code-home whatever ATLAS_STATE_DIR said; this version keeps it in
+// $ATLAS_STATE_DIR/.claude-code-home. On the first boot after that upgrade, carry_plan_home moves it there once.
+describe("entrypoint.sh: an install upgraded from main with its own ATLAS_STATE_DIR keeps its Claude plan sign-in", { skip: NO_SH }, () => {
+  /** main's volume: <volume>/atlas/.claude-code-home holding a sign-in and a chat's transcript, and no .codex-home. */
   function mainVolume(name) {
     const vol = path.join(tmp, `vol-${name}`);
-    const old = path.join(vol, "tarsee", ".claude-code-home");
+    const old = path.join(vol, "atlas", ".claude-code-home");
     fs.mkdirSync(path.join(old, "projects", "x"), { recursive: true });
     fs.writeFileSync(path.join(old, ".credentials.json"), '{"claudeAiOauth":{"note":"main\'s sign-in"}}');
     fs.writeFileSync(path.join(old, "projects", "x", "s.jsonl"), '{"type":"user","message":"from main"}\n');
@@ -540,14 +540,14 @@ describe("entrypoint.sh: an install upgraded from main with its own TARSEE_STATE
     assert.ok(said.includes(posix(path.join(old, ".credentials.json.superseded.2"))), `says where it is now: ${said}`);
   });
 
-  it("does nothing on the default layout (TARSEE_STATE_DIR is <volume>/tarsee), boot after boot, or on a new install", () => {
+  it("does nothing on the default layout (ATLAS_STATE_DIR is <volume>/atlas), boot after boot, or on a new install", () => {
     const { vol, old, home } = mainVolume("default");
     const before = snapshot(old);
-    assert.equal(boot(vol, path.join(vol, "tarsee"), home), "");
+    assert.equal(boot(vol, path.join(vol, "atlas"), home), "");
     assert.deepEqual(snapshot(old), before, "the plan home is as it was");
     assert.match(readIn(home, ".claude", ".credentials.json"), /main's sign-in/);
     const after1 = snapshot(vol);
-    assert.equal(boot(vol, path.join(vol, "tarsee"), home), "", "the next boot (now this version's own layout) says nothing either");
+    assert.equal(boot(vol, path.join(vol, "atlas"), home), "", "the next boot (now this version's own layout) says nothing either");
     assert.deepEqual(snapshot(vol), after1);
 
     const fresh = path.join(tmp, "vol-fresh");
@@ -562,7 +562,7 @@ describe("entrypoint.sh: an install upgraded from main with its own TARSEE_STATE
     const said = boot(vol, state, home);
     assert.deepEqual(snapshot(old), before, "the only copy of the sign-in stays on the volume");
     assert.equal(fs.existsSync(path.join(state, ".claude-code-home", ".credentials.json")), false);
-    assert.ok(said.includes(posix(old)) && /TARSEE_STATE_DIR/.test(said), `says where the sign-in is: ${said}`);
+    assert.ok(said.includes(posix(old)) && /ATLAS_STATE_DIR/.test(said), `says where the sign-in is: ${said}`);
   });
 
   it("leaves main's sign-in exactly as it is when a state folder off the volume is already signed in", () => {
@@ -577,14 +577,14 @@ describe("entrypoint.sh: an install upgraded from main with its own TARSEE_STATE
   });
 });
 
-// This version keeps everything, the Claude plan sign-in included, in $TARSEE_STATE_DIR. So once it has used
-// <volume>/tarsee as its state folder (every boot of it makes a .codex-home there; main never did), the plan home there
-// is that install's own, and a later change of TARSEE_STATE_DIR moves nothing out of it.
-describe("entrypoint.sh: changing TARSEE_STATE_DIR on this version moves no sign-in", { skip: NO_SH }, () => {
-  /** This version's default install: booted with <volume>/tarsee, then signed in to the Claude plan with one chat. */
+// This version keeps everything, the Claude plan sign-in included, in $ATLAS_STATE_DIR. So once it has used
+// <volume>/atlas as its state folder (every boot of it makes a .codex-home there; main never did), the plan home there
+// is that install's own, and a later change of ATLAS_STATE_DIR moves nothing out of it.
+describe("entrypoint.sh: changing ATLAS_STATE_DIR on this version moves no sign-in", { skip: NO_SH }, () => {
+  /** This version's default install: booted with <volume>/atlas, then signed in to the Claude plan with one chat. */
   function ownVolume(name) {
     const vol = path.join(tmp, `own-${name}`);
-    const own = path.join(vol, "tarsee");
+    const own = path.join(vol, "atlas");
     const home = path.join(tmp, `home-own-${name}`);
     fs.mkdirSync(home, { recursive: true });
     assert.equal(boot(vol, own, home), "", "the first boot");
@@ -603,7 +603,7 @@ describe("entrypoint.sh: changing TARSEE_STATE_DIR on this version moves no sign
     assert.deepEqual(snapshot(plan), before, "nothing moves out of it");
     assert.equal(fs.existsSync(path.join(other, ".claude-code-home", ".credentials.json")), false);
     assert.doesNotMatch(said, /moved the Claude plan sign-in/);
-    assert.ok(said.includes(posix(plan)) && said.includes(`TARSEE_STATE_DIR back to ${posix(own)}`), `says where the sign-in is and how to use it: ${said}`);
+    assert.ok(said.includes(posix(plan)) && said.includes(`ATLAS_STATE_DIR back to ${posix(own)}`), `says where the sign-in is and how to use it: ${said}`);
 
     assert.equal(boot(vol, own, home), "", "set back: nothing to say");
     assert.deepEqual(snapshot(plan), before);
@@ -654,11 +654,11 @@ describe("entrypoint.sh: start-up", () => {
     assert.ok(carry < setup, "before setup_provider_homes");
   });
   it("tells the server the state folder it set up, so the server reads the same sign-ins, keys and workspace", () => {
-    // Without it, a docker run with a volume (no TARSEE_STATE_DIR, no Railway) has the server in ~/.tarsee, off the
+    // Without it, a docker run with a volume (no ATLAS_STATE_DIR, no Railway) has the server in ~/.atlas, off the
     // volume, while CODEX_HOME and ~/.codex point at the volume (src/config/env.js resolveStateDir).
     const { start, end } = volumeBlock();
-    const exp = at(/^\s*export TARSEE_STATE_DIR="\$STATE_DIR"\s*$/);
-    assert.ok(exp > start && exp < end, "export TARSEE_STATE_DIR=\"$STATE_DIR\" when the volume is there (else the server keeps ~/.tarsee)");
+    const exp = at(/^\s*export ATLAS_STATE_DIR="\$STATE_DIR"\s*$/);
+    assert.ok(exp > start && exp < end, "export ATLAS_STATE_DIR=\"$STATE_DIR\" when the volume is there (else the server keeps ~/.atlas)");
     assert.ok(at(/^\s*exec gosu node node src\/server\.js\s*$/) > exp, "before the server starts");
   });
   it("exports CODEX_HOME (the ChatGPT plan home) before it drops to the node user", () => {

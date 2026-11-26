@@ -5,12 +5,12 @@ import path from "node:path";
 import { getRecommendedModel } from "./constants.js";
 
 // --- Port ---
-const PORT = Number.parseInt(process.env.PORT ?? process.env.TARSEE_PORT ?? "3000", 10);
+const PORT = Number.parseInt(process.env.PORT ?? process.env.ATLAS_PORT ?? "3000", 10);
 
 // --- Directories ---
-// Auto-detect Railway volume at /data — use it if available, else fall back to ~/.tarsee
+// Auto-detect Railway volume at /data — use it if available, else fall back to ~/.atlas
 function resolveStateDir() {
-  if (process.env.TARSEE_STATE_DIR?.trim()) return process.env.TARSEE_STATE_DIR.trim();
+  if (process.env.ATLAS_STATE_DIR?.trim()) return process.env.ATLAS_STATE_DIR.trim();
   // Railway: check if /data exists (volume mount point)
   if (process.env.RAILWAY_PROJECT_ID) {
     try {
@@ -18,19 +18,19 @@ function resolveStateDir() {
       const stat = fs.statSync("/data");
       if (stat.isDirectory()) {
         // Try to create our subdirectory to confirm writability
-        fs.mkdirSync("/data/tarsee", { recursive: true });
-        return "/data/tarsee";
+        fs.mkdirSync("/data/atlas", { recursive: true });
+        return "/data/atlas";
       }
     } catch {
       // /data doesn't exist or isn't accessible — volume not mounted
-      console.warn("[tarsee] /data not accessible — using ephemeral storage");
+      console.warn("[atlas] /data not accessible — using ephemeral storage");
     }
   }
-  return path.join(os.homedir(), ".tarsee");
+  return path.join(os.homedir(), ".atlas");
 }
 const STATE_DIR = resolveStateDir();
-const WORKSPACE_DIR = process.env.TARSEE_WORKSPACE_DIR?.trim() || path.join(STATE_DIR, "workspace");
-const DATA_DIR = process.env.TARSEE_DATA_DIR?.trim() || path.join(STATE_DIR, "data");
+const WORKSPACE_DIR = process.env.ATLAS_WORKSPACE_DIR?.trim() || path.join(STATE_DIR, "workspace");
+const DATA_DIR = process.env.ATLAS_DATA_DIR?.trim() || path.join(STATE_DIR, "data");
 
 // Ensure directories exist
 const SKILLS_DIR = path.join(WORKSPACE_DIR, "skills");
@@ -72,7 +72,7 @@ Be concise, direct, and helpful. Adapt your communication style to match the use
 - When a tool asks who approved (approved_by), give who said go, in their words.
 
 ## Keys: check the vault every time
-- Before any task that needs a key, token, password or login, check the vault yourself (the key list in your prompt, or tarsee_list_keys). Never ask the owner for a key, or say you don't have one, before checking.
+- Before any task that needs a key, token, password or login, check the vault yourself (the key list in your prompt, or atlas_list_keys). Never ask the owner for a key, or say you don't have one, before checking.
 - Only when the key isn't in the vault, ask the owner for it in one line.
 - Every vault key named in capitals is already in your environment: a script reads it by name (os.environ["OPENAI_API_KEY"], process.env.OPENAI_API_KEY). Never paste a key's value into a command, a file or a chat.
 `,
@@ -91,13 +91,13 @@ Be concise, direct, and helpful. Adapt your communication style to match the use
 <!-- This is injected into the system prompt so the bot knows what it can do -->
 
 ## Discord admin (channels, webhooks)
-- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work.
+- Make, edit or list Discord channels and webhooks with atlas_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work.
 - Get the go first and pass who said it, in their words, as approved_by. A new webhook is a credential, so it needs the owner's go.
 - create_webhook saves the URL in the vault (save_as_key) and shows only a masked URL. Never paste the full URL into a chat, a commit or a command.
 - Nothing in the tool deletes. Deleting a channel or a webhook is for the owner to do by hand in Discord.
 
 ## Railway (projects, variables, redeploys)
-- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).
+- List projects, services and variable names, set a variable or redeploy with atlas_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).
 - For anything secret, pass set_variable from_key (the vault key name), never value. The value is never shown, only a masked form.
 - Get the go first and pass who said it, in their words, as approved_by. Putting a secret into a service is handing out a credential, so it needs the owner's go.
 - On Railway, leaving out project means Atlas's own project and service. Redeploying Atlas's own service restarts it and ends the turn. Nothing in the tool deletes: deleting a variable or a service is for the owner to do by hand in Railway.
@@ -145,7 +145,7 @@ const SETUP_PASSWORD = process.env.SETUP_PASSWORD?.trim() || null;
 // --- API Token ---
 // Stable token for REST/WS API authentication. Persisted to disk if not in env.
 function resolveApiToken() {
-  const envTok = process.env.TARSEE_API_TOKEN?.trim();
+  const envTok = process.env.ATLAS_API_TOKEN?.trim();
   if (envTok) return envTok;
 
   const tokenPath = path.join(STATE_DIR, "api.token");
@@ -172,7 +172,7 @@ const API_TOKEN = resolveApiToken();
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY?.trim() || null;
 
 // --- Database path ---
-const DB_PATH = path.join(DATA_DIR, "tarsee.db");
+const DB_PATH = path.join(DATA_DIR, "atlas.db");
 
 // --- Claude Code Configuration ---
 const CLAUDE_WORKSPACE_DIR = process.env.CLAUDE_WORKSPACE_DIR?.trim() || WORKSPACE_DIR;
@@ -186,10 +186,10 @@ const CLAUDE_DEFAULT_MODEL = process.env.CLAUDE_DEFAULT_MODEL?.trim() || getReco
 // This used to be hardcoded to Asia/Manila in three places, which is wrong for
 // every user of an open-source project who does not happen to live there — a
 // German user asking for a 9am reminder silently got one at 3am. Resolve the
-// host zone (UTC on Railway unless the service sets TZ) and let TARSEE_TIMEZONE
+// host zone (UTC on Railway unless the service sets TZ) and let ATLAS_TIMEZONE
 // override it.
 function resolveTimezone() {
-  const configured = process.env.TARSEE_TIMEZONE?.trim();
+  const configured = process.env.ATLAS_TIMEZONE?.trim();
   const candidate = configured || Intl.DateTimeFormat().resolvedOptions().timeZone;
   if (!candidate) return "UTC";
   try {

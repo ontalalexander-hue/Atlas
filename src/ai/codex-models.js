@@ -161,7 +161,7 @@ const SIGN_IN_GONE = /refresh|sign in|signed out|log ?in|log out|expired|unautho
 
 /** initialize, then account/read, then every page of model/list. */
 async function converse(rpc) {
-  await rpc.request("initialize", { clientInfo: { name: "tarsee", title: "Atlas", version: VERSION } });
+  await rpc.request("initialize", { clientInfo: { name: "atlas", title: "Atlas", version: VERSION } });
   rpc.notify("initialized");
   let account;
   try {
@@ -249,7 +249,7 @@ const copyResult = (r) => structuredClone(r);
  * timeout, unsafe-config, codex-missing or error.
  *
  * opts: codexHome (required; the ChatGPT home), env (the server's environment; credentials are stripped from it),
- * codexBin (else TARSEE_CODEX_BIN, else the pinned binary), timeoutMs (20 s), maxAgeMs (how long an answer is kept;
+ * codexBin (else ATLAS_CODEX_BIN, else the pinned binary), timeoutMs (20 s), maxAgeMs (how long an answer is kept;
  * 5 minutes, 0 to always ask).
  */
 export async function readAccountModels({ codexHome, env, codexBin, timeoutMs = 20_000, maxAgeMs = DEFAULT_MAX_AGE_MS } = {}) {

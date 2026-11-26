@@ -58,7 +58,7 @@ const header = (raw, name) => {
 describe("email channel: what reaches the SMTP server (nodemailer 10)", () => {
   const smtp = fakeSmtp();
   let transport;
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-smtp-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-smtp-"));
   const cfg = normalizeConfig({
     imap: { host: "imap.test", user: "agent@example.com" },
     smtp: { host: "127.0.0.1", port: 0, user: "agent@example.com", password: "s3cret" },

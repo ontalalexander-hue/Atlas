@@ -10,10 +10,10 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-channel-connect-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-channel-connect-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 fs.mkdirSync(path.join(tmp, "workspace"), { recursive: true });
 
 const { initDb } = await import("../src/db/sqlite.js");
@@ -24,7 +24,7 @@ const { createWhatsAppBot, whapiIdentity } = await import("../src/channels/whats
 const { discordLoginError, discordInviteUrl, DISCORD_INVITE_PERMISSIONS } = await import("../src/channels/discord.js");
 const { createEmailBot, mailServerError } = await import("../src/channels/email.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 
 // The Console lines a test reads, kept instead of printed.
@@ -320,7 +320,7 @@ function refusingImap() {
 }
 
 describe("email says what to fix when the mail server refuses the login or can't be reached", () => {
-  const user = "tarsee@example.com";
+  const user = "atlas@example.com";
   const servers = [];
   const listen = async (server) => {
     servers.push(server);
@@ -384,12 +384,12 @@ describe("email says what to fix when the mail server refuses the login or can't
 describe("the channel manager's status", () => {
   it("names who each running channel connected as, and Discord's invite link, and nothing for one that is not running", () => {
     const mgr = new ChannelManager(db);
-    mgr.channels.set("discord", { type: "discord", status: "running", bot: { identity: "tarsee", inviteUrl: "https://discord.com/oauth2/authorize?client_id=1&scope=bot" } });
+    mgr.channels.set("discord", { type: "discord", status: "running", bot: { identity: "atlas", inviteUrl: "https://discord.com/oauth2/authorize?client_id=1&scope=bot" } });
     mgr.channels.set("whatsapp", { type: "whatsapp", status: "running", bot: { warning: "Saved, but couldn't check the token with WHAPI (timed out)." } });
     mgr.channels.set("slack", { type: "slack", status: "starting", bot: { identity: "@old in Old Team" } });
     mgr.channels.set("email", { type: "email", status: "error", error: "nope", bot: null });
     const s = mgr.getStatus();
-    assert.deepEqual(s.discord, { status: "running", error: null, identity: "tarsee", inviteUrl: "https://discord.com/oauth2/authorize?client_id=1&scope=bot", warning: null });
+    assert.deepEqual(s.discord, { status: "running", error: null, identity: "atlas", inviteUrl: "https://discord.com/oauth2/authorize?client_id=1&scope=bot", warning: null });
     assert.deepEqual(s.whatsapp, { status: "running", error: null, identity: null, inviteUrl: null, warning: "Saved, but couldn't check the token with WHAPI (timed out)." });
     assert.equal(s.slack.identity, null, "the old bot's name is not the new one's while it starts");
     assert.deepEqual(s.email, { status: "error", error: "nope", identity: null, inviteUrl: null, warning: null });

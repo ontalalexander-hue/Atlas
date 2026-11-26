@@ -19,13 +19,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-hb-approval-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-hb-approval-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 const API_TOKEN = "test-canary-api-token-000000000000";
-process.env.TARSEE_API_TOKEN = API_TOKEN;
-for (const name of ["TARSEE_AI_PROVIDER", "TARSEE_AI_MODEL", "TARSEE_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "TARSEE_LOCAL_AI_URL", "TARSEE_LOCAL_AI_KEY", "TARSEE_COMMIT_SHA"]) {
+process.env.ATLAS_API_TOKEN = API_TOKEN;
+for (const name of ["ATLAS_AI_PROVIDER", "ATLAS_AI_MODEL", "ATLAS_KEYS_ONLY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "ATLAS_LOCAL_AI_URL", "ATLAS_LOCAL_AI_KEY", "ATLAS_COMMIT_SHA"]) {
   delete process.env[name];
 }
 fs.mkdirSync(path.join(tmp, "workspace", "memory"), { recursive: true });
@@ -42,7 +42,7 @@ const { runBootChecklist } = await import("../src/lib/boot-runner.js");
 const { writeWorkspaceFile, invalidateCache } = await import("../src/lib/workspace-files.js");
 const { executeTool, TOOLS } = await import("../src/lib/tools.js");
 const { buildSystemPromptParts } = await import("../src/lib/build-system-prompt.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
 const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
 const { ALLOWED_COMMANDS } = await import("../src/routes/debug.js");
@@ -50,7 +50,7 @@ const { sessionAuth, requireAuth, createSession, initSessionStore } = await impo
 const { csrfProtect, generateCsrfCookie } = await import("../src/middleware/security.js");
 const { settingsRouter } = await import("../src/routes/settings.js");
 
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 initLiveBus(db);
 initSessionStore(db);
 const settings = new SettingsStore(db);
@@ -126,9 +126,9 @@ async function serve() {
   app.use("/api/automation-approval", requireAuth, csrfProtect, automationApprovalRouter);
   server = await new Promise((r) => { const s = app.listen(0, "127.0.0.1", () => r(s)); });
   base = `http://127.0.0.1:${server.address().port}`;
-  sessionCookie = `tarsee_session=${createSession("127.0.0.1")}`;
+  sessionCookie = `atlas_session=${createSession("127.0.0.1")}`;
   const page = await fetch(`${base}/page`);
-  csrfToken = /tarsee_csrf=([^;]+)/.exec(page.headers.get("set-cookie") || "")?.[1];
+  csrfToken = /atlas_csrf=([^;]+)/.exec(page.headers.get("set-cookie") || "")?.[1];
   assert.ok(csrfToken, "the page set a CSRF cookie");
 }
 
@@ -475,17 +475,17 @@ describe("what the AI and the owner are told", () => {
 
   it("the file tools' descriptions say so, on both engines' tools", async () => {
     const ownTool = TOOLS.find((t) => t.name === "write_file").description;
-    const mcp = createTarseeMcp({ db, settingsStore: settings, conversationId: null }, { quiet: true });
+    const mcp = createAtlasMcp({ db, settingsStore: settings, conversationId: null }, { quiet: true });
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    const client = new Client({ name: "tarsee-test", version: "1.0.0" }, { capabilities: {} });
+    const client = new Client({ name: "atlas-test", version: "1.0.0" }, { capabilities: {} });
     await Promise.all([mcp.instance.connect(serverSide), client.connect(clientSide)]);
     let mcpTool;
     try {
-      mcpTool = (await client.listTools()).tools.find((t) => t.name === "tarsee_write_file")?.description;
+      mcpTool = (await client.listTools()).tools.find((t) => t.name === "atlas_write_file")?.description;
     } finally {
       await client.close();
     }
-    for (const [which, d] of [["write_file", ownTool], ["tarsee_write_file", mcpTool]]) {
+    for (const [which, d] of [["write_file", ownTool], ["atlas_write_file", mcpTool]]) {
       assert.match(String(d), /HEARTBEAT\.md/, which);
       assert.match(String(d), /BOOT\.md/, which);
       assert.match(String(d), /doesn't run until the owner OKs it in Settings > Automation \(Let it run; for BOOT\.md, Run at each restart\)/, `${which}: ${d}`);

@@ -1,4 +1,4 @@
-// Reading PDFs (src/lib/pdf-text.js): the pdf_read tool through executeTool, the tarsee_pdf_read MCP tool that calls
+// Reading PDFs (src/lib/pdf-text.js): the pdf_read tool through executeTool, the atlas_pdf_read MCP tool that calls
 // it (design 4.9), and the two readers behind both: pdftotext (poppler-utils, in the Docker image) and the built-in
 // reader used when pdftotext is not installed. The PDFs are built by the test (fixtures/make-pdf.js). Nothing leaves
 // the machine: the web-address cases run against a server on 127.0.0.1.
@@ -10,10 +10,10 @@ import path from "node:path";
 import http from "node:http";
 import { execFileSync } from "node:child_process";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-pdf-read-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-pdf-read-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 delete process.env.CLAUDE_WORKSPACE_DIR;
 
 const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
@@ -23,13 +23,13 @@ const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
 const { getSecurityManager } = await import("../src/lib/security-manager.js");
 const { executeTool, TOOLS } = await import("../src/lib/tools.js");
-const { createTarseeMcp } = await import("../src/ai/tarsee-mcp.js");
+const { createAtlasMcp } = await import("../src/ai/atlas-mcp.js");
 const pdf = await import("../src/lib/pdf-text.js");
 
-const workspace = process.env.TARSEE_WORKSPACE_DIR;
+const workspace = process.env.ATLAS_WORKSPACE_DIR;
 const uploads = path.join(workspace, "uploads");
 fs.mkdirSync(uploads, { recursive: true });
-const db = initDb(path.join(tmp, "tarsee.db"));
+const db = initDb(path.join(tmp, "atlas.db"));
 const settings = new SettingsStore(db);
 const ctx = { db, settingsStore: settings };
 
@@ -335,16 +335,16 @@ describe("pdf_read from a web address", () => {
   });
 });
 
-describe("tarsee_pdf_read (MCP)", () => {
+describe("atlas_pdf_read (MCP)", () => {
   /** Connect an MCP client to the Atlas server, call a tool and return its text; or list the tools. */
   async function withClient(fn) {
-    const server = createTarseeMcp(ctx);
+    const server = createAtlasMcp(ctx);
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
-    const client = new Client({ name: "tarsee-test", version: "1.0.0" }, { capabilities: {} });
+    const client = new Client({ name: "atlas-test", version: "1.0.0" }, { capabilities: {} });
     await Promise.all([server.instance.connect(serverSide), client.connect(clientSide)]);
     try { return await fn(client); } finally { await client.close(); }
   }
-  const call = (args) => withClient(async (c) => (await c.callTool({ name: "tarsee_pdf_read", arguments: args })).content.map((x) => x.text).join("\n"));
+  const call = (args) => withClient(async (c) => (await c.callTool({ name: "atlas_pdf_read", arguments: args })).content.map((x) => x.text).join("\n"));
 
   beforeEach(() => {
     pdf.__setPdftotextForTests(null);
@@ -353,8 +353,8 @@ describe("tarsee_pdf_read (MCP)", () => {
 
   it("is listed with path required and pages optional", async () => {
     const tools = await withClient((c) => c.listTools());
-    const t = tools.tools.find((x) => x.name === "tarsee_pdf_read");
-    assert.ok(t, "tarsee_pdf_read is not listed");
+    const t = tools.tools.find((x) => x.name === "atlas_pdf_read");
+    assert.ok(t, "atlas_pdf_read is not listed");
     assert.deepEqual(t.inputSchema.required, ["path"]);
     assert.ok(t.inputSchema.properties.pages);
   });

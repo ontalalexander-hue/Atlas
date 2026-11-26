@@ -13,10 +13,10 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-provider-models-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-provider-models-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -110,7 +110,7 @@ describe("provider /models: where the key goes", () => {
 
   it("ignores the test-only address outside tests", async () => {
     const f = recordingFetch({ data: [] });
-    await listProviderModels("openai", { key: OPENAI_KEY, env: { TARSEE_TEST_BASE_URL_OPENAI: "http://127.0.0.1:9/v1" }, fetch: f });
+    await listProviderModels("openai", { key: OPENAI_KEY, env: { ATLAS_TEST_BASE_URL_OPENAI: "http://127.0.0.1:9/v1" }, fetch: f });
     assert.equal(f.calls[0].url, "https://api.openai.com/v1/models");
   });
 
@@ -154,7 +154,7 @@ describe("provider /models: reading the answers (against a loopback server)", ()
     beforeEach(async () => { await server?.close(); server = null; });
     after(async () => { await server?.close(); });
   }
-  const testEnv = (id, url) => ({ NODE_ENV: "test", [`TARSEE_TEST_BASE_URL_${id.toUpperCase()}`]: url });
+  const testEnv = (id, url) => ({ NODE_ENV: "test", [`ATLAS_TEST_BASE_URL_${id.toUpperCase()}`]: url });
 
   it("narrows OpenAI's table to what the key lists", async () => {
     server = await fakeModels({ body: { object: "list", data: [{ id: "gpt-6.1-sol", object: "model" }, { id: "gpt-6-luna" }, { id: "text-embedding-3-large" }] } });
@@ -260,10 +260,10 @@ describe("ensureLocalModels: Local AI's list after a restart (nothing has opened
   beforeEach(() => { forgetLocalModelsRead(); });
   after(async () => { await server?.close(); });
 
-  it("reads the server's models once, at the address in Settings or TARSEE_LOCAL_AI_URL; a list that is there is kept", async () => {
+  it("reads the server's models once, at the address in Settings or ATLAS_LOCAL_AI_URL; a list that is there is kept", async () => {
     server = await fakeModels({ body: { data: [{ id: "llama3.1:8b" }, { id: "qwen3" }] } });
     const store = freshStore();
-    const env = { TARSEE_LOCAL_AI_URL: server.url };
+    const env = { ATLAS_LOCAL_AI_URL: server.url };
     const [a, b] = await Promise.all([ensureLocalModels(store, { env }), ensureLocalModels(store, { env })]);
     assert.deepEqual(a.map((m) => m.id), ["llama3.1:8b", "qwen3"]);
     assert.deepEqual(b.map((m) => m.id), ["llama3.1:8b", "qwen3"]);
@@ -274,14 +274,14 @@ describe("ensureLocalModels: Local AI's list after a restart (nothing has opened
     // The address in Settings wins over the variable.
     registry.setCatalogModels("local-models", []);
     store.set("ai.local.baseUrl", server.url);
-    await ensureLocalModels(store, { env: { TARSEE_LOCAL_AI_URL: "http://127.0.0.1:9/v1" } });
+    await ensureLocalModels(store, { env: { ATLAS_LOCAL_AI_URL: "http://127.0.0.1:9/v1" } });
     assert.equal(server.requests.length, 2);
   });
 
   it("no address, or one that isn't plain http(s): nothing is asked", async () => {
     const fetch = recordingFetch({ data: [{ id: "x" }] });
     assert.deepEqual(await ensureLocalModels(freshStore(), { env: {}, fetch }), []);
-    assert.deepEqual(await ensureLocalModels(freshStore(), { env: { TARSEE_LOCAL_AI_URL: "ftp://box/v1" }, fetch }), []);
+    assert.deepEqual(await ensureLocalModels(freshStore(), { env: { ATLAS_LOCAL_AI_URL: "ftp://box/v1" }, fetch }), []);
     assert.equal(fetch.calls.length, 0);
   });
 
@@ -290,12 +290,12 @@ describe("ensureLocalModels: Local AI's list after a restart (nothing has opened
     const calls = [];
     const fetch = async (url) => { calls.push(String(url)); throw Object.assign(new TypeError("fetch failed"), { cause: { code: "ECONNREFUSED" } }); };
     const store = freshStore();
-    const env = { TARSEE_LOCAL_AI_URL: "http://127.0.0.1:9/v1" };
+    const env = { ATLAS_LOCAL_AI_URL: "http://127.0.0.1:9/v1" };
     assert.deepEqual(await ensureLocalModels(store, { env, fetch, now: () => now }), []);
     assert.deepEqual(await ensureLocalModels(store, { env, fetch, now: () => now + 30_000 }), []);
     assert.equal(calls.length, 1);
     // Another address is asked at once (the owner fixed it).
-    await ensureLocalModels(store, { env: { TARSEE_LOCAL_AI_URL: "http://127.0.0.1:10/v1" }, fetch, now: () => now + 31_000 });
+    await ensureLocalModels(store, { env: { ATLAS_LOCAL_AI_URL: "http://127.0.0.1:10/v1" }, fetch, now: () => now + 31_000 });
     assert.equal(calls.length, 2);
     now += 61_000;
     await ensureLocalModels(store, { env, fetch, now: () => now });

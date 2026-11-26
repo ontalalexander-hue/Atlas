@@ -3,8 +3,8 @@
 // av.open(..., metadata_errors="ignore"), which newer PyAV (pip installs the newest) no longer takes, so every real
 // recording failed while a blank array (the Docker build's old check) still worked. Runs only when these are set,
 // skipped otherwise:
-//   TARSEE_TEST_STT_PYTHON  a Python with faster-whisper (e.g. <state>/python/stt-venv/Scripts/python.exe)
-//   TARSEE_TEST_STT_MODEL   a downloaded model folder (e.g. <state>/data/whisper-models/base.en)
+//   ATLAS_TEST_STT_PYTHON  a Python with faster-whisper (e.g. <state>/python/stt-venv/Scripts/python.exe)
+//   ATLAS_TEST_STT_MODEL   a downloaded model folder (e.g. <state>/data/whisper-models/base.en)
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -13,10 +13,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PY = process.env.TARSEE_TEST_STT_PYTHON;
-const MODEL = process.env.TARSEE_TEST_STT_MODEL;
+const PY = process.env.ATLAS_TEST_STT_PYTHON;
+const MODEL = process.env.ATLAS_TEST_STT_MODEL;
 const WORKER = fileURLToPath(new URL("../src/voice/stt_worker.py", import.meta.url));
-const skip = PY && MODEL && fs.existsSync(PY) && fs.existsSync(MODEL) ? false : "set TARSEE_TEST_STT_PYTHON and TARSEE_TEST_STT_MODEL";
+const skip = PY && MODEL && fs.existsSync(PY) && fs.existsSync(MODEL) ? false : "set ATLAS_TEST_STT_PYTHON and ATLAS_TEST_STT_MODEL";
 
 /** A mono 16-bit WAV: a second of a 440 Hz tone, then half a second of silence. */
 function toneWav(file, rate = 16000) {
@@ -56,11 +56,11 @@ function runWorker(files) {
 
 describe("the speech-to-text worker with a real Python, faster-whisper and PyAV", { skip }, () => {
   it("transcribes real recordings, a WAV and a WebM like the browser's, whatever PyAV version pip installed", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-stt-real-"));
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-stt-real-"));
     const wav = path.join(dir, "tone.wav");
     toneWav(wav);
     const files = [wav];
-    if (process.env.TARSEE_TEST_STT_SPEECH) files.push(process.env.TARSEE_TEST_STT_SPEECH);
+    if (process.env.ATLAS_TEST_STT_SPEECH) files.push(process.env.ATLAS_TEST_STT_SPEECH);
     const [ready, ...replies] = await runWorker(files);
     assert.equal(ready.ready, true, JSON.stringify(ready));
     for (const r of replies) {
@@ -68,6 +68,6 @@ describe("the speech-to-text worker with a real Python, faster-whisper and PyAV"
       assert.equal(typeof r.text, "string");
       assert.ok(r.duration > 1, `the audio's length was read: ${r.duration}`);
     }
-    if (process.env.TARSEE_TEST_STT_SPEECH) assert.match(replies[1].text.toLowerCase(), /bank/, `the words were heard: "${replies[1].text}"`);
+    if (process.env.ATLAS_TEST_STT_SPEECH) assert.match(replies[1].text.toLowerCase(), /bank/, `the words were heard: "${replies[1].text}"`);
   });
 });

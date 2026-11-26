@@ -18,7 +18,7 @@ const FIXTURES = path.join(here, "fixtures", "fake-codex-login");
 let root;
 let fakeBin;
 before(() => {
-  root = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-codex-cli-"));
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-codex-cli-"));
   fs.cpSync(FIXTURES, path.join(root, "bin"), { recursive: true });
   fakeBin = path.join(root, "bin", process.platform === "win32" ? "codex.cmd" : "codex");
   if (process.platform !== "win32") fs.chmodSync(fakeBin, 0o755);
@@ -50,9 +50,9 @@ describe("codex-cli", () => {
     await killTree(child);
   });
 
-  it("which codex: an explicit path, then TARSEE_CODEX_BIN, then the pinned binary; a missing one is said plainly", () => {
+  it("which codex: an explicit path, then ATLAS_CODEX_BIN, then the pinned binary; a missing one is said plainly", () => {
     assert.equal(resolveCodexBin({ codexBin: fakeBin, env: {} }), fakeBin);
-    assert.equal(resolveCodexBin({ env: { TARSEE_CODEX_BIN: fakeBin } }), fakeBin);
+    assert.equal(resolveCodexBin({ env: { ATLAS_CODEX_BIN: fakeBin } }), fakeBin);
     assert.throws(() => resolveCodexBin({ codexBin: path.join(root, "nope"), env: {} }), (err) => err instanceof CodexCliError && err.code === "codex-missing");
     assert.throws(() => pinnedCodexBin({ platform: "plan9", arch: "x64" }), { code: "codex-missing" });
     let pinned = null;
@@ -64,8 +64,8 @@ describe("codex-cli", () => {
     const env = codexChildEnv({
       PATH: "/usr/bin", OPENAI_API_KEY: "sk-test-canary-1", CODEX_API_KEY: "sk-test-canary-2", CODEX_HOME: "/elsewhere",
       OPENAI_BASE_URL: "https://example.test", ENCRYPTION_KEY: "x", ANTHROPIC_API_KEY: "sk-test-canary-3", LANG: "C.UTF-8",
-    }, "/data/tarsee/.codex-home", { RUST_LOG: "error" });
-    assert.deepEqual(env, { PATH: "/usr/bin", LANG: "C.UTF-8", RUST_LOG: "error", CODEX_HOME: "/data/tarsee/.codex-home" });
+    }, "/data/atlas/.codex-home", { RUST_LOG: "error" });
+    assert.deepEqual(env, { PATH: "/usr/bin", LANG: "C.UTF-8", RUST_LOG: "error", CODEX_HOME: "/data/atlas/.codex-home" });
   });
 
   it("stripAnsi leaves only the words", () => {

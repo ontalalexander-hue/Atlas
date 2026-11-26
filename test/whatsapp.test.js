@@ -7,11 +7,11 @@ import os from "node:os";
 import fs from "node:fs";
 import crypto from "node:crypto";
 
-// Isolate everything to a temp dir so we don't touch ~/.tarsee
-const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-whapi-test-"));
-process.env.TARSEE_STATE_DIR = TMP_DIR;
-process.env.TARSEE_WORKSPACE_DIR = path.join(TMP_DIR, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(TMP_DIR, "data");
+// Isolate everything to a temp dir so we don't touch ~/.atlas
+const TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-whapi-test-"));
+process.env.ATLAS_STATE_DIR = TMP_DIR;
+process.env.ATLAS_WORKSPACE_DIR = path.join(TMP_DIR, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(TMP_DIR, "data");
 process.env.ENCRYPTION_KEY = "test-key-for-unit-tests-only-32chars!";
 
 const { splitMessage, getChannelKey, isDirectMessage, normalizeWhatsappId, isAllowlisted } = await import("../src/channels/whatsapp.js");

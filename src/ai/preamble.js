@@ -1,8 +1,8 @@
 /**
  * preamble.js: the head of every agent turn's system prompt (design 4.2), moved out of providers/claude-code.js.
  *
- * It tells the agent what it is, which of Atlas's own tools it has (the tarsee MCP server's tools, named
- * mcp__tarsee__tarsee_<name> on both engines), how to use memory, which command-line tools the server has and where
+ * It tells the agent what it is, which of Atlas's own tools it has (the atlas MCP server's tools, named
+ * mcp__atlas__atlas_<name> on both engines), how to use memory, which command-line tools the server has and where
  * the skills and the workspace are. The text before the move went with every Claude Code turn; it is kept exactly
  * (test/preamble.test.js). Codex gets the same text with Codex's own tools in it: it runs commands with
  * `exec_command` and edits files with `apply_patch` (on its gpt-6.1 models both, and Atlas's tools, are called from
@@ -26,7 +26,7 @@ function words(engine) {
       // How the pinned codex 0.167 offers tools, by model (seen in its requests): gpt-6.1-* get one JavaScript `exec`
       // tool and reach every other tool from inside it as tools.<name>() (ALL_TOOLS lists them); gpt-5.5 gets
       // Atlas's tools behind tool_search; a model Codex doesn't know gets them listed outright. None can be switched.
-      toolsNote: "\nIf these tools aren't in your tool list, call them from the exec tool as `await tools.mcp__tarsee__tarsee_<name>({...})` (ALL_TOOLS lists them), or find them with tool_search where that tool is offered.",
+      toolsNote: "\nIf these tools aren't in your tool list, call them from the exec tool as `await tools.mcp__atlas__atlas_<name>({...})` (ALL_TOOLS lists them), or find them with tool_search where that tool is offered.",
     };
   }
   return {
@@ -45,7 +45,7 @@ export function buildPreamble({ engine = "claude-code", cwd, timezone = config.T
   const w = words(engine);
   return `You ARE Atlas — a headless AI agent running 24/7 on a server.
 
-## MCP Tools (call as mcp__tarsee__tarsee_<name>)${w.toolsNote}
+## MCP Tools (call as mcp__atlas__atlas_<name>)${w.toolsNote}
 - **send_message**(channel, message, channel_id) — push to Telegram/Discord/WhatsApp/Slack/web
 - **send_file**(channel, file_path, caption?, channel_id?) — send a file as a real attachment to Telegram/Discord/WhatsApp/Slack or a dashboard chat (web); with no channel_id it goes to the chat you are in. When someone asks for a file, send it: never answer with a folder path or say the channel can't take files
 - **schedule_task**(id, schedule, prompt, channel?, once?, action?) — create cron jobs

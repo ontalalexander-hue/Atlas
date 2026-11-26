@@ -104,7 +104,7 @@ describe("provider registry: entries", () => {
     assert.equal(PROVIDERS.openai.envKey, "OPENAI_API_KEY");
     assert.equal(PROVIDERS.openrouter.envKey, "OPENROUTER_API_KEY");
     assert.equal(PROVIDERS.deepseek.envKey, "DEEPSEEK_API_KEY");
-    assert.equal(PROVIDERS.local.envKey, "TARSEE_LOCAL_AI_KEY");
+    assert.equal(PROVIDERS.local.envKey, "ATLAS_LOCAL_AI_KEY");
   });
 
   it("is frozen, so nothing at runtime can point a key at another host", () => {
@@ -177,16 +177,16 @@ describe("activeProviderId", () => {
     assert.equal(activeProviderId(store({ "ai.activeProvider": "claude-code" }), { env: NO_ENV }), "claude");
   });
 
-  it("takes TARSEE_AI_PROVIDER when Settings has none", () => {
-    assert.equal(activeProviderId(store(), { env: { TARSEE_AI_PROVIDER: "claude" } }), "claude");
-    assert.equal(activeProviderId(store(), { env: { TARSEE_AI_PROVIDER: "claude-code" } }), "claude");
+  it("takes ATLAS_AI_PROVIDER when Settings has none", () => {
+    assert.equal(activeProviderId(store(), { env: { ATLAS_AI_PROVIDER: "claude" } }), "claude");
+    assert.equal(activeProviderId(store(), { env: { ATLAS_AI_PROVIDER: "claude-code" } }), "claude");
   });
 
   it("falls back to the Claude plan for a provider that is not shipped", () => {
     const onlyClaude = (id) => id === "claude";
     for (const id of ALL_IDS.filter((x) => x !== "claude")) {
       assert.equal(activeProviderId(store({ "ai.activeProvider": id }), { env: NO_ENV, isShipped: onlyClaude }), "claude", `setting ${id}`);
-      assert.equal(activeProviderId(store(), { env: { TARSEE_AI_PROVIDER: id }, isShipped: onlyClaude }), "claude", `env ${id}`);
+      assert.equal(activeProviderId(store(), { env: { ATLAS_AI_PROVIDER: id }, isShipped: onlyClaude }), "claude", `env ${id}`);
       assert.equal(activeProviderId(store({ "ai.activeProvider": id }), { env: NO_ENV }), id, `shipped: ${id}`);
     }
     assert.equal(activeProviderId(store({ "ai.activeProvider": "gemini" }), { env: NO_ENV }), "claude");
@@ -198,24 +198,24 @@ describe("activeProviderId", () => {
       OPENAI_API_KEY: "sk-test-canary-openai-0000",
       DEEPSEEK_API_KEY: "sk-test-canary-deepseek-0000",
       ANTHROPIC_API_KEY: "sk-ant-api03-test-canary-0000",
-      TARSEE_LOCAL_AI_URL: "http://127.0.0.1:11434/v1",
+      ATLAS_LOCAL_AI_URL: "http://127.0.0.1:11434/v1",
     };
     assert.equal(activeProviderId(store(), { env }), "claude");
     // Even with every provider shipped, key presence alone never chooses one.
     assert.equal(activeProviderId(store(), { env, isShipped: () => true }), "claude");
   });
 
-  it("prefers the Settings value over TARSEE_AI_PROVIDER once both name shipped providers", () => {
+  it("prefers the Settings value over ATLAS_AI_PROVIDER once both name shipped providers", () => {
     const all = () => true;
-    assert.equal(activeProviderId(store({ "ai.activeProvider": "deepseek" }), { env: { TARSEE_AI_PROVIDER: "openai" }, isShipped: all }), "deepseek");
-    assert.equal(activeProviderId(store(), { env: { TARSEE_AI_PROVIDER: "openai" }, isShipped: all }), "openai");
+    assert.equal(activeProviderId(store({ "ai.activeProvider": "deepseek" }), { env: { ATLAS_AI_PROVIDER: "openai" }, isShipped: all }), "deepseek");
+    assert.equal(activeProviderId(store(), { env: { ATLAS_AI_PROVIDER: "openai" }, isShipped: all }), "openai");
   });
 
   it("reads process.env when no env is passed", () => {
-    const before = process.env.TARSEE_AI_PROVIDER;
-    process.env.TARSEE_AI_PROVIDER = "deepseek";
+    const before = process.env.ATLAS_AI_PROVIDER;
+    process.env.ATLAS_AI_PROVIDER = "deepseek";
     try { assert.equal(activeProviderId(store()), "deepseek"); }
-    finally { if (before === undefined) delete process.env.TARSEE_AI_PROVIDER; else process.env.TARSEE_AI_PROVIDER = before; }
+    finally { if (before === undefined) delete process.env.ATLAS_AI_PROVIDER; else process.env.ATLAS_AI_PROVIDER = before; }
   });
 
   it("survives a store that throws", () => {
@@ -236,11 +236,11 @@ describe("keysOnly", () => {
     for (const off of [false, "false", "0", 0, null, ""]) assert.equal(keysOnly(store({ "ai.keysOnly": off }), { env: NO_ENV }), false, String(off));
   });
 
-  it("is locked on by TARSEE_KEYS_ONLY=1 whatever the setting says", () => {
-    assert.equal(keysOnly(store({ "ai.keysOnly": false }), { env: { TARSEE_KEYS_ONLY: "1" } }), true);
-    assert.equal(keysOnlyLocked({ TARSEE_KEYS_ONLY: "1" }), true);
-    assert.equal(keysOnlyLocked({ TARSEE_KEYS_ONLY: "0" }), false);
-    assert.equal(keysOnly(store({ "ai.keysOnly": false }), { env: { TARSEE_KEYS_ONLY: "0" } }), false);
+  it("is locked on by ATLAS_KEYS_ONLY=1 whatever the setting says", () => {
+    assert.equal(keysOnly(store({ "ai.keysOnly": false }), { env: { ATLAS_KEYS_ONLY: "1" } }), true);
+    assert.equal(keysOnlyLocked({ ATLAS_KEYS_ONLY: "1" }), true);
+    assert.equal(keysOnlyLocked({ ATLAS_KEYS_ONLY: "0" }), false);
+    assert.equal(keysOnly(store({ "ai.keysOnly": false }), { env: { ATLAS_KEYS_ONLY: "0" } }), false);
   });
 });
 

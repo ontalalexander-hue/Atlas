@@ -45,7 +45,7 @@ export const STANDALONE_PYTHON = Object.freeze({
 });
 
 const OWN_LABEL = "Atlas's own Python";
-const MARKER = "tarsee-python.json";
+const MARKER = "atlas-python.json";
 
 let _spawn = spawn;
 let _candidates = null;
@@ -209,7 +209,7 @@ const PROBE = [
   "    r['fasterWhisper'] = getattr(faster_whisper, '__version__', 'unknown')",
   "except Exception as e:",
   "    r['fasterWhisperError'] = (type(e).__name__ + ': ' + str(e))[:300]",
-  "print('TARSEE-PROBE ' + json.dumps(r))",
+  "print('ATLAS-PROBE ' + json.dumps(r))",
 ].join("\n");
 
 const cmpVer = (a, b) => (a[0] - b[0]) || (a[1] - b[1]);
@@ -234,9 +234,9 @@ export async function probePython(ref, { timeout = 30_000 } = {}) {
     }
     return { ...base, found: true, problem: `did not run (${err.message})` };
   }
-  const line = stdout.split(/\r?\n/).find((l) => l.startsWith("TARSEE-PROBE "));
+  const line = stdout.split(/\r?\n/).find((l) => l.startsWith("ATLAS-PROBE "));
   let r;
-  try { r = JSON.parse(line.slice("TARSEE-PROBE ".length)); } catch { return { ...base, found: true, problem: "did not answer like a Python does" }; }
+  try { r = JSON.parse(line.slice("ATLAS-PROBE ".length)); } catch { return { ...base, found: true, problem: "did not answer like a Python does" }; }
   const v = Array.isArray(r.version) ? r.version.map(Number) : [0, 0, 0];
   const version = v.join(".");
   const res = { ...base, found: true, version, executable: r.executable || null, venv: !!r.venv, fasterWhisper: r.fasterWhisper || null };
@@ -249,7 +249,7 @@ export async function probePython(ref, { timeout = 30_000 } = {}) {
 /** Every Python found: Atlas's own first (when there), then this computer's, without repeats. */
 export async function findPythons({ pin = STANDALONE_PYTHON } = {}) {
   const list = [];
-  if (standaloneReady(pin)) list.push({ cmd: interpreterIn(standaloneDir(pin)), args: [], source: "tarsee", label: OWN_LABEL });
+  if (standaloneReady(pin)) list.push({ cmd: interpreterIn(standaloneDir(pin)), args: [], source: "atlas", label: OWN_LABEL });
   list.push(...(_candidates || systemCandidates()));
   const probes = await Promise.all(list.map((ref) => probePython(ref)));
   const seen = new Set();
@@ -285,7 +285,7 @@ export async function ensureBasePython(opts = {}) {
 
 // ── The standalone download ──────────────────────────────────────────────
 
-/** Download, check, unpack and run once the pinned standalone CPython. Resolves with its probe (source "tarsee"). */
+/** Download, check, unpack and run once the pinned standalone CPython. Resolves with its probe (source "atlas"). */
 export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDALONE_PYTHON, onProgress, log = () => {}, retryDelayMs = 1000 } = {}) {
   const target = pythonTarget();
   if (target.error) throw new Error(`Atlas can't download Python for this computer: ${target.error}.`);
@@ -360,7 +360,7 @@ export async function downloadStandalonePython({ fetch: fetchImpl, pin = STANDAL
   cleanDownloads(downloads, file);
 
   // 5. Run it once (the only thing from a download Atlas ever runs is this interpreter).
-  const probe = await probePython({ cmd: interpreterIn(dir), args: [], source: "tarsee", label: OWN_LABEL });
+  const probe = await probePython({ cmd: interpreterIn(dir), args: [], source: "atlas", label: OWN_LABEL });
   if (!probe.usable) {
     fs.rmSync(dir, { recursive: true, force: true });
     throw new Error(`The downloaded Python did not run (${probe.problem}).`);

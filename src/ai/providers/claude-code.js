@@ -8,7 +8,7 @@
  *   openrouter  OpenRouter's Anthropic-compatible endpoint, anthropic/* models
  *
  * Claude Code runs its own tool loop (Read, Write, Edit, Bash, Glob, Grep and Atlas's own tools through the in-process
- * tarsee MCP server); this module streams what it does as Atlas events. The engine-neutral wrapper (the live timeline,
+ * atlas MCP server); this module streams what it does as Atlas events. The engine-neutral wrapper (the live timeline,
  * Stop, the chat's model and effort, the queued-message note, sessions and hand-offs) is src/ai/turn.js.
  *
  *   run(opts)                         the engine: an async generator of Atlas events (see run() below)
@@ -51,9 +51,9 @@ export const BUNDLED_SKILLS_DIR = fileURLToPath(new URL("../../skills", import.m
 /** The providers this engine runs. */
 export const CLAUDE_ENGINE_PROVIDERS = Object.freeze(["claude", "anthropic", "deepseek", "openrouter"]);
 
-/** The built-in tools every provider gets, plus Atlas's own (without the mcp__tarsee__* entry the SDK filters them out). */
+/** The built-in tools every provider gets, plus Atlas's own (without the mcp__atlas__* entry the SDK filters them out). */
 export const BUILTIN_TOOLS = Object.freeze(["Read", "Write", "Edit", "Bash", "Glob", "Grep"]);
-const ALL_TOOLS = Object.freeze([...BUILTIN_TOOLS, "mcp__tarsee__*"]);
+const ALL_TOOLS = Object.freeze([...BUILTIN_TOOLS, "mcp__atlas__*"]);
 
 /**
  * R6: the apiKeySource the CLI may report on its init message for each provider, recorded with fake credentials
@@ -149,7 +149,7 @@ function systemPromptFor({ preamble, systemPrompt, systemParts }) {
  *   resume            the raw session id to resume (run() leaves it out past the transcript cap)
  *   key               the provider's key (anthropic, deepseek, openrouter)
  *   cwd               the workspace (default config.CLAUDE_WORKSPACE_DIR)
- *   mcpServer         the in-process tarsee MCP server (createTarseeMcp)
+ *   mcpServer         the in-process atlas MCP server (createAtlasMcp)
  *   abortController
  *   tiers, contextTokens, appTitle, referer   gateway extras (OpenRouter's editable tiers and attribution)
  * deps:
@@ -208,7 +208,7 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
     settingSources,
     // Key and gateway turns use only the servers Atlas hands over, never MCP servers from .mcp.json, a settings file
     // or a plugin, because those would start with the CLI's environment, key included. The plan keeps today's
-    // behaviour: the owner's project (.mcp.json), user, local and plugin servers load alongside tarsee.
+    // behaviour: the owner's project (.mcp.json), user, local and plugin servers load alongside atlas.
     strictMcpConfig: id !== "claude",
     additionalDirectories: [BUNDLED_SKILLS_DIR],
     systemPrompt: systemPromptFor({
@@ -217,7 +217,7 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
       systemParts: opts.systemParts,
     }),
   };
-  if (opts.mcpServer) options.mcpServers = { tarsee: opts.mcpServer };
+  if (opts.mcpServer) options.mcpServers = { atlas: opts.mcpServer };
   if (opts.abortController) options.abortController = opts.abortController;
   if (opts.resume) options.resume = opts.resume;
 
@@ -514,11 +514,11 @@ export async function* run(opts = {}) {
   // Atlas's own tools, in-process.
   let mcpServer = deps.mcpServer;
   if (mcpServer === undefined) {
-    const { createTarseeMcp } = await import("../tarsee-mcp.js");
-    mcpServer = createTarseeMcp(toolCtx);
+    const { createAtlasMcp } = await import("../atlas-mcp.js");
+    mcpServer = createAtlasMcp(toolCtx);
   }
   const queryOptions = { ...built.options };
-  if (mcpServer) queryOptions.mcpServers = { tarsee: mcpServer };
+  if (mcpServer) queryOptions.mcpServers = { atlas: mcpServer };
   let stderrTail = "";
   queryOptions.stderr = (data) => { stderrTail = (stderrTail + String(data)).slice(-2000); };
 
@@ -714,7 +714,7 @@ export async function* run(opts = {}) {
 
         case "system": {
           if (message.session_id) report(message.session_id);
-          // The tarsee server can fail to register (a bad tool schema fails the whole tools/list call) while the
+          // The atlas server can fail to register (a bad tool schema fails the whole tools/list call) while the
           // system prompt keeps advertising its tools; say so loudly.
           if (Array.isArray(message.mcp_servers)) {
             for (const srv of message.mcp_servers) {

@@ -11,7 +11,7 @@ export const authRouter = Router();
  * (middleware/auth.js signInEnded) rather than refused in the words meant for the API token the page sends too.
  */
 function setSessionCookie(res, sessionId) {
-  res.cookie("tarsee_session", sessionId, {
+  res.cookie("atlas_session", sessionId, {
     httpOnly: true,
     sameSite: "Strict",
     secure: config.NODE_ENV === "production",
@@ -79,7 +79,7 @@ authRouter.post("/logout", (req, res) => {
   if (sessionId) {
     destroySession(sessionId);
   }
-  res.clearCookie("tarsee_session", { path: "/" });
+  res.clearCookie("atlas_session", { path: "/" });
   res.json({ ok: true });
 });
 

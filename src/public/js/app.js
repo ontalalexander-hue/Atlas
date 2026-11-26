@@ -38,7 +38,7 @@ const App = {
     document.getElementById("loginScreen").style.display = "flex";
     document.getElementById("appScreen").style.display = "none";
     // Listeners below must be bound ONCE. showLogin now also runs when a
-    // session expires mid-use (tarsee:auth-required), and re-binding would
+    // session expires mid-use (atlas:auth-required), and re-binding would
     // stack handlers and submit the login several times.
     if (this._loginBound) return;
     this._loginBound = true;
@@ -175,15 +175,15 @@ const App = {
     let signingOut = false;
     document.getElementById("signOutBtn")?.addEventListener("click", async () => {
       if (signingOut) return;
-      if (!(await TarseeDialog.ask({ title: "Sign out of Atlas on this device?", yes: "Sign out", no: "Cancel", danger: true }))) return;
+      if (!(await AtlasDialog.ask({ title: "Sign out of Atlas on this device?", yes: "Sign out", no: "Cancel", danger: true }))) return;
       signingOut = true;
       try { await API.logout(); } catch { /* the session may already be gone */ }
-      try { localStorage.removeItem("tarsee_api_token"); } catch { /* ignore */ }
+      try { localStorage.removeItem("atlas_api_token"); } catch { /* ignore */ }
       window.location.reload();
     });
 
     // Signed in: the parts that waited for it (js/brand-icon.js asks for the icon's state) can go on.
-    window.dispatchEvent(new Event("tarsee:signed-in"));
+    window.dispatchEvent(new Event("atlas:signed-in"));
 
     // Initialize modules
     Chat.init();
@@ -422,7 +422,7 @@ const App = {
 };
 
 // A 401 anywhere (session expired) shows the login screen once, no reload storm.
-window.addEventListener("tarsee:auth-required", () => App.showLogin());
+window.addEventListener("atlas:auth-required", () => App.showLogin());
 
 // Forms that only group password fields (data-no-submit) must never submit.
 // This was an inline onsubmit; the CSP now forbids inline script.

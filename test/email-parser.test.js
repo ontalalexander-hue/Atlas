@@ -28,15 +28,15 @@ import {
 
 test("stripQuotedReply — Gmail/Apple-style quote header ends the body", () => {
   const body = [
-    "@tarsee what do you think?",
+    "@atlas what do you think?",
     "",
     "On Wed, Apr 24, 2026 at 3:14 PM Alice <alice@example.com> wrote:",
-    "> @tarsee earlier message from the thread",
+    "> @atlas earlier message from the thread",
     "> more quoted content",
   ].join("\n");
 
   const stripped = stripQuotedReply(body);
-  assert.equal(stripped, "@tarsee what do you think?");
+  assert.equal(stripped, "@atlas what do you think?");
 });
 
 test("stripQuotedReply — Outlook Original-Message separator", () => {
@@ -57,15 +57,15 @@ test("stripQuotedReply — Outlook Original-Message separator", () => {
 
 test("stripQuotedReply — RFC 3676 signature delimiter ends the body", () => {
   const body = [
-    "@tarsee please note",
+    "@atlas please note",
     "",
     "-- ",
-    "@tarsee  <- this in the sig should NOT be read as a mention",
+    "@atlas  <- this in the sig should NOT be read as a mention",
     "Best, Alice",
   ].join("\n");
 
   const stripped = stripQuotedReply(body);
-  assert.equal(stripped, "@tarsee please note");
+  assert.equal(stripped, "@atlas please note");
   assert.equal(hasMention(stripped), true);
 });
 
@@ -105,42 +105,42 @@ test("stripQuotedReply — empty/null input safe", () => {
 // hasMention
 // ---------------------------------------------------------------
 
-test("hasMention — direct @tarsee with word-boundary matches", () => {
-  assert.equal(hasMention("@tarsee hi there"), true);
-  assert.equal(hasMention("hey @tarsee can you"), true);
-  assert.equal(hasMention("can you @Tarsee respond?"), true); // case insensitive
-  assert.equal(hasMention("@TARSEE!"), true);                  // uppercase
+test("hasMention — direct @atlas with word-boundary matches", () => {
+  assert.equal(hasMention("@atlas hi there"), true);
+  assert.equal(hasMention("hey @atlas can you"), true);
+  assert.equal(hasMention("can you @Atlas respond?"), true); // case insensitive
+  assert.equal(hasMention("@ATLAS!"), true);                  // uppercase
 });
 
-test("hasMention — email-address-looking @tarsee is NOT a mention", () => {
+test("hasMention — email-address-looking @atlas is NOT a mention", () => {
   // Standard bounce — Atlas's address should not trigger a mention.
-  assert.equal(hasMention("send it to alice@tarsee.example.com"), false);
-  assert.equal(hasMention("cc: bot@tarsee.io"), false);
-  // A username with a 'tarsee' substring inside a longer local-part.
-  assert.equal(hasMention("replied to btarsee@example.com"), false);
+  assert.equal(hasMention("send it to alice@atlas.example.com"), false);
+  assert.equal(hasMention("cc: bot@atlas.io"), false);
+  // A username with a 'atlas' substring inside a longer local-part.
+  assert.equal(hasMention("replied to batlas@example.com"), false);
 });
 
-test("hasMention — 'tarsee' as a bare word (no @) does NOT match", () => {
-  assert.equal(hasMention("the tarsee animal is cute"), false);
+test("hasMention — 'atlas' as a bare word (no @) does NOT match", () => {
+  assert.equal(hasMention("the atlas animal is cute"), false);
   assert.equal(hasMention("Atlas, please"), false);
 });
 
 test("hasMention — custom keyword with or without leading @", () => {
   assert.equal(hasMention("@jarvis status?", "jarvis"), true);
   assert.equal(hasMention("@jarvis status?", "@jarvis"), true); // leading @ in keyword ok
-  assert.equal(hasMention("@tarsee yo", "jarvis"), false);       // wrong keyword
+  assert.equal(hasMention("@atlas yo", "jarvis"), false);       // wrong keyword
 });
 
 test("hasMention — keyword with regex metacharacters is escaped", () => {
   // Hypothetical operator using a bracket or dot in keyword — shouldn't regex-inject.
-  assert.equal(hasMention("@bot.tarsee hi", "bot.tarsee"), true);
-  assert.equal(hasMention("@botxtarsee hi", "bot.tarsee"), false); // dot treated literally
+  assert.equal(hasMention("@bot.atlas hi", "bot.atlas"), true);
+  assert.equal(hasMention("@botxatlas hi", "bot.atlas"), false); // dot treated literally
 });
 
 test("hasMention — empty/null input safe", () => {
   assert.equal(hasMention(""), false);
   assert.equal(hasMention(null), false);
-  assert.equal(hasMention("@tarsee hi", ""), false); // empty keyword
+  assert.equal(hasMention("@atlas hi", ""), false); // empty keyword
 });
 
 // ---------------------------------------------------------------
@@ -159,20 +159,20 @@ test("isReplyAll — subject marker triggers reply-all", () => {
   );
 });
 
-test("isReplyAll — body phrase `@tarsee reply-all` triggers reply-all", () => {
+test("isReplyAll — body phrase `@atlas reply-all` triggers reply-all", () => {
   assert.equal(
-    isReplyAll({ stripped: "@tarsee reply-all please", subject: "status" }),
+    isReplyAll({ stripped: "@atlas reply-all please", subject: "status" }),
     true,
   );
   assert.equal(
-    isReplyAll({ stripped: "@tarsee reply all please", subject: "status" }),
+    isReplyAll({ stripped: "@atlas reply all please", subject: "status" }),
     true,
   );
 });
 
 test("isReplyAll — default (mention only) is NOT reply-all", () => {
   assert.equal(
-    isReplyAll({ stripped: "@tarsee status?", subject: "status" }),
+    isReplyAll({ stripped: "@atlas status?", subject: "status" }),
     false,
   );
 });
@@ -284,11 +284,11 @@ test("resolveRecipients — default reply-to-sender only", () => {
   const r = resolveRecipients({
     incoming: {
       from: { address: "alice@example.com" },
-      to: [{ address: "tarsee@example.com" }],
+      to: [{ address: "atlas@example.com" }],
       cc: [{ address: "bob@example.com" }],
     },
     replyAll: false,
-    selfAddress: "tarsee@example.com",
+    selfAddress: "atlas@example.com",
   });
   assert.deepEqual(r, { to: ["alice@example.com"], cc: [] });
 });
@@ -297,14 +297,14 @@ test("resolveRecipients — reply-all includes To + Cc, excludes self + primary"
   const r = resolveRecipients({
     incoming: {
       from: { address: "alice@example.com" },
-      to: [{ address: "tarsee@example.com" }, { address: "carol@example.com" }],
+      to: [{ address: "atlas@example.com" }, { address: "carol@example.com" }],
       cc: [{ address: "bob@example.com" }, { address: "alice@example.com" }],
     },
     replyAll: true,
-    selfAddress: "tarsee@example.com",
+    selfAddress: "atlas@example.com",
   });
   assert.deepEqual(r.to, ["alice@example.com"]);
-  // carol and bob should be CC'd; alice (primary) excluded from cc; tarsee (self) excluded.
+  // carol and bob should be CC'd; alice (primary) excluded from cc; atlas (self) excluded.
   assert.deepEqual(new Set(r.cc), new Set(["carol@example.com", "bob@example.com"]));
 });
 
@@ -313,10 +313,10 @@ test("resolveRecipients — Reply-To header takes precedence over From", () => {
     incoming: {
       from: { address: "noreply@example.com" },
       replyTo: { address: "alice@example.com" },
-      to: [{ address: "tarsee@example.com" }],
+      to: [{ address: "atlas@example.com" }],
     },
     replyAll: false,
-    selfAddress: "tarsee@example.com",
+    selfAddress: "atlas@example.com",
   });
   assert.deepEqual(r, { to: ["alice@example.com"], cc: [] });
 });
@@ -325,7 +325,7 @@ test("resolveRecipients — empty headers is safe", () => {
   const r = resolveRecipients({
     incoming: {},
     replyAll: false,
-    selfAddress: "tarsee@example.com",
+    selfAddress: "atlas@example.com",
   });
   assert.deepEqual(r, { to: [], cc: [] });
 });
@@ -336,9 +336,9 @@ test("resolveRecipients — empty headers is safe", () => {
 
 test("htmlToText — strips tags, decodes common entities, preserves line structure", () => {
   const html =
-    "<p>hi <b>@tarsee</b></p><p>please &amp; review</p><script>alert(1)</script>";
+    "<p>hi <b>@atlas</b></p><p>please &amp; review</p><script>alert(1)</script>";
   const text = htmlToText(html);
-  assert.match(text, /hi @tarsee/);
+  assert.match(text, /hi @atlas/);
   assert.match(text, /please & review/);
   assert.doesNotMatch(text, /<|>|script/);
 });

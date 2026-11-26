@@ -8,7 +8,7 @@ import { buildPreamble } from "../src/ai/preamble.js";
 function claudePreambleBeforeTheMove(cwd, timezone) {
   return `You ARE Atlas — a headless AI agent running 24/7 on a server.
 
-## MCP Tools (call as mcp__tarsee__tarsee_<name>)
+## MCP Tools (call as mcp__atlas__atlas_<name>)
 - **send_message**(channel, message, channel_id) — push to Telegram/Discord/WhatsApp/Slack/web
 - **send_file**(channel, file_path, caption?, channel_id?) — send a file as a real attachment to Telegram/Discord/WhatsApp/Slack or a dashboard chat (web); with no channel_id it goes to the chat you are in. When someone asks for a file, send it: never answer with a folder path or say the channel can't take files
 - **schedule_task**(id, schedule, prompt, channel?, once?, action?) — create cron jobs
@@ -54,7 +54,7 @@ const TOOLS = ["send_message", "send_file", "schedule_task", "remember", "daily_
 
 describe("buildPreamble", () => {
   it("Claude Code: unchanged by the move", () => {
-    assert.equal(buildPreamble({ engine: "claude-code", cwd: "/data/tarsee/workspace", timezone: "Europe/London" }), claudePreambleBeforeTheMove("/data/tarsee/workspace", "Europe/London"));
+    assert.equal(buildPreamble({ engine: "claude-code", cwd: "/data/atlas/workspace", timezone: "Europe/London" }), claudePreambleBeforeTheMove("/data/atlas/workspace", "Europe/London"));
     assert.equal(buildPreamble({ engine: "claude-code", cwd: "C:\\ws", timezone: "UTC" }), claudePreambleBeforeTheMove("C:\\ws", "UTC"));
   });
 
@@ -75,13 +75,13 @@ describe("buildPreamble", () => {
   it("Codex: the same Atlas tools, Codex's own exec_command and apply_patch, no Claude Code tool names", () => {
     const text = buildPreamble({ engine: "codex", cwd: "/w", timezone: "UTC" });
     assert.match(text, /^You ARE Atlas/);
-    assert.ok(text.includes("mcp__tarsee__tarsee_<name>"));
+    assert.ok(text.includes("mcp__atlas__atlas_<name>"));
     // The pinned codex 0.167's command tool is exec_command (no tool is called "shell"), and on its gpt-6.1 models
     // every tool, Atlas's included, is reached from inside its JavaScript exec tool.
     assert.match(text, /\bexec_command\b/);
     assert.doesNotMatch(text, /shell tool/);
     assert.match(text, /\bapply_patch\b/);
-    assert.ok(text.includes("await tools.mcp__tarsee__tarsee_<name>({...})"), "how to call Atlas's tools from exec");
+    assert.ok(text.includes("await tools.mcp__atlas__atlas_<name>({...})"), "how to call Atlas's tools from exec");
     assert.match(text, /ALL_TOOLS/);
     assert.ok(!text.includes("Use Bash to run"));
     assert.ok(!text.includes("from Bash"), "Codex has no tool called Bash");

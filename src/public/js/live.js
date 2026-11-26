@@ -19,10 +19,10 @@
  * kept in localStorage until then, so a reload or a dead tab can never lose
  * it. The server queues turns, so you can send while the agent is still working.
  *
- * Escape hatch: localStorage.tarsee_live_off = "1" falls back to the old
+ * Escape hatch: localStorage.atlas_live_off = "1" falls back to the old
  * per-tab streaming view.
  */
-const LIVE_PENDING_KEY = "tarsee_pending_sends";
+const LIVE_PENDING_KEY = "atlas_pending_sends";
 const LIVE_UNSENT_AFTER_MS = 15_000; // after a reload, a send this old that never landed is "Not sent"
 // A reply comes as its own message, just after its turn ends: it takes the turn's place within this long.
 const LIVE_REPLY_WINDOW_MS = 90_000;
@@ -45,11 +45,11 @@ const Live = {
   _ticker: null,
 
   init() {
-    try { this.enabled = localStorage.getItem("tarsee_live_off") !== "1"; } catch { this.enabled = true; }
+    try { this.enabled = localStorage.getItem("atlas_live_off") !== "1"; } catch { this.enabled = true; }
     if (!this.enabled) return;
     // Messages queued by the previous client version: keep them, offer Retry.
     try {
-      const old = JSON.parse(localStorage.getItem("tarsee_pending_queue") || "[]");
+      const old = JSON.parse(localStorage.getItem("atlas_pending_queue") || "[]");
       if (Array.isArray(old) && old.length) {
         const list = this.loadPending();
         for (const q of old) {
@@ -57,7 +57,7 @@ const Live = {
         }
         this.savePending(list);
       }
-      localStorage.removeItem("tarsee_pending_queue");
+      localStorage.removeItem("atlas_pending_queue");
     } catch { /* ignore */ }
     if (typeof Chat !== "undefined") Chat.messageQueue = [];
     this._ticker = setInterval(() => this.tick(), 1000);

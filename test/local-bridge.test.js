@@ -10,35 +10,35 @@ import {
 } from "../src/ai/local-bridge.js";
 
 const fn = (name, extra = {}) => ({ type: "function", name, description: `${name} does a thing`, strict: false, parameters: { type: "object", properties: {} }, ...extra });
-/** Atlas's tools as Codex 0.167 sends them (namespace "mcp__tarsee", captured from the pinned binary). */
-const TARSEE_NS = { type: "namespace", name: "mcp__tarsee", description: "Atlas's tools", tools: [fn("tarsee_calculator"), fn("tarsee_datetime")] };
+/** Atlas's tools as Codex 0.167 sends them (namespace "mcp__atlas", captured from the pinned binary). */
+const ATLAS_NS = { type: "namespace", name: "mcp__atlas", description: "Atlas's tools", tools: [fn("atlas_calculator"), fn("atlas_datetime")] };
 
 describe("flat names: one fixed rule, at most 64 characters, no clashes", () => {
   it("joins the namespace and the name with __ (none added when the namespace already ends in __)", () => {
-    assert.equal(flatName("mcp__tarsee", "tarsee_calculator"), "mcp__tarsee__tarsee_calculator");
-    assert.equal(flatName("mcp__tarsee__", "tarsee_calculator"), "mcp__tarsee__tarsee_calculator");
+    assert.equal(flatName("mcp__atlas", "atlas_calculator"), "mcp__atlas__atlas_calculator");
+    assert.equal(flatName("mcp__atlas__", "atlas_calculator"), "mcp__atlas__atlas_calculator");
     assert.equal(flatName("mcp__my.server", "do it"), "mcp__my_server__do_it", "only [A-Za-z0-9_-]");
   });
 
   it("a name past 64 characters is cut and given a short hash: the same every time, and different per tool", () => {
     const long = "x".repeat(80);
-    const a = flatName("mcp__tarsee", `${long}_a`);
-    const b = flatName("mcp__tarsee", `${long}_b`);
+    const a = flatName("mcp__atlas", `${long}_a`);
+    const b = flatName("mcp__atlas", `${long}_b`);
     assert.equal(a.length, MAX_TOOL_NAME);
     assert.equal(b.length, MAX_TOOL_NAME);
     assert.notEqual(a, b);
-    assert.equal(flatName("mcp__tarsee", `${long}_a`), a, "fixed: nothing is kept between requests");
-    assert.match(a, /^mcp__tarsee__x+_[0-9a-f]{8}$/);
+    assert.equal(flatName("mcp__atlas", `${long}_a`), a, "fixed: nothing is kept between requests");
+    assert.match(a, /^mcp__atlas__x+_[0-9a-f]{8}$/);
   });
 
   it("a flat name that clashes with a plain function tool (or another flat name) gets the hashed form", () => {
-    const { tools, names } = flattenTools([fn("mcp__tarsee__tarsee_calculator"), TARSEE_NS]);
+    const { tools, names } = flattenTools([fn("mcp__atlas__atlas_calculator"), ATLAS_NS]);
     const flat = tools.map((t) => t.name);
     assert.equal(new Set(flat).size, flat.length, "no two tools share a name");
-    assert.equal(flat[0], "mcp__tarsee__tarsee_calculator", "the plain tool keeps its own name");
-    const moved = names.byPair.get("mcp__tarsee\u0000tarsee_calculator");
-    assert.notEqual(moved, "mcp__tarsee__tarsee_calculator");
-    assert.deepEqual(names.byFlat.get(moved), { namespace: "mcp__tarsee", name: "tarsee_calculator" });
+    assert.equal(flat[0], "mcp__atlas__atlas_calculator", "the plain tool keeps its own name");
+    const moved = names.byPair.get("mcp__atlas\u0000atlas_calculator");
+    assert.notEqual(moved, "mcp__atlas__atlas_calculator");
+    assert.deepEqual(names.byFlat.get(moved), { namespace: "mcp__atlas", name: "atlas_calculator" });
     // Two namespaces whose joined names meet.
     const two = flattenTools([{ type: "namespace", name: "a__", tools: [fn("b")] }, { type: "namespace", name: "a", tools: [fn("b")] }]);
     assert.equal(new Set(two.tools.map((t) => t.name)).size, 2);
@@ -49,16 +49,16 @@ describe("requests: what any Local AI server takes", () => {
   it("namespace tools become function tools; other tool kinds go; plain functions stay as they are", () => {
     const body = {
       model: "spark-4b", stream: true, tool_choice: "auto",
-      tools: [fn("exec_command"), TARSEE_NS, { type: "custom", name: "apply_patch", format: { type: "grammar" } }, { type: "web_search" }],
+      tools: [fn("exec_command"), ATLAS_NS, { type: "custom", name: "apply_patch", format: { type: "grammar" } }, { type: "web_search" }],
       input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "hi" }] }],
     };
     const before = JSON.stringify(body);
     const { body: out, names } = rewriteRequest(body);
     assert.equal(JSON.stringify(body), before, "the request Codex sent is not changed in place");
-    assert.deepEqual(out.tools.map((t) => [t.type, t.name]), [["function", "exec_command"], ["function", "mcp__tarsee__tarsee_calculator"], ["function", "mcp__tarsee__tarsee_datetime"]]);
-    assert.deepEqual(out.tools[1].parameters, TARSEE_NS.tools[0].parameters, "each tool keeps its own description and parameters");
-    assert.equal(out.tools[1].description, "tarsee_calculator does a thing");
-    assert.deepEqual(names.byFlat.get("mcp__tarsee__tarsee_datetime"), { namespace: "mcp__tarsee", name: "tarsee_datetime" });
+    assert.deepEqual(out.tools.map((t) => [t.type, t.name]), [["function", "exec_command"], ["function", "mcp__atlas__atlas_calculator"], ["function", "mcp__atlas__atlas_datetime"]]);
+    assert.deepEqual(out.tools[1].parameters, ATLAS_NS.tools[0].parameters, "each tool keeps its own description and parameters");
+    assert.equal(out.tools[1].description, "atlas_calculator does a thing");
+    assert.deepEqual(names.byFlat.get("mcp__atlas__atlas_datetime"), { namespace: "mcp__atlas", name: "atlas_datetime" });
     assert.equal(out.model, "spark-4b");
     assert.equal(out.stream, true);
     assert.equal(out.tool_choice, "auto");
@@ -66,10 +66,10 @@ describe("requests: what any Local AI server takes", () => {
 
   it("earlier calls in the history get their flat names; unknown items go with their pairs; an orphaned output goes", () => {
     const { body } = rewriteRequest({
-      tools: [TARSEE_NS],
+      tools: [ATLAS_NS],
       input: [
         { type: "message", role: "user", content: [{ type: "input_text", text: "work it out" }] },
-        { type: "function_call", call_id: "c1", namespace: "mcp__tarsee", name: "tarsee_calculator", arguments: "{\"expression\":\"6*7\"}" },
+        { type: "function_call", call_id: "c1", namespace: "mcp__atlas", name: "atlas_calculator", arguments: "{\"expression\":\"6*7\"}" },
         { type: "function_call_output", call_id: "c1", output: "6*7 = 42" },
         { type: "tool_search_call", call_id: "s1", arguments: { query: "x" } },
         { type: "tool_search_output", call_id: "s1", tools: [] },
@@ -81,14 +81,14 @@ describe("requests: what any Local AI server takes", () => {
       ],
     });
     assert.deepEqual(body.input.map((i) => i.type), ["message", "function_call", "function_call_output", "message"]);
-    assert.equal(body.input[1].name, "mcp__tarsee__tarsee_calculator");
+    assert.equal(body.input[1].name, "mcp__atlas__atlas_calculator");
     assert.equal(body.input[1].namespace, undefined);
     assert.equal(body.input[2].call_id, "c1");
   });
 
   it("a call to a tool this request no longer lists still gets the fixed rule's name", () => {
-    const { body } = rewriteRequest({ tools: [], input: [{ type: "function_call", call_id: "c", namespace: "mcp__tarsee", name: "tarsee_remember", arguments: "{}" }, { type: "function_call_output", call_id: "c", output: "ok" }] });
-    assert.equal(body.input[0].name, "mcp__tarsee__tarsee_remember");
+    const { body } = rewriteRequest({ tools: [], input: [{ type: "function_call", call_id: "c", namespace: "mcp__atlas", name: "atlas_remember", arguments: "{}" }, { type: "function_call_output", call_id: "c", output: "ok" }] });
+    assert.equal(body.input[0].name, "mcp__atlas__atlas_remember");
   });
 
   it("reasoning with no content array goes (llama-server answers 400 for it); with one it stays", () => {
@@ -131,25 +131,25 @@ describe("requests: what any Local AI server takes", () => {
 });
 
 describe("replies: every call gets its {namespace, name} back", () => {
-  const { names } = flattenTools([TARSEE_NS, fn("exec_command")]);
+  const { names } = flattenTools([ATLAS_NS, fn("exec_command")]);
   const call = (name) => ({ type: "function_call", id: "fc_1", call_id: "call_1", name, arguments: "{}", status: "completed" });
 
   it("output_item.added and .done, function_call_arguments.done, response.completed, and a whole response", () => {
-    assert.deepEqual(restoreItem(call("mcp__tarsee__tarsee_calculator"), names), { ...call("tarsee_calculator"), namespace: "mcp__tarsee" });
+    assert.deepEqual(restoreItem(call("mcp__atlas__atlas_calculator"), names), { ...call("atlas_calculator"), namespace: "mcp__atlas" });
     const plain = call("exec_command");
     assert.equal(restoreItem(plain, names), plain, "a plain tool's call is left alone");
     for (const type of ["response.output_item.added", "response.output_item.done"]) {
-      const e = restoreEvent({ type, output_index: 0, item: call("mcp__tarsee__tarsee_datetime") }, names);
-      assert.equal(e.item.name, "tarsee_datetime");
-      assert.equal(e.item.namespace, "mcp__tarsee");
+      const e = restoreEvent({ type, output_index: 0, item: call("mcp__atlas__atlas_datetime") }, names);
+      assert.equal(e.item.name, "atlas_datetime");
+      assert.equal(e.item.namespace, "mcp__atlas");
     }
-    const args = restoreEvent({ type: "response.function_call_arguments.done", item_id: "fc_1", name: "mcp__tarsee__tarsee_datetime", arguments: "{}" }, names);
-    assert.equal(args.name, "tarsee_datetime");
-    const done = restoreEvent({ type: "response.completed", response: { id: "r", output: [call("mcp__tarsee__tarsee_calculator"), { type: "message", content: [] }] } }, names);
-    assert.equal(done.response.output[0].namespace, "mcp__tarsee");
-    assert.equal(done.response.output[0].name, "tarsee_calculator");
-    const whole = restoreEvent({ id: "r", object: "response", output: [call("mcp__tarsee__tarsee_calculator")] }, names);
-    assert.equal(whole.output[0].name, "tarsee_calculator");
+    const args = restoreEvent({ type: "response.function_call_arguments.done", item_id: "fc_1", name: "mcp__atlas__atlas_datetime", arguments: "{}" }, names);
+    assert.equal(args.name, "atlas_datetime");
+    const done = restoreEvent({ type: "response.completed", response: { id: "r", output: [call("mcp__atlas__atlas_calculator"), { type: "message", content: [] }] } }, names);
+    assert.equal(done.response.output[0].namespace, "mcp__atlas");
+    assert.equal(done.response.output[0].name, "atlas_calculator");
+    const whole = restoreEvent({ id: "r", object: "response", output: [call("mcp__atlas__atlas_calculator")] }, names);
+    assert.equal(whole.output[0].name, "atlas_calculator");
     const text = { type: "response.output_text.delta", delta: "hi" };
     assert.equal(restoreEvent(text, names), text, "anything else is the very same object");
   });
@@ -157,7 +157,7 @@ describe("replies: every call gets its {namespace, name} back", () => {
   it("an SSE event split across network chunks is rewritten once it is whole; untouched frames pass exactly as they came", () => {
     const sse = createSseRewriter(names);
     const created = "event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_9\"}}\n\n";
-    const item = `data: ${JSON.stringify({ type: "response.output_item.done", output_index: 0, item: call("mcp__tarsee__tarsee_calculator") })}\r\n\r\n`;
+    const item = `data: ${JSON.stringify({ type: "response.output_item.done", output_index: 0, item: call("mcp__atlas__atlas_calculator") })}\r\n\r\n`;
     let out = sse.push(created.slice(0, 20));
     assert.equal(out, "", "half a frame waits");
     out += sse.push(created.slice(20) + item.slice(0, 31));
@@ -165,8 +165,8 @@ describe("replies: every call gets its {namespace, name} back", () => {
     out += sse.push(item.slice(31, 70));
     out += sse.push(item.slice(70)) + sse.end();
     const last = JSON.parse(out.slice(created.length).replace(/^data: /, ""));
-    assert.equal(last.item.name, "tarsee_calculator");
-    assert.equal(last.item.namespace, "mcp__tarsee");
+    assert.equal(last.item.name, "atlas_calculator");
+    assert.equal(last.item.namespace, "mcp__atlas");
     assert.ok(!/event:/.test(out.slice(created.length)), "no event line added where the server sent none (llama-server's done events)");
   });
 
@@ -246,9 +246,9 @@ describe("the bridge server", () => {
       res.writeHead(200, { "content-type": "text/event-stream" });
       const frames = [
         { type: "response.created", response: { id: "resp_1" } },
-        { type: "response.output_item.added", output_index: 0, item: { type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__tarsee__tarsee_calculator", arguments: "" } },
-        { type: "response.output_item.done", output_index: 0, item: { type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__tarsee__tarsee_calculator", arguments: "{\"expression\":\"6*7\"}", status: "completed" } },
-        { type: "response.completed", response: { id: "resp_1", status: "completed", output: [{ type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__tarsee__tarsee_calculator", arguments: "{\"expression\":\"6*7\"}" }] } },
+        { type: "response.output_item.added", output_index: 0, item: { type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__atlas__atlas_calculator", arguments: "" } },
+        { type: "response.output_item.done", output_index: 0, item: { type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__atlas__atlas_calculator", arguments: "{\"expression\":\"6*7\"}", status: "completed" } },
+        { type: "response.completed", response: { id: "resp_1", status: "completed", output: [{ type: "function_call", id: "fc_1", call_id: "call_1", name: "mcp__atlas__atlas_calculator", arguments: "{\"expression\":\"6*7\"}" }] } },
       ].map((e) => `event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`).join("");
       // In small pieces, so frames arrive split across chunks.
       let i = 0;
@@ -256,7 +256,7 @@ describe("the bridge server", () => {
       step();
     };
     const t = bridge.open({ upstream: base(), key: OWNER_KEY });
-    const res = await post(t.url, t.token, { model: "spark-4b", stream: true, tools: [fn("exec_command"), TARSEE_NS], input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "6*7?" }] }] });
+    const res = await post(t.url, t.token, { model: "spark-4b", stream: true, tools: [fn("exec_command"), ATLAS_NS], input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "6*7?" }] }] });
     assert.equal(res.status, 200);
     const text = await res.text();
     t.release();
@@ -264,13 +264,13 @@ describe("the bridge server", () => {
     assert.equal(seen[0].headers.authorization, `Bearer ${OWNER_KEY}`);
     assert.ok(!JSON.stringify(seen[0]).includes(t.token), "the turn's token stays between Codex and the bridge");
     const sent = JSON.parse(seen[0].body);
-    assert.deepEqual(sent.tools.map((x) => x.name), ["exec_command", "mcp__tarsee__tarsee_calculator", "mcp__tarsee__tarsee_datetime"]);
+    assert.deepEqual(sent.tools.map((x) => x.name), ["exec_command", "mcp__atlas__atlas_calculator", "mcp__atlas__atlas_datetime"]);
     assert.ok(sent.tools.every((x) => x.type === "function"), "no namespace tool reaches the server");
     const events = text.split("\n\n").filter(Boolean).map((f) => JSON.parse(f.split("\n").find((l) => l.startsWith("data: ")).slice(6)));
     assert.deepEqual(events.map((e) => e.type), ["response.created", "response.output_item.added", "response.output_item.done", "response.completed"]);
     for (const e of [events[1].item, events[2].item, events[3].response.output[0]]) {
-      assert.equal(e.name, "tarsee_calculator");
-      assert.equal(e.namespace, "mcp__tarsee");
+      assert.equal(e.name, "atlas_calculator");
+      assert.equal(e.namespace, "mcp__atlas");
     }
   });
 
@@ -278,15 +278,15 @@ describe("the bridge server", () => {
     seen.length = 0;
     answer = (req, res) => {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ id: "resp_2", object: "response", status: "completed", output: [{ type: "function_call", call_id: "c", name: "mcp__tarsee__tarsee_datetime", arguments: "{}" }] }));
+      res.end(JSON.stringify({ id: "resp_2", object: "response", status: "completed", output: [{ type: "function_call", call_id: "c", name: "mcp__atlas__atlas_datetime", arguments: "{}" }] }));
     };
     const t = bridge.open({ upstream: `${base()}/`, key: null });
-    const res = await post(t.url, t.token, { model: "m", tools: [TARSEE_NS], input: [] });
+    const res = await post(t.url, t.token, { model: "m", tools: [ATLAS_NS], input: [] });
     const body = await res.json();
     t.release();
     assert.equal(seen[0].headers.authorization, undefined);
     assert.equal(seen[0].url, "/v1/responses", "one trailing slash on the address changes nothing");
-    assert.deepEqual([body.output[0].namespace, body.output[0].name], ["mcp__tarsee", "tarsee_datetime"]);
+    assert.deepEqual([body.output[0].namespace, body.output[0].name], ["mcp__atlas", "atlas_datetime"]);
   });
 
   it("an HTTP error comes back unchanged; a bare error frame mid-stream becomes response.failed", async () => {
@@ -309,7 +309,7 @@ describe("the bridge server", () => {
     answer = (req, res) => { res.writeHead(200, { "content-type": "text/event-stream" }); res.write("event: response.created\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"r\"}}\n\n"); /* and then nothing */ };
     const t = bridge.open({ upstream: base(), key: OWNER_KEY });
     const ac = new AbortController();
-    const res = await post(t.url, t.token, { model: "m", stream: true, tools: [TARSEE_NS], input: [] }, { signal: ac.signal });
+    const res = await post(t.url, t.token, { model: "m", stream: true, tools: [ATLAS_NS], input: [] }, { signal: ac.signal });
     const reader = res.body.getReader();
     await reader.read();
     ac.abort();

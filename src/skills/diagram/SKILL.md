@@ -5,9 +5,9 @@ description: Render clickable flowcharts and diagrams for processes, decisions, 
 
 # Diagrams
 
-You have a `tarsee_create_diagram` tool that renders a clickable flowchart inline in chat. The user can click any node to ask a follow-up question about it. Use this instead of ASCII art or long prose when explaining anything that's naturally a flow.
+You have a `atlas_create_diagram` tool that renders a clickable flowchart inline in chat. The user can click any node to ask a follow-up question about it. Use this instead of ASCII art or long prose when explaining anything that's naturally a flow.
 
-**Important:** the tool is named `tarsee_create_diagram`, not `create_diagram`. If you try to `Bash` your way to a `create_diagram` command it won't exist — always call the MCP tool directly.
+**Important:** the tool is named `atlas_create_diagram`, not `create_diagram`. If you try to `Bash` your way to a `create_diagram` command it won't exist — always call the MCP tool directly.
 
 ## When to use
 

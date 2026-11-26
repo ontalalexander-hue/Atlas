@@ -1,5 +1,5 @@
 // scripts/e2e/live-smoke.mjs is the owner's morning check with real keys. Its address and password come only from
-// TARSEE_URL and TARSEE_PASSWORD, and it never prints the password. A short password (a 4-digit SETUP_PASSWORD) can't
+// ATLAS_URL and ATLAS_PASSWORD, and it never prints the password. A short password (a 4-digit SETUP_PASSWORD) can't
 // be blanked out of what it prints without giving it away (it would show as the gap in a date or a sum), so the
 // script must never put it in a line at all: not even when it is typed by mistake after an option, where a value the
 // script doesn't know used to be repeated back ("--verify: "4817" isn't an AI Atlas knows").
@@ -19,7 +19,7 @@ async function fixedOutput() {
   console.log = (...a) => lines.push(a.join(" "));
   console.error = (...a) => lines.push(a.join(" "));
   try {
-    await main(["--colour"], { TARSEE_URL: "", TARSEE_PASSWORD: "a-baseline-password-not-used-elsewhere" });
+    await main(["--colour"], { ATLAS_URL: "", ATLAS_PASSWORD: "a-baseline-password-not-used-elsewhere" });
   } finally {
     console.log = log;
     console.error = error;
@@ -61,7 +61,7 @@ describe("live-smoke: a password typed after an option is never repeated back", 
       t.mock.method(console, "log", (...a) => lines.push(a.join(" ")));
       t.mock.method(console, "error", (...a) => lines.push(a.join(" ")));
       for (const argv of CASES(pw)) {
-        const code = await main(argv, { TARSEE_URL: "", TARSEE_PASSWORD: pw });
+        const code = await main(argv, { ATLAS_URL: "", ATLAS_PASSWORD: pw });
         assert.equal(code, 1, argv.join(" "));
       }
       const out = lines.join("\n");

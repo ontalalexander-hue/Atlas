@@ -12,12 +12,12 @@ import path from "node:path";
 import { fakePython } from "./fakes/fake-python.js";
 import { fakeDownloadHost } from "./fakes/fake-download-host.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-stt-local-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-delete process.env.TARSEE_STT_PYTHON;
-delete process.env.TARSEE_WHISPER_BUNDLED_DIR;
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-stt-local-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
+delete process.env.ATLAS_STT_PYTHON;
+delete process.env.ATLAS_WHISPER_BUNDLED_DIR;
 
 const runtime = await import("../src/voice/python-runtime.js");
 const install = await import("../src/voice/stt-install.js");

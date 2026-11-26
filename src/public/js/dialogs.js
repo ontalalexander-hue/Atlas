@@ -6,8 +6,8 @@
  * A plain script (no imports), loaded by index.html before the dashboard's own code, so its key listener is the first
  * one the window has. On the window:
  *
- *   await TarseeDialog.ask({ title, text, yes, no, danger })                   true for yes, false for no
- *   await TarseeDialog.askText({ title, label, value, placeholder, yes, no })  what was typed, or null for no
+ *   await AtlasDialog.ask({ title, text, yes, no, danger })                   true for yes, false for no
+ *   await AtlasDialog.askText({ title, label, value, placeholder, yes, no })  what was typed, or null for no
  *
  *   title    the question, as its heading (it names the dialog)
  *   text     more words under it; a blank line (\n\n) starts another paragraph
@@ -24,18 +24,18 @@
  * it; Tab and Shift+Tab go round its own controls. Enter held down from what opened it, and a press in its first
  * moments (the second click of a double click on what opened it), answer nothing. While it is up no key reaches
  * anything behind it (keydown and keypress stop here; keyup goes on, so a key held as it opened is let go), and the
- * window hears "tarsee:dialog" ({ open }) as it opens and as it closes. The focus goes into it (the yes button, or
+ * window hears "atlas:dialog" ({ open }) as it opens and as it closes. The focus goes into it (the yes button, or
  * the text box with its words selected), stays there, and goes back to where it was after.
  *
  * One at a time: a question waits until the one before it has been answered. The same question asked again while it
  * is up or waiting (a double click on what opened it) is answered no at once, so it is never asked twice over.
  *
- * The parts that need no page are TarseeDialog.core, tested in test/dialogs.test.js.
+ * The parts that need no page are AtlasDialog.core, tested in test/dialogs.test.js.
  */
 (function () {
   "use strict";
   const G = typeof globalThis !== "undefined" ? globalThis : window;
-  if (G.TarseeDialog) return;   // (loaded twice: the first one stays, with its listeners)
+  if (G.AtlasDialog) return;   // (loaded twice: the first one stays, with its listeners)
 
   const SETTLE_MS = 400;        // a press this soon after it opens is the end of whatever opened it, not an answer
   const now = () => (typeof performance !== "undefined" && performance.now ? performance.now() : Date.now());
@@ -203,7 +203,7 @@
     return { dlg, panel, yes, no, input };
   }
 
-  const tell = (open) => { try { window.dispatchEvent(new CustomEvent("tarsee:dialog", { detail: { open } })); } catch { /* an old browser: nobody listening */ } };
+  const tell = (open) => { try { window.dispatchEvent(new CustomEvent("atlas:dialog", { detail: { open } })); } catch { /* an old browser: nobody listening */ } };
   const shown = (el) => !el.disabled && !el.hidden && el.getClientRects().length > 0;
 
   /** Show one question and wait for its answer. */
@@ -296,7 +296,7 @@
     }, true);
   }
 
-  G.TarseeDialog = Object.freeze({
+  G.AtlasDialog = Object.freeze({
     ask: (o) => request("yesno", o),
     askText: (o) => request("text", o),
     isOpen: () => !!up,

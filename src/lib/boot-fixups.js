@@ -47,7 +47,7 @@ export function runBootFixups({ settingsStore, stateDir, tmpDir, now, env = proc
   const hidden = step("[boot] which AIs this install offers", () => {
     const ids = localAiHiddenHere({ env, store: settingsStore }) ? ["local"] : [];
     hideProviders(ids);
-    if (ids.length) console.log("[ai] Local AI isn't offered on Railway (it has no GPUs). To use a model server you run elsewhere, set TARSEE_LOCAL_AI_URL to its address.");
+    if (ids.length) console.log("[ai] Local AI isn't offered on Railway (it has no GPUs). To use a model server you run elsewhere, set ATLAS_LOCAL_AI_URL to its address.");
     return ids;
   }) || [];
   return { settings, leftovers, hidden };

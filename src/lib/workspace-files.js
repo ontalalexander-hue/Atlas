@@ -97,7 +97,7 @@ export function appendDailyLog(content) {
 /**
  * Most of one workspace file the system prompt carries. It was 8KB, which cut
  * the middle out of an AGENTS.md that had grown to 16KB (measured on
- * TarseeMacOS: the agent saw the first 5.7KB and the last 1.6KB, so the rules
+ * the macOS app: the agent saw the first 5.7KB and the last 1.6KB, so the rules
  * in between never reached it). A file over the cap is still cut, and the cut
  * is logged so it is noticed: move task-specific sections into skills.
  */
@@ -226,7 +226,7 @@ export function getBootstrapContext({ heartbeatWaiting = null } = {}) {
  * system prompt's "grep it, never read it whole" (and CLAUDE.md said cron runs
  * in UTC). Later the defaults stopped naming one AI: they said "powered by
  * Claude", named Claude Code's own tools (Bash, Read/Write/Edit/Grep/Glob,
- * mcp__tarsee__*) and the agent team's Claude models, none of which hold on
+ * mcp__atlas__*) and the agent team's Claude models, none of which hold on
  * another AI. Existing workspaces keep their seeded files, so on boot each line
  * that is still exactly an old default line, the whole line, is replaced with
  * the new one. A line the owner changed or added words to no longer matches and
@@ -235,20 +235,20 @@ export function getBootstrapContext({ heartbeatWaiting = null } = {}) {
  */
 // The tool lines of the default CLAUDE.md. A new line replaces the old one whole, so the swap runs once.
 // Three generations: the first defaults (Slack, no files), the WhatsApp ones (Slack gone), and today's (Slack back).
-const SEND_MESSAGE_LINE_OLD = "- **tarsee_send_message** — Push messages to Telegram, Discord, Slack, or web";
-const SEND_MESSAGE_LINE_WHATSAPP = "- **tarsee_send_message** — Push messages to Telegram, Discord, WhatsApp, or web";
-const SEND_FILE_LINE_WHATSAPP = "- **tarsee_send_file** — Send a file as a real attachment to the Telegram, Discord or WhatsApp chat you are in (never answer with a folder path)";
-const SEND_MESSAGE_LINE = "- **tarsee_send_message** — Push messages to Telegram, Discord, WhatsApp, Slack, or web";
-const SEND_FILE_LINE = "- **tarsee_send_file** — Send a file as a real attachment to the Telegram, Discord, WhatsApp or Slack chat you are in (never answer with a folder path)";
-// SOUL.md's tool line, through four generations: Slack, WhatsApp, files, then Slack back (all naming mcp__tarsee__*,
+const SEND_MESSAGE_LINE_OLD = "- **atlas_send_message** — Push messages to Telegram, Discord, Slack, or web";
+const SEND_MESSAGE_LINE_WHATSAPP = "- **atlas_send_message** — Push messages to Telegram, Discord, WhatsApp, or web";
+const SEND_FILE_LINE_WHATSAPP = "- **atlas_send_file** — Send a file as a real attachment to the Telegram, Discord or WhatsApp chat you are in (never answer with a folder path)";
+const SEND_MESSAGE_LINE = "- **atlas_send_message** — Push messages to Telegram, Discord, WhatsApp, Slack, or web";
+const SEND_FILE_LINE = "- **atlas_send_file** — Send a file as a real attachment to the Telegram, Discord, WhatsApp or Slack chat you are in (never answer with a folder path)";
+// SOUL.md's tool line, through four generations: Slack, WhatsApp, files, then Slack back (all naming mcp__atlas__*,
 // which only Claude Code calls them), and today's, which names them as every AI sees them.
-const SOUL_TOOLS_LINE = "- **Platform tools** (the tarsee_* tools): Send messages and files (real attachments) to Telegram/Discord/WhatsApp/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.";
+const SOUL_TOOLS_LINE = "- **Platform tools** (the atlas_* tools): Send messages and files (real attachments) to Telegram/Discord/WhatsApp/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.";
 // The lines of TOOLS.md (both the image's and config/env.js's) that told the agent to stay out of Bash.
 const TOOLS_SHELL_LINES = [
-  ["- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from Bash and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work.",
-    "- Make, edit or list Discord channels and webhooks with tarsee_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work."],
-  ["- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from Bash and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).",
-    "- List projects, services and variable names, set a variable or redeploy with tarsee_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token)."],
+  ["- Make, edit or list Discord channels and webhooks with atlas_discord_admin. Never call Discord's API from Bash and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work.",
+    "- Make, edit or list Discord channels and webhooks with atlas_discord_admin. Never call Discord's API from the shell and never pull DISCORD_BOT_TOKEN from the vault for it: Atlas's own bot does the work."],
+  ["- List projects, services and variable names, set a variable or redeploy with atlas_railway. Never call Railway's API from Bash and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token).",
+    "- List projects, services and variable names, set a variable or redeploy with atlas_railway. Never call Railway's API from the shell and never put a Railway token or a secret value in a command: Atlas reads the token from the vault itself (RAILWAY_API_TOKEN, an account or workspace token)."],
 ];
 
 const DEFAULT_UPGRADES = {
@@ -257,11 +257,11 @@ const DEFAULT_UPGRADES = {
       "You are **Atlas** — a 24/7 autonomous AI agent."],
     ["- **Full tool access**: Read, Write, Edit, Bash, Grep, Glob — you can work with any file or run any command.",
       "- **Full tool access**: you can read, write, edit and search any file, and run any command in the shell."],
-    ["- **Platform tools** (mcp__tarsee__*): Send messages to Telegram/Discord/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.",
+    ["- **Platform tools** (mcp__atlas__*): Send messages to Telegram/Discord/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.",
       SOUL_TOOLS_LINE],
-    ["- **Platform tools** (mcp__tarsee__*): Send messages and files (real attachments) to Telegram/Discord/WhatsApp, schedule tasks, manage memory, search the web, use the encrypted vault.",
+    ["- **Platform tools** (mcp__atlas__*): Send messages and files (real attachments) to Telegram/Discord/WhatsApp, schedule tasks, manage memory, search the web, use the encrypted vault.",
       SOUL_TOOLS_LINE],
-    ["- **Platform tools** (mcp__tarsee__*): Send messages and files (real attachments) to Telegram/Discord/WhatsApp/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.",
+    ["- **Platform tools** (mcp__atlas__*): Send messages and files (real attachments) to Telegram/Discord/WhatsApp/Slack, schedule tasks, manage memory, search the web, use the encrypted vault.",
       SOUL_TOOLS_LINE],
     ["- **Persistent memory**: MEMORY.md stores everything you learn. Read it every session.",
       "- **Persistent memory**: MEMORY.md stores everything you learn. Grep it for what a task needs."],
@@ -269,8 +269,8 @@ const DEFAULT_UPGRADES = {
       "- **Images and files**: Users can send pictures, PDFs and other files. Each one is saved in the workspace for you to open, and you see a picture yourself when your model can."],
     ["- Always read MEMORY.md at the start of a session to know what you've learned.",
       "- MEMORY.md grows long: grep it for the topic at hand (`grep -n -i \"term\" MEMORY.md`) or use search_memories. Never read it whole."],
-    ["- Use mcp__tarsee__* tools for platform actions. Never use Bash for scheduling or messaging.",
-      "- Use the tarsee_* tools for platform actions. Never use the shell for scheduling or messaging."],
+    ["- Use mcp__atlas__* tools for platform actions. Never use Bash for scheduling or messaging.",
+      "- Use the atlas_* tools for platform actions. Never use the shell for scheduling or messaging."],
     // Every default before scheduled tasks waited for the owner's OK said to schedule a follow-up outright: each run of
     // a task can be a paid turn, so the agent offers and the owner decides.
     ["- You are proactive. If you notice something useful, mention it. If a task needs a follow-up, schedule it.",
@@ -305,11 +305,11 @@ const DEFAULT_UPGRADES = {
       "`SOUL.md` (your identity) and `USER.md` (what you know about your user) are already",
       "in your system prompt: don't read them again. `MEMORY.md` (accumulated knowledge,",
       "learned skills, API access) is not, because it grows long: grep it for the topic a",
-      "task needs (`grep -n -i \"term\" MEMORY.md`) or use tarsee_search_memories, and never",
+      "task needs (`grep -n -i \"term\" MEMORY.md`) or use atlas_search_memories, and never",
       "read it whole.",
     ].join("\n")],
-    ["- **tarsee_schedule_task** — Schedule cron jobs (server is UTC)",
-      "- **tarsee_schedule_task** — Schedule cron jobs (times are in the configured timezone, `TARSEE_TIMEZONE`)"],
+    ["- **atlas_schedule_task** — Schedule cron jobs (server is UTC)",
+      "- **atlas_schedule_task** — Schedule cron jobs (times are in the configured timezone, `ATLAS_TIMEZONE`)"],
     [SEND_MESSAGE_LINE_OLD, `${SEND_MESSAGE_LINE}\n${SEND_FILE_LINE}`],
     [SEND_MESSAGE_LINE_WHATSAPP, SEND_MESSAGE_LINE],
     [SEND_FILE_LINE_WHATSAPP, SEND_FILE_LINE],

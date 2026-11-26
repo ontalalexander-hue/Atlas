@@ -2,7 +2,7 @@
 // Before a model with no tested path can be picked, the owner runs Verify on their own key: four turns through the
 // engine-neutral turn layer (runTurn), each on the engine being tried:
 //   1. a plain reply (it must say a code word it was given)
-//   2. a call to Atlas's tarsee_datetime tool (a real tool_use and its result)
+//   2. a call to Atlas's atlas_datetime tool (a real tool_use and its result)
 //   3. a shell command (a real Bash call whose output carries a marker)
 //   4. a resumed turn that recalls the code word from turn 1 (only the session can carry it)
 // Engines are tried in order (Claude Code first, then Codex), the first to pass is recorded with the effort levels
@@ -16,10 +16,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { cliInstalled, envWithoutProxy } from "./fixtures/claude-cli.js";
 
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-verify-model-"));
-process.env.TARSEE_STATE_DIR = tmp;
-process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
-process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
+const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "atlas-verify-model-"));
+process.env.ATLAS_STATE_DIR = tmp;
+process.env.ATLAS_WORKSPACE_DIR = path.join(tmp, "workspace");
+process.env.ATLAS_DATA_DIR = path.join(tmp, "data");
 
 const { initDb } = await import("../src/db/sqlite.js");
 const { SettingsStore } = await import("../src/db/settings.js");
@@ -86,9 +86,9 @@ function fakeEngines(behaviors = {}) {
 
     const prompt = String(opts.messages.at(-1).content);
     const id = `tu-${++n}`;
-    if (/tarsee_datetime/.test(prompt)) {
+    if (/atlas_datetime/.test(prompt)) {
       if (b.tools) {
-        yield { type: "tool_use", id, name: "mcp__tarsee__tarsee_datetime", input: { format: "date" } };
+        yield { type: "tool_use", id, name: "mcp__atlas__atlas_datetime", input: { format: "date" } };
         yield { type: "tool_result", id, ok: true, result: "Monday, 9 November 2026" };
         yield { type: "text", content: "2026" };
       } else {
@@ -494,8 +494,8 @@ describe("verifyModel: on the real Claude Code engine against a fake gateway", {
         return { text: out.trim().split(/\s+/).at(-1) || "done" };
       }
       const last = blocksText(fakeAnthropic.lastUserBlocks(body));
-      if (/tarsee_datetime/.test(last)) {
-        return tools ? { toolUse: { name: "mcp__tarsee__tarsee_datetime", input: { format: "date" } } } : { text: "I would rather not use tools." };
+      if (/atlas_datetime/.test(last)) {
+        return tools ? { toolUse: { name: "mcp__atlas__atlas_datetime", input: { format: "date" } } } : { text: "I would rather not use tools." };
       }
       const echo = /\becho\s+(\S+)/.exec(last);
       if (echo) return tools ? { toolUse: { name: "Bash", input: { command: `echo ${echo[1]}`, description: "Print the marker" } } } : { text: echo[1] };
@@ -513,7 +513,7 @@ describe("verifyModel: on the real Claude Code engine against a fake gateway", {
    * environment minus any proxy: engine-env passes proxy settings on, and a proxy can't reach this loopback fake.
    */
   function engineRunner({ keepSession = true } = {}) {
-    const env = { ...envWithoutProxy(process.env), NODE_ENV: "test", TARSEE_TEST_BASE_URL_DEEPSEEK: `${fake.url}/anthropic` };
+    const env = { ...envWithoutProxy(process.env), NODE_ENV: "test", ATLAS_TEST_BASE_URL_DEEPSEEK: `${fake.url}/anthropic` };
     return (opts) => run({
       target: { provider: opts.provider, model: opts.model, engine: opts.engine, effort: opts.effort },
       messages: opts.messages,

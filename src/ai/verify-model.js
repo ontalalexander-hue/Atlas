@@ -7,7 +7,7 @@
  * (turn.js runTurn, injectable as deps.runner), on one engine at a time:
  *
  *   1. reply    a plain reply that must carry a code word it was given
- *   2. tool     a call to Atlas's tarsee_datetime tool: a real tool_use and its successful result
+ *   2. tool     a call to Atlas's atlas_datetime tool: a real tool_use and its successful result
  *   3. shell    a shell command whose output (a marker) must come back in the command's own result, so a model that
  *               only repeats the marker from the prompt doesn't pass
  *   4. resume   a second turn on the same session, sending only the new question, that must recall the code word
@@ -332,7 +332,7 @@ async function runEngine(ctx, engine) {
   const cwd = path.join(ctx.workspace, engine);
   fs.mkdirSync(cwd, { recursive: true });
   const word = codeWord("CODE");
-  const marker = codeWord("TARSEE-OK");
+  const marker = codeWord("ATLAS-OK");
   let handle = null;
   const steps = [];
   const out = { engine, ok: false, steps, word, handle: null };
@@ -389,7 +389,7 @@ function promptFor(step, { word, marker }) {
     case "reply":
       return `Remember this code word for later: ${word}. Reply with the code word and nothing else.`;
     case "tool":
-      return "Call the tarsee_datetime tool (it is on the tarsee MCP server) to get today's date, then reply with just the year it gives you.";
+      return "Call the atlas_datetime tool (it is on the atlas MCP server) to get today's date, then reply with just the year it gives you.";
     case "shell":
       return `Run this exact shell command and reply with its output: echo ${marker}`;
     case "resume":
@@ -428,7 +428,7 @@ function judge(step, res, { word, marker, engine, provider, model = null }) {
   if (step === "reply") return includesWord(res.text, word) ? { ok: true } : { ok: false, detail: DETAIL.reply };
   if (step === "resume") return includesWord(res.text, word) ? { ok: true } : { ok: false, detail: DETAIL.resume };
   if (step === "tool") {
-    const calls = res.toolUses.filter((t) => /(^|__)tarsee_datetime$/.test(String(t.name || "")));
+    const calls = res.toolUses.filter((t) => /(^|__)atlas_datetime$/.test(String(t.name || "")));
     if (!calls.length) return { ok: false, detail: DETAIL.tool };
     return calls.some((t) => res.toolResults.get(t.id) && res.toolResults.get(t.id).ok !== false) ? { ok: true } : { ok: false, detail: DETAIL.toolFailed };
   }
