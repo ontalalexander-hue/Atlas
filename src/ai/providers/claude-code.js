@@ -188,7 +188,14 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
   });
   // Every key and gateway turn runs host-managed: settings files can't move it, and its key is not in the shell's
   // environment (still readable from the CLI's process on Linux; see HOST_MANAGED in engine-env.js).
-  const turnEnv = id === "claude" ? credentialEnv : { ...credentialEnv, ...HOST_MANAGED };
+  // The plan's sign-in brings the owner's whole Claude account with it: every claude.ai connector (Gmail, Drive,
+  // Railway...) and every plugin and skill enabled there. Their tool lists alone can fill the context window, so
+  // each turn compacts and refills until Claude Code gives up ("Autocompact is thrashing"), and an agent that runs
+  // with no permission prompts should not be handed the owner's mail and files just because they signed in. So a
+  // plan turn gets Atlas's own tools only, like every other AI. ATLAS_CLAUDE_ACCOUNT_EXTRAS=1 brings them back.
+  const accountExtras = id === "claude" && /^(1|true|on|yes)$/i.test(String(env.ATLAS_CLAUDE_ACCOUNT_EXTRAS || "").trim());
+  const planEnv = accountExtras ? credentialEnv : { ...credentialEnv, ENABLE_CLAUDEAI_MCP_SERVERS: "false" };
+  const turnEnv = id === "claude" ? planEnv : { ...credentialEnv, ...HOST_MANAGED };
   const home = id === "claude" ? homeFor("claude", CLAUDE_CODE, { homeDir: deps.homeDir }) : turnEnv.CLAUDE_CONFIG_DIR;
   const settingSources = settingSourcesFor(id);
   const model = gateway ? turnEnv.ANTHROPIC_MODEL : resolve(requested);
@@ -206,10 +213,10 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
     maxTurns: opts.maxTurns ?? 50,
     includePartialMessages: true,
     settingSources,
-    // Key and gateway turns use only the servers Atlas hands over, never MCP servers from .mcp.json, a settings file
-    // or a plugin, because those would start with the CLI's environment, key included. The plan keeps today's
-    // behaviour: the owner's project (.mcp.json), user, local and plugin servers load alongside atlas.
-    strictMcpConfig: id !== "claude",
+    // Every turn uses only the servers Atlas hands over, never MCP servers from .mcp.json, a settings file or a
+    // plugin: on a key or gateway turn those would start with the CLI's environment, key included, and on the plan
+    // they fill the context (see accountExtras above, which is the way to let them back in).
+    strictMcpConfig: !accountExtras,
     additionalDirectories: [BUNDLED_SKILLS_DIR],
     systemPrompt: systemPromptFor({
       preamble: buildPreamble({ engine: CLAUDE_CODE, cwd, ...(deps.timezone ? { timezone: deps.timezone } : {}) }),
@@ -217,6 +224,8 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
       systemParts: opts.systemParts,
     }),
   };
+  // The plugins and skills enabled on claude.ai are not synced into a plan turn either (only false is honoured).
+  if (id === "claude" && !accountExtras) options.settings = { syncClaudeAiSkills: false, syncClaudeAiPlugins: false };
   if (opts.mcpServer) options.mcpServers = { atlas: opts.mcpServer };
   if (opts.abortController) options.abortController = opts.abortController;
   if (opts.resume) options.resume = opts.resume;

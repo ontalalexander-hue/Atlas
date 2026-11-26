@@ -79,11 +79,23 @@ describe("buildQueryOptions: the Claude plan", () => {
       assert.deepEqual(b.options.allowedTools, b.options.tools, id);
       assert.equal(b.options.permissionMode, "bypassPermissions", id);
       assert.equal(b.options.allowDangerouslySkipPermissions, true, id);
-      assert.equal(b.options.strictMcpConfig, id !== "claude", id === "claude" ? "the plan keeps the owner's own MCP servers (.mcp.json, plugins), as before" : `${id}: only Atlas's own MCP servers`);
+      assert.equal(b.options.strictMcpConfig, true, `${id}: only Atlas's own MCP servers`);
       assert.deepEqual(b.options.mcpServers, { atlas: { name: "atlas-stub" } }, id);
       assert.deepEqual(b.options.additionalDirectories, [BUNDLED_SKILLS_DIR], id);
       assert.equal(b.options.includePartialMessages, true, id);
       assert.equal(b.options.maxTurns, 50, id);
+    }
+  });
+
+  it("a plan turn leaves the Claude account's connectors, plugins and skills out, unless ATLAS_CLAUDE_ACCOUNT_EXTRAS=1", () => {
+    const plan = build("claude", { mcpServer: { name: "atlas-stub" } });
+    assert.equal(plan.options.env.ENABLE_CLAUDEAI_MCP_SERVERS, "false", "no claude.ai connectors");
+    assert.deepEqual(plan.options.settings, { syncClaudeAiSkills: false, syncClaudeAiPlugins: false }, "nothing synced from claude.ai");
+    assert.equal(plan.options.strictMcpConfig, true);
+    for (const id of ["anthropic", "deepseek", "openrouter"]) {
+      const b = build(id, { key: KEYS[id] });
+      assert.equal(b.options.settings, undefined, `${id}: a key turn has no account to sync from`);
+      assert.equal(b.options.env.ENABLE_CLAUDEAI_MCP_SERVERS, undefined, id);
     }
   });
 
