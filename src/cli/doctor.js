@@ -1,5 +1,5 @@
 /**
- * Tarsee doctor — diagnostic checks.
+ * Atlas doctor — diagnostic checks.
  */
 
 export async function runDoctor() {
@@ -65,7 +65,7 @@ export async function runDoctor() {
   checks.push({ name: "SETUP_PASSWORD", status: process.env.SETUP_PASSWORD ? "pass" : "warn", detail: process.env.SETUP_PASSWORD ? "Set" : "Not set (open access)" });
 
   // Print results
-  console.log("\n  Tarsee Doctor\n");
+  console.log("\n  Atlas Doctor\n");
   for (const c of checks) {
     const icon = c.status === "pass" ? "[OK]" : c.status === "warn" ? "[!!]" : "[XX]";
     console.log(`  ${icon} ${c.name.padEnd(18)} ${c.detail}`);

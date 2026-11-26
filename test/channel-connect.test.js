@@ -196,9 +196,9 @@ describe("WhatsApp checks its WHAPI token", () => {
   });
 
   it("says which number it is linked to", async () => {
-    health = { status: 200, body: { start_at: 1, uptime: 2, status: { code: 4, text: "AUTH" }, user: { id: "14155550123", name: "Tarsee Bot", pushname: "Tarsee" } } };
+    health = { status: 200, body: { start_at: 1, uptime: 2, status: { code: 4, text: "AUTH" }, user: { id: "14155550123", name: "Atlas Bot", pushname: "Atlas" } } };
     const bot = await createWhatsAppBot({ token: "good", baseUrl }, db);
-    assert.equal(bot.identity, "+14155550123 (Tarsee)");
+    assert.equal(bot.identity, "+14155550123 (Atlas)");
     assert.equal(bot.warning, null);
     await bot.stop();
   });

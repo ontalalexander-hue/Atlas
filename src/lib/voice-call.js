@@ -4,7 +4,7 @@
  * The call itself runs in the browser (public/js/call.js): it listens, cuts what the person says into utterances,
  * turns each into words with the speech-to-text chosen in Settings > Voice (POST /api/voice/transcribe), sends it as
  * an ordinary chat message to the call's own chat, "Calls with <name>" (POST /api/chat/send, so the chat's own AI and
- * model answer, or the default AI), and speaks the reply with Tarsee's text-to-speech engine (POST
+ * model answer, or the default AI), and speaks the reply with Atlas's text-to-speech engine (POST
  * /api/voice/tts-stream). Nothing here calls a paid service of its own.
  *
  * This file holds:
@@ -12,7 +12,7 @@
  *    and the AI is told it is on a call (CALL_HINT in the system prompt, CALL_TURN_REMINDER on the message), so it
  *    answers in a few spoken sentences rather than chat formatting
  *  - the call's chat: one conversation (channel_conv.call:default) named "Calls with <name>", where <name> is the
- *    name from Settings > Identity (identity.name), "Tarsee" when none is set
+ *    name from Settings > Identity (identity.name), "Atlas" when none is set
  *  - the deep ask: "think hard", "take your time" and the like run that one turn on the top tier of the call's AI
  *    (provider-registry.js tiers), when it has a top model other than the one it already runs
  *  - the hang-up handoff: hung up while the AI was still working, the answer goes to the channel chosen in Settings >
@@ -54,15 +54,15 @@ export function callTurn(message) {
   return { isCall: false, text: m };
 }
 
-/** The name from Settings > Identity, "Tarsee" when none is set. */
+/** The name from Settings > Identity, "Atlas" when none is set. */
 export function botNameOf(settingsStore) {
   let name = "";
   try { name = String(settingsStore?.get?.("identity.name") ?? "").trim(); } catch { name = ""; }
-  return name || "Tarsee";
+  return name || "Atlas";
 }
 
 export function callTitle(name) {
-  return `Calls with ${String(name || "").trim() || "Tarsee"}`;
+  return `Calls with ${String(name || "").trim() || "Atlas"}`;
 }
 
 /**
@@ -131,7 +131,7 @@ export function handoffTarget({ settingsStore, channelManager }) {
 }
 
 /**
- * Tarsee's own send path (the send_message tool): the channel's latest chat. Resolves to { ok, detail }; never throws.
+ * Atlas's own send path (the send_message tool): the channel's latest chat. Resolves to { ok, detail }; never throws.
  */
 export function sendThroughChannel({ db, settingsStore, channelManager }) {
   return async (channel, text) => {

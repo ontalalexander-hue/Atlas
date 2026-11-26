@@ -103,7 +103,7 @@ describe("sums and speed", () => {
     assert.equal(channelOf("boot", "boot"), "Boot checklist");
     assert.equal(channelOf("api", "abc"), "API");
     assert.equal(channelOf("somewhere", "abc"), "Other");
-    assert.equal(promptTitle('[alice]: [Replying to Tarsee: "**Draft 2 is ready:** "quoted" and more"]\n\ntighten the intro please'), "tighten the intro please");
+    assert.equal(promptTitle('[alice]: [Replying to Atlas: "**Draft 2 is ready:** "quoted" and more"]\n\ntighten the intro please'), "tighten the intro please");
     assert.equal(promptTitle("[alice]: summarise the meeting notes"), "summarise the meeting notes");
     assert.equal(promptTitle('[Replying to alice: "look for the invoice in the shared drive"]'), "look for the invoice in the shared drive", "a reply to one's own message: its quote is the ask");
     assert.equal(promptTitle("[Cron Job: cron_daily — 2026-10-26T00:30:00.021Z]\n\nSummarise the inbox"), "Summarise the inbox");
@@ -141,7 +141,7 @@ describe("where the transcripts are", () => {
     const cwd = "/srv/my.workspace";
     // Two of the plan's homes: p/.claude (HOME and the user's home) and the state folder's .claude-code-home.
     const opts = { homeDir: p, env: { HOME: p }, stateDir: tmp };
-    // Tarsee's slug rule folds a run of separators and dots into one "-"; Claude Code's own may not.
+    // Atlas's slug rule folds a run of separators and dots into one "-"; Claude Code's own may not.
     fs.mkdirSync(path.join(home, "projects", "-srv-my-workspace"), { recursive: true });
     // The same folder through a link, as on Railway (/home/node/.claude is the volume's .claude-code-home). A junction
     // needs no admin rights on Windows; POSIX ignores the type.
@@ -149,7 +149,7 @@ describe("where the transcripts are", () => {
     const dirs = projectDirs(cwd, opts);
     assert.equal(dirs.length, 1, "the linked home is the same folder");
     assert.equal(fs.realpathSync(dirs[0]), fs.realpathSync(path.join(home, "projects", "-srv-my-workspace")));
-    // "/srv/x_y": Tarsee's rule keeps the "_", a letters-and-digits-only rule does not.
+    // "/srv/x_y": Atlas's rule keeps the "_", a letters-and-digits-only rule does not.
     fs.mkdirSync(path.join(home, "projects", "-srv-x-y"), { recursive: true });
     assert.deepEqual(projectDirs("/srv/x_y", opts).map((d) => path.basename(d)), ["-srv-x-y"]);
     assert.equal(projectDirs("/nowhere/at/all", opts).length, 0);
@@ -273,15 +273,15 @@ describe("the index: transcripts and events into turns, read a piece at a time",
     db.prepare("INSERT INTO conversations (id, title, claude_session_id) VALUES (?, ?, ?)").run("conv1", "#notes", "sess1");
     db.prepare("INSERT INTO conversations (id, title, claude_session_id) VALUES (?, ?, ?)").run("conv2", "Chat with bob", null);
     const ev = db.prepare("INSERT INTO conversation_events (conversation_id, turn_id, type, payload, created_at) VALUES (?, ?, ?, ?, ?)");
-    ev.run("conv1", null, "message", JSON.stringify({ id: "u1", role: "user", content: '[alice]: [Replying to Tarsee: "v3"]\n\nwrite the changelog' }), at(0));
-    ev.run("conv1", "t1", "turn_start", JSON.stringify({ source: "discord", model: "test", prompt: '[alice]: [Replying to Tarsee: "v3"]' }), at(1));
+    ev.run("conv1", null, "message", JSON.stringify({ id: "u1", role: "user", content: '[alice]: [Replying to Atlas: "v3"]\n\nwrite the changelog' }), at(0));
+    ev.run("conv1", "t1", "turn_start", JSON.stringify({ source: "discord", model: "test", prompt: '[alice]: [Replying to Atlas: "v3"]' }), at(1));
     ev.run("conv1", "t1", "turn_end", JSON.stringify({ stopReason: "end_turn" }), at(100));
     ev.run("conv1", null, "message", JSON.stringify({ id: "a1", role: "assistant", content: "done" }), at(100.05));
     ev.run("conv2", "t2", "turn_start", JSON.stringify({ source: "whatsapp", prompt: "ok" }), at(200));
     ev.run("conv2", "t2", "turn_end", JSON.stringify({ stopReason: "end_turn", sessionId: "sess2" }), at(260));
     file = path.join(dir, "sess1.jsonl");
     fs.writeFileSync(file, [
-      typed('[alice]: [Replying to Tarsee: "v3"]', at(2)),
+      typed('[alice]: [Replying to Atlas: "v3"]', at(2)),
       req("r1", at(2)), asst("m1", at(12), { cr: 100_000, cw: 2000, out: 1000 }, { ref: "r1" }),
       req("r2", at(20)), asst("m2", at(30), { cr: 102_000, out: 500 }, { ref: "r2" }),
     ].join("\n") + "\n" + req("r3", at(40)).slice(0, 30));   // a line still being written

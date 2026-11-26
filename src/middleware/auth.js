@@ -57,7 +57,7 @@ function extractSessionToken(req) {
 }
 
 // --- Active sessions ---
-// A sign-in's id is the tarsee_session cookie, and only the browser keeps it. Tarsee keeps a hash of it (sessionKey),
+// A sign-in's id is the tarsee_session cookie, and only the browser keeps it. Atlas keeps a hash of it (sessionKey),
 // in this Map and in the sessions table, and looks a cookie up by its hash. The AI's shell runs as the same user and
 // can read tarsee.db, so with the id itself stored there it could act as the signed-in owner (a free CSRF token from
 // GET /api/auth/csrf does the rest). A hash read from the database signs nobody in: no cookie hashes to it.
@@ -71,11 +71,11 @@ const SESSION_MAX_AGE_MS =
   (Number(process.env.TARSEE_SESSION_MAX_AGE_DAYS) || 30) * 24 * 60 * 60 * 1000;
 let _sessionDb = null;
 
-/** How a stored sign-in is marked as a hash: an older Tarsee stored the id itself (64 hex characters, no mark). */
+/** How a stored sign-in is marked as a hash: an older Atlas stored the id itself (64 hex characters, no mark). */
 const HASHED = "sha256:";
 
 /**
- * What Tarsee keeps of a sign-in's id: "sha256:" and its SHA-256. The id is 32 random bytes, so a plain hash is enough:
+ * What Atlas keeps of a sign-in's id: "sha256:" and its SHA-256. The id is 32 random bytes, so a plain hash is enough:
  * there is nothing to guess.
  */
 function sessionKey(sessionId) {
@@ -83,7 +83,7 @@ function sessionKey(sessionId) {
 }
 
 /**
- * Wire the sessions cache to SQLite. Creates the table, drops expired rows, hashes any id an older Tarsee stored as it
+ * Wire the sessions cache to SQLite. Creates the table, drops expired rows, hashes any id an older Atlas stored as it
  * was (its owner stays signed in: their cookie hashes to the new row), and hydrates surviving sessions so logins
  * persist across restarts. Called once at boot from server.js, right after initDb.
  */
@@ -114,7 +114,7 @@ export function initSessionStore(db) {
 }
 
 /**
- * Replace each sign-in stored as its id (an older Tarsee) with its hash. The old text is wiped from the file as it is
+ * Replace each sign-in stored as its id (an older Atlas) with its hash. The old text is wiped from the file as it is
  * replaced (secure_delete), and the write-ahead log is written back and emptied, so the ids are gone from disk too.
  * Returns how many were hashed.
  */

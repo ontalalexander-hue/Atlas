@@ -1,4 +1,4 @@
-// The signed-in ChatGPT account's own model list (src/ai/codex-models.js; design amendment A2). Tarsee never
+// The signed-in ChatGPT account's own model list (src/ai/codex-models.js; design amendment A2). Atlas never
 // hard-codes a ChatGPT model: it asks Codex's app-server (`model/list` over JSON-RPC on stdio) and, when that can't
 // be read as the account's own answer, returns [] so the caller leaves the model out and Codex picks its default.
 // "The account's own answer" matters: the real pinned binary answers model/list with its bundled catalog both when
@@ -281,7 +281,7 @@ describe("syncChatgptCatalog: the registry's ChatGPT models come from the accoun
   });
 });
 
-describe("no ChatGPT model is written into Tarsee's code", () => {
+describe("no ChatGPT model is written into Atlas's code", () => {
   it("the sign-in and model-list modules name no model", () => {
     for (const file of ["codex-models.js", "codex-device-login.js", "codex-cli.js"]) {
       const src = fs.readFileSync(path.join(here, "..", "src", "ai", file), "utf8");

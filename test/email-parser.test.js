@@ -113,7 +113,7 @@ test("hasMention — direct @tarsee with word-boundary matches", () => {
 });
 
 test("hasMention — email-address-looking @tarsee is NOT a mention", () => {
-  // Standard bounce — Tarsee's address should not trigger a mention.
+  // Standard bounce — Atlas's address should not trigger a mention.
   assert.equal(hasMention("send it to alice@tarsee.example.com"), false);
   assert.equal(hasMention("cc: bot@tarsee.io"), false);
   // A username with a 'tarsee' substring inside a longer local-part.
@@ -122,7 +122,7 @@ test("hasMention — email-address-looking @tarsee is NOT a mention", () => {
 
 test("hasMention — 'tarsee' as a bare word (no @) does NOT match", () => {
   assert.equal(hasMention("the tarsee animal is cute"), false);
-  assert.equal(hasMention("Tarsee, please"), false);
+  assert.equal(hasMention("Atlas, please"), false);
 });
 
 test("hasMention — custom keyword with or without leading @", () => {

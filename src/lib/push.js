@@ -143,7 +143,7 @@ export async function sendPush(payload) {
   if (subs.length === 0) return { sent: 0, failed: 0, evicted: 0, total: 0 };
 
   const body = JSON.stringify({
-    title: payload.title || "Tarsee",
+    title: payload.title || "Atlas",
     body: payload.body || "",
     url: payload.url || "/",
     tag: payload.tag || "tarsee",
@@ -193,7 +193,7 @@ export async function sendPushTo(endpoint, payload) {
   if (!sub) return { ok: false, reason: "subscription not found" };
 
   const body = JSON.stringify({
-    title: payload.title || "Tarsee",
+    title: payload.title || "Atlas",
     body: payload.body || "",
     url: payload.url || "/",
   });

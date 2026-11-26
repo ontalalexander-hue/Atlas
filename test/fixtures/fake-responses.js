@@ -239,7 +239,7 @@ export function llamaModels({ alias = "qwen3.5-9b", nCtx = 65_536 } = {}) {
   };
 }
 
-/** llama-server's GET /props (the fields Tarsee reads, and a few beside them). */
+/** llama-server's GET /props (the fields Atlas reads, and a few beside them). */
 export function llamaProps({ alias = "qwen3.5-9b", nCtx = 65_536, build = "b12238-08f945ffb" } = {}) {
   return { default_generation_settings: { params: { temperature: 0.8 }, n_ctx: nCtx }, total_slots: 4, model_alias: alias, model_path: `/models/${alias}.gguf`, modalities: { vision: false, audio: false }, build_info: build };
 }

@@ -2,7 +2,7 @@
 // Before a model with no tested path can be picked, the owner runs Verify on their own key: four turns through the
 // engine-neutral turn layer (runTurn), each on the engine being tried:
 //   1. a plain reply (it must say a code word it was given)
-//   2. a call to Tarsee's tarsee_datetime tool (a real tool_use and its result)
+//   2. a call to Atlas's tarsee_datetime tool (a real tool_use and its result)
 //   3. a shell command (a real Bash call whose output carries a marker)
 //   4. a resumed turn that recalls the code word from turn 1 (only the session can carry it)
 // Engines are tried in order (Claude Code first, then Codex), the first to pass is recorded with the effort levels
@@ -465,7 +465,7 @@ describe("verify: limits, cost and re-checks", () => {
 
 // The same probe through the REAL Claude Code engine (src/ai/providers/claude-code.js run(), the bundled CLI) against
 // a loopback Anthropic Messages server (test/fixtures/fake-anthropic.js) standing in for DeepSeek's /anthropic
-// endpoint. The fake "model" calls Tarsee's tool and Bash when asked, and answers the resume question only from the
+// endpoint. The fake "model" calls Atlas's tool and Bash when asked, and answers the resume question only from the
 // conversation history the CLI sends it, so the resume check passes only on a real resumed session.
 describe("verifyModel: on the real Claude Code engine against a fake gateway", { skip: cliInstalled() ? false : "the Agent SDK's bundled Claude Code CLI isn't installed here" }, () => {
   const KEY = "sk-testcanarydeepseek0001verifycli";
@@ -553,7 +553,7 @@ describe("verifyModel: on the real Claude Code engine against a fake gateway", {
     assert.deepEqual(r.checks, { reply: true, tool: true, shell: true, resume: false });
   });
 
-  it("falls to Codex when the model won't call Tarsee's tool on Claude Code", { timeout: 120_000 }, async () => {
+  it("falls to Codex when the model won't call Atlas's tool on Claude Code", { timeout: 120_000 }, async () => {
     fake.script = model({ tools: false });
     const codex = fakeEngines({ codex: { efforts: ["low", "high"] } });
     const real = engineRunner();

@@ -1,9 +1,9 @@
 /**
- * tool-registry.js: every tool Tarsee's agent can run, in one list, for Settings > Security
+ * tool-registry.js: every tool Atlas's agent can run, in one list, for Settings > Security
  * (GET /api/admin/tool-registry, routes/admin.js).
  *
  * Three sources, merged:
- *   - Tarsee's own tools as lib/tools.js defines them (getToolDefinitions): read_file, exec, pdf_read, ...
+ *   - Atlas's own tools as lib/tools.js defines them (getToolDefinitions): read_file, exec, pdf_read, ...
  *   - the tarsee MCP server's live list (ai/tarsee-mcp.js, asked over an in-memory MCP client exactly as an
  *     engine asks it): tarsee_send_message, tarsee_push_notification, tarsee_pdf_read, ... Each one runs
  *     executeTool("<name without tarsee_>"), so it is the same tool as lib/tools.js's of that name.
@@ -15,14 +15,14 @@
  *   mcpName        what the agent calls it ("tarsee_push_notification"; the engine sees mcp__tarsee__<mcpName>),
  *                  null for a tool the agent can't call through the tarsee server
  *   policyCovered  true when Settings > Tool Permissions applies (everything through executeTool); false for the
- *                  engines' own tools, which nothing in Tarsee can gate (design 2, non-goals: said honestly)
+ *                  engines' own tools, which nothing in Atlas can gate (design 2, non-goals: said honestly)
  *   engines        for a built-in tool, the engines that have it
  *   mode           the current Tool Permissions setting (filled by the route)
  */
 
 const MCP_PREFIX = "tarsee_";
 
-/** Plain-language names and groups for the tools Tarsee ships. Anything else is named from its id, in "Other". */
+/** Plain-language names and groups for the tools Atlas ships. Anything else is named from its id, in "Other". */
 const KNOWN = {
   send_message: ["Send a message", "Messages"],
   send_file: ["Send a file", "Messages"],
@@ -87,7 +87,7 @@ function labelFromName(name) {
 
 /**
  * The registry from its sources (pure). toolDefs: [{ name, description }] (lib/tools.js getToolDefinitions),
- * mcpTools: [{ name, description }] (the tarsee MCP server's tools/list). Tarsee's tools sorted by group then
+ * mcpTools: [{ name, description }] (the tarsee MCP server's tools/list). Atlas's tools sorted by group then
  * label, the engines' own last.
  */
 export function buildToolRegistry({ toolDefs = [], mcpTools = [] } = {}) {

@@ -1,6 +1,6 @@
 /**
  * WebSocket Terminal Handler
- * Provides a web-based terminal for running commands on the Tarsee server.
+ * Provides a web-based terminal for running commands on the Atlas server.
  * Useful for Claude CLI authentication and other admin tasks.
  */
 

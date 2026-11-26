@@ -15,7 +15,7 @@ metadata:
 # UltraReview
 
 Parallel multi-agent code review for the CURRENT git branch vs `main`.
-Uses Tarsee's agent registry (Coder, Researcher, Writer) to run three
+Uses Atlas's agent registry (Coder, Researcher, Writer) to run three
 independent review passes simultaneously, then aggregates.
 
 ## When to use

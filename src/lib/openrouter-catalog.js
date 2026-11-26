@@ -8,10 +8,10 @@
  * it.
  *
  * Why the full list and not ?supported_parameters=tools: that filtered answer leaves out the "~maker/...-latest"
- * aliases, Tarsee's own OpenRouter defaults among them. So the full list is read and filtered here.
+ * aliases, Atlas's own OpenRouter defaults among them. So the full list is read and filtered here.
  *
- * A model is kept only when Tarsee can run it:
- *  - it takes tools (supported_parameters has "tools"): every Tarsee turn uses them;
+ * A model is kept only when Atlas can run it:
+ *  - it takes tools (supported_parameters has "tools"): every Atlas turn uses them;
  *  - it has a chat endpoint an engine speaks: /api/v1/messages (Claude Code) or /api/v1/responses (Codex). The
  *    ":batch" copies only take batch jobs;
  *  - it has a price per token. Routers that pick a different model on each request list -1: no cost can be shown or
@@ -57,7 +57,7 @@ let _inflight = null;    // the fetch in progress, so callers at the same moment
 // --- Reading OpenRouter's answer ---
 
 /**
- * The models Tarsee can run, from the body of GET /api/v1/models. Rows it can't read are skipped; a body that isn't a
+ * The models Atlas can run, from the body of GET /api/v1/models. Rows it can't read are skipped; a body that isn't a
  * model list throws. Each row:
  *   { id, label, vendor, context, vision, pdf, price: {in, out, cacheRead, cacheWrite} | null, free,
  *     reasoning: {efforts, default, mandatory} | null, engines, aliasOf, retires }
@@ -158,8 +158,8 @@ function perMillion(v) {
 }
 
 /**
- * The reasoning levels a model takes, as Tarsee's effort ids (lowest first): the ones it lists, without "none" and
- * "minimal", which Tarsee doesn't offer. A model that reasons but lists no levels takes OpenRouter's common three.
+ * The reasoning levels a model takes, as Atlas's effort ids (lowest first): the ones it lists, without "none" and
+ * "minimal", which Atlas doesn't offer. A model that reasons but lists no levels takes OpenRouter's common three.
  * null for a model that doesn't reason.
  */
 function reasoningOf(reasoning, params) {
@@ -200,7 +200,7 @@ export function refreshOpenRouterCatalog(store, opts = {}) {
       apply(models, fetchedAt);
       return { source: "network", models, fetchedAt, error: null };
     } catch (err) {
-      const error = err instanceof CatalogError ? err.message : `Tarsee couldn't read OpenRouter's model list (${err?.message || err}).`;
+      const error = err instanceof CatalogError ? err.message : `Atlas couldn't read OpenRouter's model list (${err?.message || err}).`;
       const last = cached || (_models ? { models: _models, fetchedAt: _fetchedAt } : null);
       if (last) {
         apply(last.models, last.fetchedAt);
@@ -230,7 +230,7 @@ export function initOpenRouterCatalog(store, opts = {}) {
   loadOpenRouterCatalog(store);
   const ready = refreshOpenRouterCatalog(store, opts).then((r) => {
     if (r.error) console.warn(`[models] OpenRouter catalog: ${r.error}${r.models.length ? ` Using the list from ${r.fetchedAt}.` : ""}`);
-    else if (r.source === "network") console.log(`[models] OpenRouter catalog: ${r.models.length} models Tarsee can run`);
+    else if (r.source === "network") console.log(`[models] OpenRouter catalog: ${r.models.length} models Atlas can run`);
     return r;
   });
   const timer = setInterval(() => {
@@ -267,7 +267,7 @@ async function getJson({ fetch: fetchImpl = globalThis.fetch, url = OPENROUTER_M
     res = await fetchImpl(url, { method: "GET", headers: { accept: "application/json" }, signal: sig });
   } catch (err) {
     const why = timeout.aborted ? "it took too long to answer" : (err?.cause?.code || err?.code || err?.name || "network error");
-    throw new CatalogError(`Tarsee couldn't reach OpenRouter for its model list (${why}).`);
+    throw new CatalogError(`Atlas couldn't reach OpenRouter for its model list (${why}).`);
   }
   if (!res.ok) throw new CatalogError(`OpenRouter answered ${res.status} when asked for its model list.`);
   const text = await res.text();
@@ -320,7 +320,7 @@ function apply(models, fetchedAt) {
  * The picker's OpenRouter sections, each { id, label, models, searchable? }:
  *   recommended  "Recommended": the registry's recommended slugs (the default first), then the shipped verified models
  *   verified     "Verified by you": the models the owner verified (ai.openrouter.verified), newest result kept
- *   all          "All models": every model Tarsee can run, sorted by name; `query` narrows only this one
+ *   all          "All models": every model Atlas can run, sorted by name; `query` narrows only this one
  * Each row: the catalog row plus
  *   engine       the engine that runs it now, or null (it must be verified first)
  *   selectable   whether it can be picked now (engine is known); needsVerify is its opposite

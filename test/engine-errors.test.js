@@ -42,7 +42,7 @@ describe("classifyEngineError: HTTP statuses", () => {
   });
 
   // OpenRouter's documented 403 for a prompt its moderation flagged: the body carries metadata.flagged_input, the
-  // person's own words, which must not be read as Tarsee's other signals (a "session expired" in them included).
+  // person's own words, which must not be read as Atlas's other signals (a "session expired" in them included).
   const moderated = (flagged = "a flagged sentence") => JSON.stringify({ error: { code: 403, message: "openai/gpt-5.5 requires moderation on OpenAI. Your input was flagged for \"violence\". No credits were charged.", metadata: { reasons: ["violence"], flagged_input: flagged, provider_name: "OpenAI", model_slug: "openai/gpt-5.5" } } });
 
   it("OpenRouter's moderation refusal (403) is not a rejected key: no flag, no retry, its own words", () => {
@@ -90,7 +90,7 @@ describe("classifyEngineError: HTTP statuses", () => {
     assert.match(an.message, /platform\.claude\.com\/settings\/billing/, "the Claude Console's own address now");
   });
 
-  it("an Anthropic key made outside a workspace: says to make one in a workspace (Tarsee sends no workspace header)", () => {
+  it("an Anthropic key made outside a workspace: says to make one in a workspace (Atlas sends no workspace header)", () => {
     for (const input of [
       { status: 400, message: "API Error: 400 {\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"anthropic-workspace-id header is required for this API key\"}}" },
       { status: 401, message: "This key isn't scoped to a workspace" },
@@ -172,7 +172,7 @@ describe("classifyEngineError: HTTP statuses", () => {
     assert.match(e.message, /sign-in token/);
   });
 
-  it("Tarsee's own refusals keep their code and words", () => {
+  it("Atlas's own refusals keep their code and words", () => {
     const iso = classifyEngineError("deepseek", CC, { code: "credential-isolation", message: "X is a sign-in file in a folder meant only for an API key." });
     assert.equal(iso.kind, "credential-isolation");
     assert.match(iso.message, /sign-in file/);

@@ -165,7 +165,7 @@
   }
 
   /**
-   * A model chosen before Tarsee had other AIs: kept bare ("haiku", "claude-sonnet-4-6"), with no AI of its own.
+   * A model chosen before Atlas had other AIs: kept bare ("haiku", "claude-sonnet-4-6"), with no AI of its own.
    * Only a list of AIs tells it apart; on the Claude-only list every model is bare.
    */
   function isLegacyPick(picker, pick) {
@@ -174,7 +174,7 @@
   }
 
   /**
-   * The AI a chat's pick is on: its own provider, or the one its model's ref names. A model chosen before Tarsee had
+   * The AI a chat's pick is on: its own provider, or the one its model's ref names. A model chosen before Atlas had
    * other AIs goes with its chat to the default AI (ai/turn.js resolveTarget runs it there).
    */
   function pickProvider(pick, picker = null, defaults = null) {
@@ -191,7 +191,7 @@
   /**
    * The warning a chat shows when its own model isn't what runs: its AI is no longer ready ("DeepSeek not connected,
    * using default", or, with only API keys allowed, "ChatGPT plan is off (API keys only), using default"), or its
-   * model was chosen before Tarsee had other AIs and the default AI hasn't Claude's models ("DeepSeek doesn't have
+   * model was chosen before Atlas had other AIs and the default AI hasn't Claude's models ("DeepSeek doesn't have
    * Haiku 4.5, using default": the turn layer runs that AI's default model). null when all is well, and always on the
    * Claude-only list (it knows no AIs).
    */

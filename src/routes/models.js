@@ -14,7 +14,7 @@ import { getModelGroups, providerReadiness, defaultPick, readPick, checkModel, l
  *     { groups, unavailable, defaults, picker, models }: one group per AI that is switched on and ready, the default
  *     AI first (lib/model-catalog.js getModelGroups); the AIs that are switched on but not ready, with what to do;
  *     what a chat with nothing of its own runs on; `picker`, what the page keeps (the groups, plus the Claude list's
- *     main and more as GET /api/chat/models always had them); `models`, Tarsee's Claude table for the Settings page.
+ *     main and more as GET /api/chat/models always had them); `models`, Atlas's Claude table for the Settings page.
  *
  *   GET /api/models/picker?conversationId=…
  *     The chat's own AI, model and effort (null: the default), as the composer shows them:
@@ -25,7 +25,7 @@ import { getModelGroups, providerReadiness, defaultPick, readPick, checkModel, l
  *   PUT /api/models/picker  { conversationId, provider?, model?, effort? }
  *     Give a chat an AI, a model and an effort; null goes back to the default. `model` may be a model ref, which
  *     names the AI itself. Stored as session.<conv>.provider, .model and .effort, the effort clamped to the levels the
- *     model has. Refused: an AI Tarsee doesn't know or doesn't switch on (400), one that isn't ready (409, with its
+ *     model has. Refused: an AI Atlas doesn't know or doesn't switch on (400), one that isn't ready (409, with its
  *     fix), a model the AI doesn't offer or that must be verified first (400), a level that doesn't exist (400).
  *
  * The same handlers serve the old addresses (createModelsHandlers): GET /api/chat/models and
@@ -101,7 +101,7 @@ export function createModelsHandlers(deps = {}) {
     if (has("provider") || has("model")) {
       let wantProvider = has("provider") && !blank(body.provider) ? String(body.provider).trim() : null;
       let rawModel = has("model") && !blank(body.model) ? String(body.model).trim() : null;
-      if (wantProvider && !normalizeProviderId(wantProvider)) return res.status(400).json({ error: `Tarsee doesn't know the AI "${wantProvider}".` });
+      if (wantProvider && !normalizeProviderId(wantProvider)) return res.status(400).json({ error: `Atlas doesn't know the AI "${wantProvider}".` });
       if (rawModel) {
         const ref = parseModelRef(rawModel);
         if (ref.provider) {
@@ -118,7 +118,7 @@ export function createModelsHandlers(deps = {}) {
         model = null;
       } else if (wantProvider) {
         const p = getProvider(wantProvider);
-        if (!shipped(p.id)) return res.status(400).json({ error: `${p.label} can't be used in this version of Tarsee.` });
+        if (!shipped(p.id)) return res.status(400).json({ error: `${p.label} can't be used in this version of Atlas.` });
         const s = await ready(p.id, settings);
         if (!s.ready) return res.status(409).json({ error: `${p.label} isn't ready. ${s.detail || ""}`.trim(), state: s.state, fix: s.fix });
         if (rawModel || has("model") || p.id !== cur.provider) {

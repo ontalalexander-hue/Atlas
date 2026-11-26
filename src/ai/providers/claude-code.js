@@ -7,11 +7,11 @@
  *   deepseek    DeepSeek's Anthropic-compatible endpoint, every model pinned to DeepSeek's own ids
  *   openrouter  OpenRouter's Anthropic-compatible endpoint, anthropic/* models
  *
- * Claude Code runs its own tool loop (Read, Write, Edit, Bash, Glob, Grep and Tarsee's own tools through the in-process
- * tarsee MCP server); this module streams what it does as Tarsee events. The engine-neutral wrapper (the live timeline,
+ * Claude Code runs its own tool loop (Read, Write, Edit, Bash, Glob, Grep and Atlas's own tools through the in-process
+ * tarsee MCP server); this module streams what it does as Atlas events. The engine-neutral wrapper (the live timeline,
  * Stop, the chat's model and effort, the queued-message note, sessions and hand-offs) is src/ai/turn.js.
  *
- *   run(opts)                         the engine: an async generator of Tarsee events (see run() below)
+ *   run(opts)                         the engine: an async generator of Atlas events (see run() below)
  *   buildQueryOptions(provider, opts, deps)   the SDK options for a turn, pure (snapshot-tested)
  *
  * Credential isolation (design 4.5) is enforced here before and while a turn runs:
@@ -19,7 +19,7 @@
  *   R2  the environment is engine-env claudeEnvFor(): every credential stripped, then this provider's block added
  *   R4  a key provider with no key refuses the turn before anything starts
  *   R5  settingSources pinned per provider, and a settings file that would set a credential refuses the turn
- *   R6  the CLI's reported apiKeySource must be the one Tarsee set up (API_KEY_SOURCES), else the turn is stopped
+ *   R6  the CLI's reported apiKeySource must be the one Atlas set up (API_KEY_SOURCES), else the turn is stopped
  */
 import { query as sdkQuery, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 import fs from "node:fs";
@@ -45,13 +45,13 @@ import { parse as parseHandle, sessionFor } from "../session-handle.js";
 
 export { AUTH_EXPIRED_MESSAGE };
 
-/** Tarsee's bundled skills (src/skills), handed to Claude Code as an additional directory. */
+/** Atlas's bundled skills (src/skills), handed to Claude Code as an additional directory. */
 export const BUNDLED_SKILLS_DIR = fileURLToPath(new URL("../../skills", import.meta.url));
 
 /** The providers this engine runs. */
 export const CLAUDE_ENGINE_PROVIDERS = Object.freeze(["claude", "anthropic", "deepseek", "openrouter"]);
 
-/** The built-in tools every provider gets, plus Tarsee's own (without the mcp__tarsee__* entry the SDK filters them out). */
+/** The built-in tools every provider gets, plus Atlas's own (without the mcp__tarsee__* entry the SDK filters them out). */
 export const BUILTIN_TOOLS = Object.freeze(["Read", "Write", "Edit", "Bash", "Glob", "Grep"]);
 const ALL_TOOLS = Object.freeze([...BUILTIN_TOOLS, "mcp__tarsee__*"]);
 
@@ -60,7 +60,7 @@ const ALL_TOOLS = Object.freeze([...BUILTIN_TOOLS, "mcp__tarsee__*"]);
  * against the pinned CLI (2.1.319, test/claude-gateway.test.js):
  *   claude      "none": the claude.ai sign-in (a .credentials.json or CLAUDE_CODE_OAUTH_TOKEN) is not an API key.
  *               ("oauth" is the legacy name for the same, which current CLIs no longer send.)
- *   anthropic   "ANTHROPIC_API_KEY": the key Tarsee set (and approved) in the environment
+ *   anthropic   "ANTHROPIC_API_KEY": the key Atlas set (and approved) in the environment
  *   deepseek, openrouter   "none": a bearer token (ANTHROPIC_AUTH_TOKEN) is not an API key either
  * Anything else ("/login managed key": a Console key a Terminal /login saved in the home; "apiKeyHelper"; an
  * ANTHROPIC_API_KEY on the plan, which would move it to metered billing) stops the turn.
@@ -91,7 +91,7 @@ export function apiKeySourceRefusal(providerId, source) {
           : `"${s}"`;
   return {
     code: "credential-isolation",
-    message: `Tarsee stopped this turn: Claude Code was about to use ${why} instead of ${id === "claude" ? "the Claude plan's sign-in" : `the ${label} key Tarsee gave it`}. Nothing was sent. Check Settings > AI, and remove any key a Terminal /login saved.`,
+    message: `Atlas stopped this turn: Claude Code was about to use ${why} instead of ${id === "claude" ? "the Claude plan's sign-in" : `the ${label} key Atlas gave it`}. Nothing was sent. Check Settings > AI, and remove any key a Terminal /login saved.`,
   };
 }
 
@@ -119,11 +119,11 @@ function gatewayPin(id, model, store) {
 function entryOf(provider) {
   if (provider && typeof provider === "object" && provider.id) return provider;
   const p = getProvider(provider ?? "claude");
-  if (!p) throw new CredentialError("wrong-engine", `Tarsee doesn't know the AI "${provider}".`, String(provider));
+  if (!p) throw new CredentialError("wrong-engine", `Atlas doesn't know the AI "${provider}".`, String(provider));
   return p;
 }
 
-/** The system prompt as the SDK takes it: Tarsee's preamble first, then the caller's prompt (or its stable and volatile parts). */
+/** The system prompt as the SDK takes it: Atlas's preamble first, then the caller's prompt (or its stable and volatile parts). */
 function systemPromptFor({ preamble, systemPrompt, systemParts }) {
   const clean = (s) => String(s ?? "").replace(/[\uD800-\uDFFF]/g, "");
   let prompt;
@@ -157,7 +157,7 @@ function systemPromptFor({ preamble, systemPrompt, systemParts }) {
  *   resolveModel, timezone
  *
  * Returns { options, providerId, home, settingSources, settingsFiles, model, apiKeySources, cost } where cost is
- * "plan" (included), "exact" (total_cost_usd) or "estimate" (Tarsee prices the tokens).
+ * "plan" (included), "exact" (total_cost_usd) or "estimate" (Atlas prices the tokens).
  */
 export function buildQueryOptions(provider, opts = {}, deps = {}) {
   const entry = entryOf(provider);
@@ -206,7 +206,7 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
     maxTurns: opts.maxTurns ?? 50,
     includePartialMessages: true,
     settingSources,
-    // Key and gateway turns use only the servers Tarsee hands over, never MCP servers from .mcp.json, a settings file
+    // Key and gateway turns use only the servers Atlas hands over, never MCP servers from .mcp.json, a settings file
     // or a plugin, because those would start with the CLI's environment, key included. The plan keeps today's
     // behaviour: the owner's project (.mcp.json), user, local and plugin servers load alongside tarsee.
     strictMcpConfig: id !== "claude",
@@ -258,7 +258,7 @@ export function buildQueryOptions(provider, opts = {}, deps = {}) {
 /**
  * The CLI uses an ANTHROPIC_API_KEY from its environment only once that key is approved in its global config (the
  * key's last 20 characters in customApiKeyResponses.approved), the prompt a person answers in the Terminal. A turn has
- * nobody to answer it, so the Anthropic key's own home records the approval for the key Tarsee hands over. Writes the
+ * nobody to answer it, so the Anthropic key's own home records the approval for the key Atlas hands over. Writes the
  * file the CLI reads (.config.json when it is there, else .claude.json), keeping what else is in it.
  */
 export function approveKeyInHome(home, key, { readFile = (p) => fs.readFileSync(p, "utf8"), writeFile = (p, s) => fs.writeFileSync(p, s, { mode: 0o600 }), exists = fs.existsSync } = {}) {
@@ -363,7 +363,7 @@ function keyFor(entry, store, env) {
 }
 
 /**
- * The engine. An async generator of Tarsee events:
+ * The engine. An async generator of Atlas events:
  *   text{content}, thinking{status}, tool_use{id,name,input}, tool_result{id,ok,result}, step{...} (the live
  *   timeline, lib/tool-steps.js), usage{usage, costUsd?}, error{message, recoverable?, subtype?, code?, status?}, and
  *   exactly one done{stopReason}: end_turn | aborted | auth-expired | error | max_turns | budget. Never tool_use.
@@ -373,7 +373,7 @@ function keyFor(entry, store, env) {
  *   messages          the conversation; the last user message is the prompt
  *   systemPrompt | systemParts {stable, volatile}
  *   signal            stops the turn (done{aborted})
- *   toolCtx           Tarsee's tool context (db, settingsStore, conversationId, ...)
+ *   toolCtx           Atlas's tool context (db, settingsStore, conversationId, ...)
  *   sessionId         the raw session id the turn layer chose to resume; null (present) starts fresh on purpose
  *   sessionHandle     without sessionId: the stored handle, resumed only when it is this provider's (a bare id is
  *                     the plan's)
@@ -506,12 +506,12 @@ export async function* run(opts = {}) {
       yield* fail(classifyEngineError(entry.id, CLAUDE_CODE, { code: err.code, message: err.message }));
     } else {
       console.error(`[claude-code] ${entry.id}: couldn't set up the turn:`, err);
-      yield* fail(classifyEngineError(entry.id, CLAUDE_CODE, { message: `Tarsee couldn't set up this turn: ${err?.message || err}` }));
+      yield* fail(classifyEngineError(entry.id, CLAUDE_CODE, { message: `Atlas couldn't set up this turn: ${err?.message || err}` }));
     }
     return;
   }
 
-  // Tarsee's own tools, in-process.
+  // Atlas's own tools, in-process.
   let mcpServer = deps.mcpServer;
   if (mcpServer === undefined) {
     const { createTarseeMcp } = await import("../tarsee-mcp.js");
@@ -748,7 +748,7 @@ export async function* run(opts = {}) {
     console.error("[claude-code] Exception:", error);
     const errMsg = error?.message || "Claude Code crashed";
     if (/ENOENT.*claude/i.test(errMsg)) {
-      yield* fail({ kind: "unknown", message: `**Claude Code isn't installed where Tarsee can run it.** Check the server logs.\n\nError: ${errMsg}`, recoverable: false });
+      yield* fail({ kind: "unknown", message: `**Claude Code isn't installed where Atlas can run it.** Check the server logs.\n\nError: ${errMsg}`, recoverable: false });
       return;
     }
     yield* fail(classifyEngineError(entry.id, CLAUDE_CODE, { code: lastAssistantError?.code, message: lastAssistantError?.text || errMsg, model: queryOptions.model }));

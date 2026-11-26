@@ -1,7 +1,7 @@
 // What a turn leaves behind when the server stops in the middle of it (a redeploy, Ctrl+C, a crash, `node --watch`
 // restarting): a Codex turn's copies of the person's pictures (<system temp>/tarsee-codex/tarsee-images-*) and a
 // Verify's workspace (<state>/verify/<provider>-*). Their turn's own clean-up never ran, so the server sweeps them once
-// at boot (lib/turn-leftovers.js). Only what is over an hour old goes: a turn another Tarsee sharing the folders is
+// at boot (lib/turn-leftovers.js). Only what is over an hour old goes: a turn another Atlas sharing the folders is
 // running right now is never touched, and nothing else in those folders is.
 import { describe, it, after } from "node:test";
 import assert from "node:assert/strict";

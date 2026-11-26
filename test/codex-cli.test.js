@@ -81,7 +81,7 @@ describe("codex-cli", () => {
     assert.ok(values.includes('cli_auth_credentials_store="file"'));
     assert.ok(values.includes("check_for_update_on_startup=false"));
     // Without it Codex finds a project root at the nearest folder above with .git and loads every .codex/config.toml
-    // from there down to the job's folder (the Codex home, under Tarsee's state folder), which no guard reads.
+    // from there down to the job's folder (the Codex home, under Atlas's state folder), which no guard reads.
     assert.ok(values.includes("project_root_markers=[]"));
     // The pinned codex takes it: `login status` still answers in its own words.
     let pinned = null;

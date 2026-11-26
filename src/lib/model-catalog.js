@@ -8,7 +8,7 @@
  * image. That bundled CLI resolves the family words to whatever was newest
  * when it was built, so "opus" quietly ran a model several releases old. A
  * concrete id ("claude-opus-5-5") goes to the API as it is and runs that
- * model. So Tarsee resolves the family words itself, from the newest list it
+ * model. So Atlas resolves the family words itself, from the newest list it
  * can find, before each turn.
  *
  * Sources, newest wins:
@@ -21,7 +21,7 @@
  *     CLAUDE_CODE_VERSION: a model released after it arrives when it is
  *     bumped, or with TARSEE_AUTO_UPDATE_CLI=1). Read once per CLI file, in
  *     chunks, off the request path.
- *  3. Tarsee's own model table (config/constants.js), as the floor.
+ *  3. Atlas's own model table (config/constants.js), as the floor.
  *
  * Every other AI (design 4.11) is put together at the end of this file, from
  * the provider registry: one group per AI that is switched on and ready (the
@@ -156,7 +156,7 @@ export function readAccountCatalog({ force = false } = {}) {
 /**
  * The composer's picker (lib/model-picker.js): Claude Code's catalog, the
  * account's or the installed build's, whichever is newer; with neither, the
- * models in Tarsee's table. Entries always carry exact ids, never a family
+ * models in Atlas's table. Entries always carry exact ids, never a family
  * word (see the top of this file).
  */
 export function getModelPicker({ defaultEffort } = {}) {
@@ -243,9 +243,9 @@ function registryStatus(id, store, env, stateDir) {
  */
 export async function providerReadiness(idOrAlias, { store = null, env = process.env, statusFor = null, isShipped = null, stateDir } = {}) {
   const p = getProvider(idOrAlias);
-  if (!p) return { provider: null, label: String(idOrAlias ?? ""), state: "unknown", ready: false, detail: "Tarsee doesn't know that AI.", fix: null };
+  if (!p) return { provider: null, label: String(idOrAlias ?? ""), state: "unknown", ready: false, detail: "Atlas doesn't know that AI.", fix: null };
   if (!(isShipped || registryShipped)(p.id)) {
-    return { provider: p.id, label: p.label, state: "off", ready: false, detail: `${p.label} can't be used in this version of Tarsee.`, fix: null };
+    return { provider: p.id, label: p.label, state: "off", ready: false, detail: `${p.label} can't be used in this version of Atlas.`, fix: null };
   }
   const source = statusFor || _statusSource;
   let s;
@@ -341,7 +341,7 @@ export function readPick(store, conversationId) {
   return { provider: normalizeProviderId(str("provider")), model: str("model"), effort: str("effort") };
 }
 
-/** The levels a model takes (Tarsee's ids, lowest first); empty when it takes none. */
+/** The levels a model takes (Atlas's ids, lowest first); empty when it takes none. */
 export function levelsFor(providerId, model, store = null) {
   const p = getProvider(providerId);
   if (!p) return [];
@@ -379,13 +379,13 @@ export function repliesWhole(providerId, model, store = null) {
 /**
  * Whether a model can be picked on a provider, and as which id: { ok, model, error?, verify? }. A tier word
  * ("haiku", "opus[1m]") maps through the provider's tiers; the Claude providers take what Claude Code's list and
- * Tarsee's table take, as before; any other provider only a model its list offers and that can be picked (OpenRouter's
+ * Atlas's table take, as before; any other provider only a model its list offers and that can be picked (OpenRouter's
  * once verified). No model (null, "") is the provider's own default. opts.env: where TARSEE_AI_PROVIDER and
  * TARSEE_AI_MODEL are read (process.env by default).
  */
 export function checkModel(providerId, raw, store = null, { env = null } = {}) {
   const p = getProvider(providerId);
-  if (!p) return { ok: false, error: "Tarsee doesn't know that AI." };
+  if (!p) return { ok: false, error: "Atlas doesn't know that AI." };
   const v = raw == null ? "" : String(raw).trim();
   if (!v) return { ok: true, model: null };
   const tier = tierWord(v);
@@ -414,7 +414,7 @@ export function modelChoices(providerId, store = null, { env = null } = {}) {
   if (!p) return [];
   const out = groupEntries(buildGroup(p, { store, env })).filter((e) => e.id).map((e) => ({ provider: p.id, providerLabel: p.label, id: e.id, name: e.name, ref: e.ref, selectable: e.selectable !== false }));
   if (p.catalog === "claude") {
-    // Tarsee's own table too: the family words and the pinned versions /model has always taken.
+    // Atlas's own table too: the family words and the pinned versions /model has always taken.
     for (const m of CLAUDE_MODELS) {
       if (!out.some((c) => c.id === m.id)) out.push({ provider: p.id, providerLabel: p.label, id: m.id, name: m.displayName, ref: formatModelRef(p.id, m.id), selectable: true });
     }
@@ -580,7 +580,7 @@ function registrySections(p, store, now, effort, env = null) {
 }
 
 /**
- * Whether an id the OpenAI key lists is a chat model Tarsee could run on Codex: GPT, o-series and codex- models, not
+ * Whether an id the OpenAI key lists is a chat model Atlas could run on Codex: GPT, o-series and codex- models, not
  * the audio, realtime, transcription, speech, image, search, embedding, moderation or instruct ones.
  */
 export function isOpenAiChatModel(id) {

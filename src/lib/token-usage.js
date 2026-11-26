@@ -96,7 +96,7 @@ const PROMPT_KEEP_MS = 21 * DAY;       // typed prompts only identify new sessio
  * The folders Claude Code keeps the workspace's sessions in, each with the
  * provider whose home it is in: [{ dir, provider }], the workspace's project
  * folder under every Claude home root that exists, each real folder once. Two
- * slug spellings are tried, Tarsee's own (lib/claude-transcript.js) and "every
+ * slug spellings are tried, Atlas's own (lib/claude-transcript.js) and "every
  * character that is not a letter or digit becomes -", because Claude Code has
  * changed its rule between versions. opts: stateDir, homeDir, env (where the
  * homes are; lib/claude-transcript.js providerHomes).
@@ -516,7 +516,7 @@ const turnSums = (r) => ({ calls: r.calls, input: r.input, cacheRead: r.cache_re
 
 export class UsageIndex {
   /**
-   * db: the Tarsee database.
+   * db: the Atlas database.
    * dirs: the transcript folders to read, each a path (the Claude plan's) or { dir, provider } (default:
    *   projectDirsByProvider(), looked up again on each read, because Claude Code only makes the folder on the
    *   first session).

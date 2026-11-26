@@ -1,6 +1,6 @@
 // A voice call in a real browser against the REAL server routes: POST /api/voice/transcribe and /tts-stream
 // (src/routes/voice.js), POST /api/chat/send and /stop (src/routes/chat.js, through the turn layer), and /api/call
-// (src/routes/voice-call.js), on a real SQLite settings store and the live timeline. Only what lies outside Tarsee is
+// (src/routes/voice-call.js), on a real SQLite settings store and the live timeline. Only what lies outside Atlas is
 // stood in for: the microphone (Playwright's fake one, playing a WAV made here), the speech-to-text engine
 // (stt-handler.js's test seam, for faster-whisper), the voice (a scripted TTS engine), the AI (a scripted engine,
 // test/fakes/fake-engine.js) and Telegram (a channel manager that records what it is asked to send).
@@ -80,7 +80,7 @@ try {
 }
 const skip = browser ? false : "no Chromium, Chrome or Edge for Playwright";
 
-// --- The world outside Tarsee ---------------------------------------------------------------------------------------
+// --- The world outside Atlas ---------------------------------------------------------------------------------------
 
 const db = initDb(path.join(tmp, "tarsee.db"));
 live.initLiveBus(db);
@@ -119,7 +119,7 @@ before(async () => {
   app.set("channelManager", telegram);
   app.get("/api/auth/status", (_req, res) => res.json({ authenticated: true, needsPassword: true }));
   app.get("/api/auth/api-token", (_req, res) => res.json({ apiToken: null }));
-  app.get("/api/settings/setup-status", (_req, res) => res.json({ needsSetup: false, needsPersonality: false, botName: store.get("identity.name") || "Tarsee", provider: "claude-code", hasKey: true }));
+  app.get("/api/settings/setup-status", (_req, res) => res.json({ needsSetup: false, needsPersonality: false, botName: store.get("identity.name") || "Atlas", provider: "claude-code", hasKey: true }));
   app.get("/api/settings", (_req, res) => res.json({ settings: [] }));
   app.use("/api/chat", chatRouter);
   app.use("/api/voice", voiceRouter);

@@ -1,5 +1,5 @@
 /**
- * Tarsee App — Main initialization.
+ * Atlas App — Main initialization.
  */
 const App = {
   async init() {
@@ -175,7 +175,7 @@ const App = {
     let signingOut = false;
     document.getElementById("signOutBtn")?.addEventListener("click", async () => {
       if (signingOut) return;
-      if (!(await TarseeDialog.ask({ title: "Sign out of Tarsee on this device?", yes: "Sign out", no: "Cancel", danger: true }))) return;
+      if (!(await TarseeDialog.ask({ title: "Sign out of Atlas on this device?", yes: "Sign out", no: "Cancel", danger: true }))) return;
       signingOut = true;
       try { await API.logout(); } catch { /* the session may already be gone */ }
       try { localStorage.removeItem("tarsee_api_token"); } catch { /* ignore */ }

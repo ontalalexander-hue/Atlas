@@ -168,7 +168,7 @@ function failure(p, r, url) {
       return { ok: false, state: "error", reason: "unreachable", message: `Can't reach your Local AI at ${url}. If you just started llama-server with -hf, it may still be downloading the model.` };
     }
     if (r.network === "timeout") return { ok: false, state: "error", reason: "timeout", message: `${label} took too long to answer. Try again in a moment.` };
-    return { ok: false, state: "error", reason: "network", message: `Tarsee couldn't reach ${label} (${hostOf(url)}). Check this server's internet connection, then try again.` };
+    return { ok: false, state: "error", reason: "network", message: `Atlas couldn't reach ${label} (${hostOf(url)}). Check this server's internet connection, then try again.` };
   }
   const s = r.status;
   const errText = String(r.json?.error?.message ?? r.json?.message ?? "");
@@ -192,7 +192,7 @@ function failure(p, r, url) {
   if (s >= 500) {
     return { ok: false, state: "error", reason: "unavailable", httpStatus: s, message: `${label} had a problem on its side (HTTP ${s}). Try again in a minute.` };
   }
-  return { ok: false, state: "error", reason: "unexpected", httpStatus: s, message: `${label} answered with HTTP ${s}, which Tarsee didn't expect.` };
+  return { ok: false, state: "error", reason: "unexpected", httpStatus: s, message: `${label} answered with HTTP ${s}, which Atlas didn't expect.` };
 }
 
 /** The rows a /models answer lists: OpenAI's {data: [...]}, or Ollama's own {models: [...]}, ids trimmed, no repeats. */
@@ -217,10 +217,10 @@ export function localModelsUrl(address) {
   return `${String(address).trim().replace(/\/+$/, "")}/models`;
 }
 
-/** The smallest context Tarsee can work in: Codex's own instructions and Tarsee's tools take about 20,000 tokens a call. */
+/** The smallest context Atlas can work in: Codex's own instructions and Atlas's tools take about 20,000 tokens a call. */
 export const MIN_LOCAL_CONTEXT = 32_768;
 
-/** The first llama.cpp build whose stream Tarsee relies on: tool calls carry output_index (b11768, v0.8.0). */
+/** The first llama.cpp build whose stream Atlas relies on: tool calls carry output_index (b11768, v0.8.0). */
 export const MIN_LLAMACPP_BUILD = 11_768;
 
 const posInt = (v) => {
@@ -452,7 +452,7 @@ export async function fetchBalance(idOrAlias, { key, fetch: doFetch, timeoutMs =
   const r = await get(url, { fetch: doFetch, headers: authHeaders(p, key), timeoutMs });
   if (r.network || r.status < 200 || r.status >= 300) return { ok: false, ...failure(p, r, url) };
   const balance = BALANCE_PARSERS[p.id](r.json);
-  if (!balance) return { ok: false, state: "error", reason: "unexpected", message: `${p.label} answered in a way Tarsee didn't expect.` };
+  if (!balance) return { ok: false, state: "error", reason: "unexpected", message: `${p.label} answered in a way Atlas didn't expect.` };
   return { ok: true, balance };
 }
 
@@ -492,9 +492,9 @@ export async function refreshBalance(idOrAlias, { store, fetch: doFetch, now = D
 
 const thousands = (n) => Number(n).toLocaleString("en-US");
 
-/** Too little context for Tarsee, in the words for the server it runs on. */
+/** Too little context for Atlas, in the words for the server it runs on. */
 function tooSmallMessage(kind, model, n) {
-  const room = `room for only ${thousands(n)} tokens. Tarsee needs at least ${thousands(MIN_LOCAL_CONTEXT)}.`;
+  const room = `room for only ${thousands(n)} tokens. Atlas needs at least ${thousands(MIN_LOCAL_CONTEXT)}.`;
   if (kind === "llama.cpp") return `llama.cpp was started with ${room} Start it again with -c 65536.`;
   if (kind === "LM Studio") return `LM Studio loaded ${model} with ${room} Load it again with a longer context length (65536 is a good choice).`;
   if (kind === "Ollama") return `Ollama runs ${model} with ${room} Set OLLAMA_CONTEXT_LENGTH=65536 where Ollama runs (or the model's num_ctx), then start it again.`;
@@ -510,7 +510,7 @@ function tooSmallMessage(kind, model, n) {
 export function localOutcome(p, url, r, check, chosen = null) {
   if (!r.ok) return r;
   if (check.status === 401 || check.status === 403 || r.server?.authFailed) {
-    return { ok: false, state: "error", reason: "auth", httpStatus: check.status || r.server.authFailed, message: p.errorHints?.auth || "Your Local AI turned down Tarsee's key." };
+    return { ok: false, state: "error", reason: "auth", httpStatus: check.status || r.server.authFailed, message: p.errorHints?.auth || "Your Local AI turned down Atlas's key." };
   }
   if ((check.status === 503 && /loading/i.test(check.words)) || r.server?.loading) {
     return { ok: false, state: "error", reason: "loading", httpStatus: 503, message: "Your Local AI is still loading its model. Click Test again in a minute." };
@@ -527,7 +527,7 @@ export function localOutcome(p, url, r, check, chosen = null) {
   }
   const s = r.server || {};
   if (!usable.length) {
-    return { ok: false, state: "needs-setup", message: `Your Local AI names its model "${spaced[0]}", with spaces in it, which Tarsee can't use. Start llama-server with --alias and a short name (for example --alias qwen3.5-9b).` };
+    return { ok: false, state: "needs-setup", message: `Your Local AI names its model "${spaced[0]}", with spaces in it, which Atlas can't use. Start llama-server with --alias and a short name (for example --alias qwen3.5-9b).` };
   }
   const models = usable.map((m) => m.id);
   const name = s.kind === "llama.cpp" && s.build ? `llama.cpp ${s.build}` : s.kind;
@@ -547,7 +547,7 @@ export function localOutcome(p, url, r, check, chosen = null) {
   parts.push(`${models.length} model${models.length === 1 ? "" : "s"}`);
   if (context) parts.push(`${contextWords(context)} context`);
   let message = parts.join(" · ");
-  if (spaced.length) message += `. ${spaced.length === 1 ? "One model name has" : `${spaced.length} model names have`} spaces in it, which Tarsee can't use: start llama-server with --alias and a short name.`;
+  if (spaced.length) message += `. ${spaced.length === 1 ? "One model name has" : `${spaced.length} model names have`} spaces in it, which Atlas can't use: start llama-server with --alias and a short name.`;
   return { ...base, ok: true, state: "ready", message };
 }
 
@@ -565,7 +565,7 @@ function keyOutcome(p, kind, { balance } = {}) {
  */
 export async function probeProvider(idOrAlias, deps = {}) {
   const p = getProvider(idOrAlias);
-  if (!p) return { ok: false, state: "error", message: `Tarsee doesn't know an AI called "${idOrAlias}".` };
+  if (!p) return { ok: false, state: "error", message: `Atlas doesn't know an AI called "${idOrAlias}".` };
   const { store, env = process.env, fetch: doFetch = globalThis.fetch, timeoutMs = PROBE_TIMEOUT_MS } = deps;
   const clock = typeof deps.now === "function" ? deps.now : () => (deps.now ?? Date.now());
 

@@ -1,4 +1,4 @@
-# Tarsee Roadmap
+# Atlas Roadmap
 
 Everything below is buildable with the current stack (Node.js, SQLite, Claude Agent SDK, vanilla frontend, Railway). No new paid APIs needed.
 

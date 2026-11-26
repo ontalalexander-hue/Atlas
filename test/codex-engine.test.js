@@ -3,7 +3,7 @@
 //    resuming, the instructions, pictures, Stop's process sweep), fast and exact;
 //  - the REAL pinned codex binary (@openai/codex 0.167.0, started by the SDK as in production) against the fake
 //    Responses server (fixtures/fake-responses.js) and an MCP stub, through engine-env's test-only seam: which key
-//    reaches which host, Tarsee's tools approved and run, the shell's environment, resuming, Stop, the turn limit and a
+//    reaches which host, Atlas's tools approved and run, the shell's environment, resuming, Stop, the turn limit and a
 //    refused key. Every key and token is an obvious fake; canaries sit wherever a credential must never come from.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -789,7 +789,7 @@ describe("the real SDK starting a fake codex (TARSEE_CODEX_BIN)", () => {
     return run({
       target: { provider, model: MODELS[provider] },
       messages: [{ role: "user", content: "hello fake" }],
-      systemParts: { stable: "You are Tarsee, under test.", volatile: "Today is a test day." },
+      systemParts: { stable: "You are Atlas, under test.", volatile: "Today is a test day." },
       toolCtx: { settingsStore: store, conversationId: null },
       mcpGrant: { url: "http://127.0.0.1:9/mcp", token: MCP_TOKEN },
       turnId: `fake-${provider}`,
@@ -828,7 +828,7 @@ describe("the real SDK starting a fake codex (TARSEE_CODEX_BIN)", () => {
       const env = rec.env;
       for (const name of ["CODEX_API_KEY", "TARSEE_PROVIDER_KEY"]) {
         if (provider === "local" && name === "TARSEE_PROVIDER_KEY") {
-          // Local AI: the Local AI bridge's per-turn token; the owner's key stays in Tarsee's process (local-bridge.js).
+          // Local AI: the Local AI bridge's per-turn token; the owner's key stays in Atlas's process (local-bridge.js).
           assert.match(env[name], /^[A-Za-z0-9_-]{40,}$/, "local: the bridge's token");
           assert.notEqual(env[name], KEYS.local);
           continue;
@@ -952,7 +952,7 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
     ...extra,
   });
 
-  function turn(provider, { model, store = makeStore(), sessionHandle, signal, maxTurns, prompt = "hello", conv = "conv-real", env = serverEnv(), keys, localUrl, localBridge, stable = "You are Tarsee, under test." } = {}) {
+  function turn(provider, { model, store = makeStore(), sessionHandle, signal, maxTurns, prompt = "hello", conv = "conv-real", env = serverEnv(), keys, localUrl, localBridge, stable = "You are Atlas, under test." } = {}) {
     const handles = [];
     const s = keys ? makeStore({}, keys) : store;
     if (localUrl) s.set("ai.local.baseUrl", localUrl);
@@ -975,10 +975,10 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
   /** The wiring before the Local AI bridge, for comparison: Codex straight to the owner's server, with the owner's key. */
   const NO_BRIDGE = async () => ({ open: ({ upstream, key }) => ({ url: upstream, token: key || "no-key", release() {} }) });
 
-  // llama.cpp's llama-server (and LM Studio, and Ollama before 0.34) drop the namespace tool Codex 0.167 puts Tarsee's
+  // llama.cpp's llama-server (and LM Studio, and Ollama before 0.34) drop the namespace tool Codex 0.167 puts Atlas's
   // tools in, so without the bridge the model never sees one; with it, the tool runs. A Qwen3.5-family chat template
   // refuses Codex's second developer message; the bridge merges them.
-  it("Local AI on a llama-server: Tarsee's tool runs through the bridge, and never without it", async () => {
+  it("Local AI on a llama-server: Atlas's tool runs through the bridge, and never without it", async () => {
     const wants = (body) => toolNames(body).find((n) => /tarsee_datetime$/.test(n));
     const script = (body) => {
       if (functionOutputs(body).length) return { text: `The tool said: ${functionOutputs(body).map(outputText).join(" ")}` };
@@ -987,10 +987,10 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
     };
     const llama = await startFakeResponses({ llama: { alias: "qwen3.5-9b" }, handler: (body) => script(body) });
     try {
-      // Without the bridge: the model sees no Tarsee tool, so none runs.
+      // Without the bridge: the model sees no Atlas tool, so none runs.
       mcp.calls.length = 0;
       const before = await collect(turn("local", { model: "qwen3.5-9b", localUrl: llama.url, localBridge: NO_BRIDGE }).iter);
-      assert.deepEqual(mcp.calls, [], "no Tarsee tool ran without the bridge");
+      assert.deepEqual(mcp.calls, [], "no Atlas tool ran without the bridge");
       assert.ok(llama.responses()[0].dropped.includes("namespace"), "the server dropped the namespace tool");
       assert.match(of(before, "text").map((e) => e.content).join(""), /No tarsee_datetime was offered/);
 
@@ -1023,7 +1023,7 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
       assert.match(of(out, "text").map((e) => e.content).join(""), /hi from a strict template/);
       const body = strict.responses()[0].body;
       assert.equal(body.input.filter((i) => i.role === "developer" || i.role === "system").length, 1, "one developer message, first");
-      assert.ok(messageTexts(body, "developer")[0].includes("You are Tarsee, under test."), "Tarsee's instructions are in it");
+      assert.ok(messageTexts(body, "developer")[0].includes("You are Atlas, under test."), "Atlas's instructions are in it");
     } finally {
       await strict.close();
     }
@@ -1069,7 +1069,7 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
       assertNoCanary(fake.requests, provider);
       // The turn's context leads the input; the instructions are developer instructions.
       assert.ok(messageTexts(model[0].body, "user").some((t) => t.startsWith("<turn-context>\nToday is a test day.")), provider);
-      assert.ok(messageTexts(model[0].body, "developer").join("\n").includes("You are Tarsee, under test."), provider);
+      assert.ok(messageTexts(model[0].body, "developer").join("\n").includes("You are Atlas, under test."), provider);
     }
     assert.equal(wrong.requests.length, 0, "OPENAI_BASE_URL (stripped) got nothing");
     // The OpenAI key went over the WebSocket the real API uses; the custom providers over HTTP.
@@ -1177,7 +1177,7 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
     }
   });
 
-  // Codex offers Tarsee's tools in one of two ways, by model: listed outright (a model it has no metadata for, as most
+  // Codex offers Atlas's tools in one of two ways, by model: listed outright (a model it has no metadata for, as most
   // OpenRouter and Local AI models are), or behind tool_search (its own models, which are trained to search first).
   // Either way the call is approved without anyone asking (default_tools_approval_mode through --config) and runs.
   for (const [how, model, script] of [
@@ -1201,7 +1201,7 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
       return null;
     }],
   ]) {
-    it(`Tarsee's MCP tool (${how}) is approved without asking and runs, with the turn's token`, async () => {
+    it(`Atlas's MCP tool (${how}) is approved without asking and runs, with the turn's token`, async () => {
       fake.reset();
       mcp.calls.length = 0;
       mcp.auth.length = 0;
@@ -1225,9 +1225,9 @@ describe("the real codex binary against the fake server", { skip: CODEX_THERE ? 
     });
   }
 
-  it("on Codex's newest models (code mode) Tarsee's tools are reached from inside exec, as the preamble says, and run", async () => {
+  it("on Codex's newest models (code mode) Atlas's tools are reached from inside exec, as the preamble says, and run", async () => {
     // The pinned codex gives gpt-6.1-* one JavaScript `exec` tool (as an additional_tools input item) and no
-    // tool_search and no shell tool: every other tool, Tarsee's included, is tools.<name>() inside it.
+    // tool_search and no shell tool: every other tool, Atlas's included, is tools.<name>() inside it.
     const additional = (body) => {
       const out = [];
       for (const item of body?.input || []) {

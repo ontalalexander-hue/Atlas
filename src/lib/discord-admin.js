@@ -1,6 +1,6 @@
 /**
  * Discord server admin for the agent (tarsee_discord_admin): list, make and edit
- * channels, and make webhooks, done by Tarsee's own logged-in discord.js client
+ * channels, and make webhooks, done by Atlas's own logged-in discord.js client
  * (src/channels/discord.js `admin`). The agent never handles the bot token:
  * without this tool it would pull DISCORD_BOT_TOKEN from the vault and call
  * Discord's REST API from Bash, which Claude Code's auto mode rightly blocks as
@@ -117,7 +117,7 @@ export async function discordAdmin(args = {}, { client, vault = null, log = (lin
 }
 
 const oneLine = (s) => String(s).replace(/\s+/g, " ").trim();
-const reasonOf = (args) => `Done by the Tarsee agent. Go from: ${oneLine(args.approved_by)}`.slice(0, 500);
+const reasonOf = (args) => `Done by the Atlas agent. Go from: ${oneLine(args.approved_by)}`.slice(0, 500);
 const guildLabel = (g) => `"${g.name}" (server id ${g.id})`;
 const where = (note) => note.channel ? `#${note.channel.name} in the server ${guildLabel(note.guild)}` : note.guild ? `the server ${guildLabel(note.guild)}` : "that server";
 

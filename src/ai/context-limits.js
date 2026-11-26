@@ -66,7 +66,7 @@ export function bashOutputEnv(env = process.env) {
 }
 
 /**
- * Most characters of one MCP tool's result (Tarsee's own tarsee_* tools and any
+ * Most characters of one MCP tool's result (Atlas's own tarsee_* tools and any
  * other) the agent's context keeps. Past it, Claude Code saves the whole result
  * to a file in the session's folder and gives the agent the path and how to
  * read it, so nothing is lost and nothing partial can be written back by

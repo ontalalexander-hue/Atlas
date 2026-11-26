@@ -1,6 +1,6 @@
 {
-  "name": "Tarsee",
-  "short_name": "Tarsee",
+  "name": "Atlas",
+  "short_name": "Atlas",
   "description": "Headless Claude Code Agent — 24/7 AI that remembers everything",
   "start_url": "/",
   "display": "standalone",

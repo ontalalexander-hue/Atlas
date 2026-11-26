@@ -6,7 +6,7 @@ import { isAutomationFile, automationStatus } from "./automation-approval.js";
 import { runCmd } from "./run-cmd.js";
 
 /**
- * Tool registry for Tarsee.
+ * Tool registry for Atlas.
  * Defines tools that the AI can call via native tool_use (Anthropic) or function calling (OpenAI).
  * Each tool has a name, description, input_schema (JSON Schema), and execute function.
  */
@@ -39,7 +39,7 @@ export const TOOLS = [
 
   {
     name: "write_file",
-    description: "Write or overwrite the contents of a workspace file. Use this to update your personality (SOUL.md), identity (IDENTITY.md), user notes (USER.md), long-term memory (MEMORY.md), tools (TOOLS.md), or agent rules (AGENTS.md). HEARTBEAT.md (the heartbeat's checks) and BOOT.md (what runs when Tarsee restarts) can be written too, but what you write there doesn't run until the owner OKs it in Settings > Automation (Let it run; for BOOT.md, Run at each restart): tell the owner so, and never say it is set up or running before then.",
+    description: "Write or overwrite the contents of a workspace file. Use this to update your personality (SOUL.md), identity (IDENTITY.md), user notes (USER.md), long-term memory (MEMORY.md), tools (TOOLS.md), or agent rules (AGENTS.md). HEARTBEAT.md (the heartbeat's checks) and BOOT.md (what runs when Atlas restarts) can be written too, but what you write there doesn't run until the owner OKs it in Settings > Automation (Let it run; for BOOT.md, Run at each restart): tell the owner so, and never say it is set up or running before then.",
     input_schema: {
       type: "object",
       properties: {
@@ -572,7 +572,7 @@ const SCHEDULE_REFUSED_IN = {
 };
 
 // The upload caps of each channel's bot API, in MB.
-// Slack takes up to 1 GB; 100 MB is Tarsee's own cap (the upload is read into memory).
+// Slack takes up to 1 GB; 100 MB is Atlas's own cap (the upload is read into memory).
 const SEND_FILE_CAP_MB = { telegram: 50, discord: 25, whatsapp: 16, slack: 100, web: 50 };
 
 /** The chat to send to for a channel (lib/chat-target.js): the given id, this turn's chat, or the latest one. */
@@ -1329,7 +1329,7 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
       }
 
       case "discord_admin": {
-        // Channels and webhooks in a Discord server, done by Tarsee's own logged-in bot (lib/discord-admin.js), so the
+        // Channels and webhooks in a Discord server, done by Atlas's own logged-in bot (lib/discord-admin.js), so the
         // agent never needs the bot token in a command. Never deletes anything.
         const bot = ctx.channelManager?.channels?.get?.("discord")?.bot;
         if (typeof bot?.admin !== "function") return "discord_admin error: the Discord channel is not running, so there is no logged-in bot to do this. Nothing was changed.";
@@ -1357,7 +1357,7 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
       }
 
       case "railway": {
-        // Railway projects, variables and redeploys, done by Tarsee with a token it reads from the vault
+        // Railway projects, variables and redeploys, done by Atlas with a token it reads from the vault
         // (lib/railway-admin.js), so a secret value never goes through a command or the model's context. Never deletes.
         const { railwayAdmin } = await import("./railway-admin.js");
         return await railwayAdmin(toolInput || {});
@@ -1823,8 +1823,8 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         const merged = {
           enabled: input.enabled !== undefined ? !!input.enabled : (prev.enabled ?? false),
           tarseeEmailAddress: input.tarseeEmailAddress ?? prev.tarseeEmailAddress ?? (input.imap?.user ?? prev.imap?.user ?? ""),
-          fromName: input.fromName ?? prev.fromName ?? "Tarsee",
-          defaultSubject: input.defaultSubject ?? prev.defaultSubject ?? "Tarsee",
+          fromName: input.fromName ?? prev.fromName ?? "Atlas",
+          defaultSubject: input.defaultSubject ?? prev.defaultSubject ?? "Atlas",
           mentionKeyword: input.mentionKeyword ?? prev.mentionKeyword ?? "tarsee",
           replyAllMarker: input.replyAllMarker ?? prev.replyAllMarker ?? "[reply-all]",
           allowlistFromAddresses: Array.isArray(input.allowlistFromAddresses)
@@ -1940,7 +1940,7 @@ function automationWriteNote(filename, settingsStore) {
     // not known: said to wait, below
   }
   if (status?.empty) return " It holds nothing to do, so nothing runs.";
-  if (status?.approved) return ` It is the text the owner OK'd, so ${boot ? "it runs when Tarsee restarts" : "the heartbeat runs it"}.`;
+  if (status?.approved) return ` It is the text the owner OK'd, so ${boot ? "it runs when Atlas restarts" : "the heartbeat runs it"}.`;
   return ` It is saved, but it doesn't run yet: ${filename} written from a chat waits for the owner's OK. Tell the owner so, and that they can read it and switch it on in Settings > Automation with ${boot ? "Run at each restart" : "Let it run"}. Until they do, nothing in it runs, so don't say it is set up or running.`;
 }
 

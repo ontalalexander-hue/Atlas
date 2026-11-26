@@ -60,8 +60,8 @@ describe("setup wizard: Choose your AI", () => {
     assert.doesNotMatch(setup, /saveProvider/);
   });
 
-  it("offers the three choices and asks who will talk to this Tarsee", () => {
-    for (const words of ["Choose your AI", "My Claude plan", "My ChatGPT plan", "My own API key", "Who will talk to this Tarsee?", "Just me", "Other people too"]) {
+  it("offers the three choices and asks who will talk to this Atlas", () => {
+    for (const words of ["Choose your AI", "My Claude plan", "My ChatGPT plan", "My own API key", "Who will talk to this Atlas?", "Just me", "Other people too"]) {
       assert.ok(setup.includes(words), words);
     }
     assert.ok(setup.includes("/api/ai/keys-only"), "the keys-only choice is saved, explicitly");

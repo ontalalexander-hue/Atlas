@@ -68,7 +68,7 @@ pushRouter.post("/test", async (req, res) => {
   try {
     const { sendPush } = await import("../lib/push.js");
     const result = await sendPush({
-      title: "Tarsee test",
+      title: "Atlas test",
       body: req.body?.message || "Push notifications are working 🎉",
       url: "/",
     });

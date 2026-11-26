@@ -229,7 +229,7 @@ describe("the Slack bot against a fake Slack", () => {
 
   it("acknowledges events and, with no AI set up, hands the message on anyway: the turn layer's answer says what to set up", async () => {
     // Which AI answers (and saying what to set up when none can) is the turn layer's call (ai/turn.js), not the channel's.
-    const NOT_READY = "Tarsee isn't connected to an AI yet: open Settings > AI.";
+    const NOT_READY = "Atlas isn't connected to an AI yet: open Settings > AI.";
     script = () => [{ type: "text", content: NOT_READY }, { type: "error", message: NOT_READY, subtype: "not-ready" }, { type: "done", stopReason: "not-ready" }];
     const from = calls.length;
     const called = streamCalls.length;
@@ -564,15 +564,15 @@ describe("the Slack bot against a fake Slack", () => {
 
   it("help says how to type a command in Slack, where /clear on its own is Slack's", async () => {
     sendCommand("help");
-    const r = await until(() => responses.find((x) => /Tarsee Commands/.test(x.blocks?.[0]?.text || "")), "the /tarsee help answer");
-    const top = r.blocks[0].text.split("**Tarsee Commands**")[0];
+    const r = await until(() => responses.find((x) => /Atlas Commands/.test(x.blocks?.[0]?.text || "")), "the /tarsee help answer");
+    const top = r.blocks[0].text.split("**Atlas Commands**")[0];
     assert.match(top, /`\/tarsee \/model opus`/, "first: a command from anywhere");
     assert.match(top, /`@tarsee \/clear`/, "and a thread's command, in its thread");
     assert.match(r.text, /`\/tarsee \/model opus`/, "the notification text starts with it too");
 
     const from = calls.length;
     sendEvent({ type: "message", channel: "C1", channel_type: "channel", user: "U1", user_team: "T1", text: "<@UBOT> /help", ts: "710.000100" });
-    const post = await until(() => calls.slice(from).find(([m, a]) => m === "chat.postMessage" && /Tarsee Commands/.test(a.markdown_text || "")), "the help in a thread");
+    const post = await until(() => calls.slice(from).find(([m, a]) => m === "chat.postMessage" && /Atlas Commands/.test(a.markdown_text || "")), "the help in a thread");
     assert.match(post[1].markdown_text, /`@tarsee \/clear`/);
   });
 

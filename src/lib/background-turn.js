@@ -136,9 +136,9 @@ export async function defaultAiReadiness(store) {
   const id = activeProviderId(store);
   const p = getProvider(id);
   const not = (reason) => ({ ready: false, provider: p.id, label: p.label, reason });
-  if (!isShipped(p.id)) return not(`This Tarsee can't use the ${p.label}. Choose another AI in Settings > AI.`);
+  if (!isShipped(p.id)) return not(`This Atlas can't use the ${p.label}. Choose another AI in Settings > AI.`);
   if (p.kind === "subscription" && keysOnly(store)) {
-    return not(`"API keys only" is switched on, so Tarsee won't use your ${p.label}. Choose an AI that uses an API key in Settings > AI.`);
+    return not(`"API keys only" is switched on, so Atlas won't use your ${p.label}. Choose an AI that uses an API key in Settings > AI.`);
   }
   let s;
   try {
@@ -150,7 +150,7 @@ export async function defaultAiReadiness(store) {
       s = await providerStatus(p.id, { store, ignoreFlags: true });
     }
   } catch (err) {
-    return not(`Tarsee couldn't check the ${p.label}: ${err?.message || err}`);
+    return not(`Atlas couldn't check the ${p.label}: ${err?.message || err}`);
   }
   if (s && NOT_READY_STATES.has(s.state)) {
     return not([s.detail, s.fix].filter(Boolean).join(" ") || `The ${p.label} isn't set up yet. Open Settings > AI.`);

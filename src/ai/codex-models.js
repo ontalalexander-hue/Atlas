@@ -1,7 +1,7 @@
 /**
  * codex-models.js: the models the signed-in ChatGPT account can use, read live from Codex (design amendment A2).
  *
- * Tarsee never writes a ChatGPT model into its code: what a ChatGPT account may use depends on its plan, and a Free
+ * Atlas never writes a ChatGPT model into its code: what a ChatGPT account may use depends on its plan, and a Free
  * plan gets far fewer models than Codex knows about. So the picker lists only what the account's own list says, and
  * when that can't be read the caller leaves the model out and Codex uses its default.
  *
@@ -49,7 +49,7 @@ const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,127}$/;
 const EFFORT_RE = /^[a-z][a-z0-9_-]{0,23}$/i;
 
 /**
- * The app-server's model entries as Tarsee's: {id (the model to pass to Codex), label, efforts (the reasoning levels
+ * The app-server's model entries as Atlas's: {id (the model to pass to Codex), label, efforts (the reasoning levels
  * it takes, in Codex's words), default? (true for the one Codex picks), defaultEffort?, vision, description?}.
  * Hidden entries, duplicates and entries without a usable id are left out.
  */
@@ -127,7 +127,7 @@ class RpcClient {
     if (!m || typeof m !== "object") return;
     if (typeof m.method === "string" && m.id !== undefined) {
       // A request from the server (an approval, say): nothing here asks for one, so refuse it.
-      this.write({ id: m.id, error: { code: -32601, message: "Tarsee's model check doesn't handle this request." } });
+      this.write({ id: m.id, error: { code: -32601, message: "Atlas's model check doesn't handle this request." } });
       return;
     }
     const p = m.id !== undefined ? this.pending.get(m.id) : undefined;
@@ -161,7 +161,7 @@ const SIGN_IN_GONE = /refresh|sign in|signed out|log ?in|log out|expired|unautho
 
 /** initialize, then account/read, then every page of model/list. */
 async function converse(rpc) {
-  await rpc.request("initialize", { clientInfo: { name: "tarsee", title: "Tarsee", version: VERSION } });
+  await rpc.request("initialize", { clientInfo: { name: "tarsee", title: "Atlas", version: VERSION } });
   rpc.notify("initialized");
   let account;
   try {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// End-to-end, browser-level check of "Choose your AI" (the setup wizard) and Settings > AI on a REAL Tarsee server.
+// End-to-end, browser-level check of "Choose your AI" (the setup wizard) and Settings > AI on a REAL Atlas server.
 //
 //   node scripts/e2e/ai-ui.e2e.mjs [--shots <dir>] [--out <results.json>]
 //
@@ -727,7 +727,7 @@ await step("Settings > AI: key cards, masked key box with source, Save, Test ref
     const line = await cardTestLine(id);
     const src1 = (await c.locator(".ai-keysource").innerText()).trim();
     const last4 = FAKE_KEYS[id].slice(-4);
-    check(/Saved in Tarsee \(encrypted\)/.test(src1) && src1.includes(`…${last4}`), `Settings ${id}: the key box shows its source and only the last 4`, { file: SET, evidence: src1 });
+    check(/Saved in Atlas \(encrypted\)/.test(src1) && src1.includes(`…${last4}`), `Settings ${id}: the key box shows its source and only the last 4`, { file: SET, evidence: src1 });
     check(!src1.includes(CANARY), `Settings ${id}: the key itself is not shown`, { file: SET, evidence: src1 });
     check(line.tone === "bad" && /rejected|turned this key down/i.test(line.text), `Settings ${id}: Test shows the real site's refusal`, { file: SET, evidence: `${line.tone}: ${line.text}` });
     const status = (await page.locator(`#${id}AiStatus`).innerText()).trim();
@@ -916,7 +916,7 @@ await step("Settings > AI: Local AI on llama.cpp: Test names the build and the c
   for (const [flavour, re, what] of [
     ["llama-old", /no Responses API[\s\S]*llama\.cpp to b11768 or newer/, "a build with no Responses API: update it"],
     ["llama-loading", /still loading its model\. Click Test again in a minute/, "still loading its model"],
-    ["llama-key", /turned down Tarsee's key/, "started with --api-key: the key hint"],
+    ["llama-key", /turned down Atlas's key/, "started with --api-key: the key hint"],
   ]) {
     localFlavour = flavour;
     const line = await localTest();
@@ -975,10 +975,10 @@ await step("chat: the model picker groups models by provider", async () => {
 await step("the call: Call <name> in the topbar, the real /api/call behind sign-in and CSRF, Settings > Voice > Calls; voice mode gone", async () => {
   const CALL = "src/public/js/call.js";
   const label = await page.locator("#callBtn").getAttribute("aria-label");
-  check(label === "Call Tarsee", "topbar: the call button says Call <name> (Tarsee with no name set)", { file: CALL, evidence: label });
+  check(label === "Call Atlas", "topbar: the call button says Call <name> (Atlas with no name set)", { file: CALL, evidence: label });
   check(await page.locator("#voiceModeBtn, #voicePanel, #voiceOrb").count() === 0, "voice mode's button and full-screen orb are gone", { file: "src/public/index.html" });
   const started = await page.evaluate(() => API.json("/api/call/start", { method: "POST", body: {} }).catch((e) => ({ error: e.message })));
-  check(started.title === "Calls with Tarsee" && !!started.conversationId, "POST /api/call/start makes the call's chat, Calls with Tarsee", { file: "src/routes/voice-call.js", evidence: JSON.stringify(started) });
+  check(started.title === "Calls with Atlas" && !!started.conversationId, "POST /api/call/start makes the call's chat, Calls with Atlas", { file: "src/routes/voice-call.js", evidence: JSON.stringify(started) });
   // (From here, not the page: a refused request would be a console error there.)
   const noCsrf = (await desk.request.post(`${ORIGIN}/api/call/start`, { data: {} })).status();
   check(noCsrf === 403, "/api/call is behind the CSRF check", { file: "src/server.js", evidence: String(noCsrf) });
@@ -994,8 +994,8 @@ await step("the call: Call <name> in the topbar, the real /api/call behind sign-
   const sttBody = await sttRes.json().catch(() => ({}));
   if (sttRes.ok()) note(`speech-to-text is set up on this machine (it heard "${sttBody.text}")`);
   else {
-    const explained = await page.evaluate((r) => SpeechToText.explain(r, { call: { name: "Tarsee" } }), { ok: false, kind: sttRes.status() === 501 ? "not-set-up" : "failed", reason: sttBody.error });
-    check(sttRes.status() === 501 && /faster-whisper/.test(sttBody.error || "") && /isn't set up, so Tarsee can't hear you/.test(explained.title) && explained.settings,
+    const explained = await page.evaluate((r) => SpeechToText.explain(r, { call: { name: "Atlas" } }), { ok: false, kind: sttRes.status() === 501 ? "not-set-up" : "failed", reason: sttBody.error });
+    check(sttRes.status() === 501 && /faster-whisper/.test(sttBody.error || "") && /isn't set up, so Atlas can't hear you/.test(explained.title) && explained.settings,
       "no speech-to-text here: the real route answers 501 with its reason, and the call says so with Settings → Voice", { file: "src/public/js/voice.js", evidence: JSON.stringify({ status: sttRes.status(), sttBody, explained }) });
   }
   await page.evaluate(async () => { await Settings.open(); Settings.switchTab("voice"); });

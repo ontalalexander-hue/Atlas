@@ -2,10 +2,10 @@
  * codex.js: the Codex engine (design 4.8). It runs a turn on the ChatGPT plan, an OpenAI key, OpenRouter's openai/*
  * models (and any other OpenRouter model verified on Codex), DeepSeek's alternative engine and Local AI, through the
  * pinned @openai/codex-sdk, which starts the pinned codex binary for each turn (`codex exec --experimental-json`).
- * Codex runs its own tool loop (its shell, apply_patch, and Tarsee's 27 tools over the loopback MCP endpoint,
+ * Codex runs its own tool loop (its shell, apply_patch, and Atlas's 27 tools over the loopback MCP endpoint,
  * mcp-http.js), so a turn never ends waiting for its caller to run a tool.
  *
- *   run(opts)   an async generator of Tarsee's events (text, thinking, tool_use, tool_result, usage, step, error and
+ *   run(opts)   an async generator of Atlas's events (text, thinking, tool_use, tool_result, usage, step, error and
  *               exactly one done), for turn.js runTurn. opts: { target: {provider|providerId, model, effort}, messages,
  *               systemPrompt | systemParts {stable, volatile}, signal, toolCtx, sessionHandle | sessionId,
  *               onSessionHandle | onSessionId, maxTurns, thinkingSummaries, media, mcpGrant {url, token}, turnId, cwd,
@@ -16,7 +16,7 @@
  *     tools' grant (opts.mcpGrant from the turn layer, else one made here and revoked when the turn ends)
  *   - Local AI: a turn of its own on the Local AI bridge (../local-bridge.js), opened with the owner's address and key
  *     and released when the turn ends. Codex talks to the bridge's address with the bridge's token; the bridge passes
- *     each request on to the owner's server with the owner's key, Tarsee's tools as plain function tools.
+ *     each request on to the owner's server with the owner's key, Atlas's tools as plain function tools.
  *   - R1: the home exists (mode 0700) and a key home holds no sign-in file; R5's Codex counterpart:
  *     codexConfigGuard() on <home>/config.toml, <home>/.env (refused whatever it holds: Codex loads it into its own
  *     environment) and <workspace>/.codex/config.toml, the only files Codex loads with the project root search off
@@ -69,7 +69,7 @@ import { resolveCodexBin } from "../codex-cli.js";
 import { buildCodexOptions } from "./codex-options.js";
 import { createCodexEventState, finishCodexEvents, mapCodexEvent, usageEvents } from "./codex-events.js";
 
-/** Tarsee's bundled skills, the same folder Claude Code's turns get. */
+/** Atlas's bundled skills, the same folder Claude Code's turns get. */
 const SKILLS_DIR = fileURLToPath(new URL("../../skills", import.meta.url));
 
 /** A ChatGPT sign-in this old (or older) is about to be refreshed by Codex: turns start one at a time. */
@@ -95,7 +95,7 @@ const DRAINED = Symbol("drained");
 const DEFAULT_DEPS = {
   /** The Codex SDK's class (loaded on first use). */
   Codex: null,
-  /** A grant for Tarsee's tools when the turn layer didn't pass one: {url, token, revoke()}. */
+  /** A grant for Atlas's tools when the turn layer didn't pass one: {url, token, revoke()}. */
   grantTurn: async (ctx, o) => (await import("../mcp-http.js")).grantTurn(ctx, o),
   /** The vault's keys for scripts (agent-env.js), compared against the stripped environment. */
   vaultEnv: async (env, toolCtx) => {
@@ -217,12 +217,12 @@ function codexOverride(chosen, platform, providerId) {
   const p = nonEmpty(chosen);
   if (!p) return undefined;
   if (platform === "win32" && /\.(cmd|bat)$/i.test(p)) {
-    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${path.basename(p)}, a launcher script. On Windows it must name the Codex program itself (codex.exe), or be left unset to use the one Tarsee installs.`, providerId);
+    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${path.basename(p)}, a launcher script. On Windows it must name the Codex program itself (codex.exe), or be left unset to use the one Atlas installs.`, providerId);
   }
   try {
     return resolveCodexBin({ codexBin: p });
   } catch {
-    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${p}, and there's no program there. Point it at the codex program, or leave it unset to use the one Tarsee installs.`, providerId);
+    throw new CredentialError("needs-setup", `TARSEE_CODEX_BIN names ${p}, and there's no program there. Point it at the codex program, or leave it unset to use the one Atlas installs.`, providerId);
   }
 }
 
@@ -553,7 +553,7 @@ export async function* run(opts = {}) {
         grant = await deps.grantTurn({ ...toolCtx, turnId, provider: providerId }, { turnId, signal: opts.signal });
         ownGrant = true;
       } catch (err) {
-        yield* refusal(providerId, new CredentialError("needs-mcp-token", `Tarsee's tools couldn't be opened for this turn: ${err?.message || err}`, providerId));
+        yield* refusal(providerId, new CredentialError("needs-mcp-token", `Atlas's tools couldn't be opened for this turn: ${err?.message || err}`, providerId));
         return;
       }
     }
@@ -577,7 +577,7 @@ export async function* run(opts = {}) {
         try {
           bridgeTurn = (await deps.localBridge()).open({ upstream, key: ownerKey });
         } catch (err) {
-          throw new CredentialError("needs-setup", `Tarsee's Local AI bridge couldn't start: ${err?.message || err}`, providerId);
+          throw new CredentialError("needs-setup", `Atlas's Local AI bridge couldn't start: ${err?.message || err}`, providerId);
         }
       }
       o = buildCodexOptions({ providerId, model, effort }, {

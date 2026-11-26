@@ -2,7 +2,7 @@
  * Email threading helpers — reply headers + subject dedup +
  * References-chain management.
  *
- * Used when Tarsee replies to an inbound email or starts a new thread
+ * Used when Atlas replies to an inbound email or starts a new thread
  * via the tarsee_send_email_thread MCP tool. Pure functions; no I/O.
  */
 
@@ -83,7 +83,7 @@ export function normalizeReplySubject(subject) {
  * @param {Array<{address: string}>} [opts.incoming.cc]
  * @param {{address: string}} [opts.incoming.replyTo]   Reply-To header if present
  * @param {boolean} opts.replyAll
- * @param {string} opts.selfAddress   Tarsee's own inbox address — always excluded
+ * @param {string} opts.selfAddress   Atlas's own inbox address — always excluded
  * @returns {{ to: string[], cc: string[] }}
  */
 export function resolveRecipients({ incoming, replyAll, selfAddress }) {

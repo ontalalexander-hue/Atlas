@@ -1,6 +1,6 @@
 // Whether the Agent SDK's bundled Claude Code CLI is installed here. It comes in one of the SDK's optional platform
 // packages, so `npm ci --omit=optional` or a system with no build leaves it out; a suite that runs the real CLI skips
-// then instead of failing with engine errors. Node built-ins only, so importing this never loads Tarsee's config.
+// then instead of failing with engine errors. Node built-ins only, so importing this never loads Atlas's config.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

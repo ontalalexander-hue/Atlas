@@ -1,5 +1,5 @@
 /**
- * PID file management for Tarsee daemon.
+ * PID file management for Atlas daemon.
  */
 import fs from "node:fs";
 import path from "node:path";

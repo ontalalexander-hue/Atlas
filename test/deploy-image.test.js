@@ -4,7 +4,7 @@
 //   stops when its version isn't the SDK pin; pdftotext (poppler-utils) is installed. No docker here, so the build
 //   checks are run for real in sh against stand-in `claude`, `codex` and `pdftotext` commands.
 // - entrypoint.sh: every AI provider's sign-in folder exists on the volume, owner-only; /home/node/.claude and
-//   /home/node/.codex link to the plan homes; each Codex home has a config.toml with Tarsee's three settings and never a
+//   /home/node/.codex link to the plan homes; each Codex home has a config.toml with Atlas's three settings and never a
 //   key, that Codex's guard accepts; CODEX_HOME and TARSEE_STATE_DIR are exported before the server starts; one
 //   sign-in line per engine; an install upgraded from main with its own TARSEE_STATE_DIR keeps the Claude plan sign-in
 //   (and chat transcripts) main kept in /data/tarsee/.claude-code-home, once (an older sign-in that a newer one there
@@ -93,7 +93,7 @@ function stubBin(name, cmds) {
   }
   return dir;
 }
-/** A stand-in /app: the Agent SDK's package.json and Tarsee's, at the given versions. */
+/** A stand-in /app: the Agent SDK's package.json and Atlas's, at the given versions. */
 function fakeApp(name, { claudeCodeVersion, codexSdk }) {
   const dir = path.join(tmp, `app-${name}`);
   const sdkDir = path.join(dir, "node_modules", "@anthropic-ai", "claude-agent-sdk");
@@ -210,7 +210,7 @@ describe("Dockerfile: speech-to-text works on the first try", () => {
     for (const rel of imports("whisper-models.js")) {
       assert.match(rel, /^\.\/[\w.-]+\.js$/, "only files next to it");
       assert.ok(RUNTIME[copy].args.includes(`src/voice/${rel.slice(2)}`), `${rel} is copied too`);
-      assert.deepEqual(imports(rel.slice(2)), [], `${rel} imports nothing of Tarsee's`);
+      assert.deepEqual(imports(rel.slice(2)), [], `${rel} imports nothing of Atlas's`);
     }
   });
 
@@ -324,7 +324,7 @@ describe("entrypoint.sh: the AI providers' sign-in folders", { skip: NO_SH }, ()
     }
   });
 
-  it("seeds each Codex home's config.toml with Tarsee's settings and the home's sign-in kind, and no key", () => {
+  it("seeds each Codex home's config.toml with Atlas's settings and the home's sign-in kind, and no key", () => {
     const { state, home } = freshDirs("seed");
     const r = callEntrypoint("setup_provider_homes", [posix(state), posix(home), ""], {
       OPENAI_API_KEY: CANARY, CLAUDE_CODE_OAUTH_TOKEN: CANARY, DEEPSEEK_API_KEY: CANARY, OPENROUTER_API_KEY: CANARY,
@@ -518,7 +518,7 @@ describe("entrypoint.sh: an install upgraded from main with its own TARSEE_STATE
     assert.ok(said.includes(posix(path.join(old, ".credentials.json.superseded"))), `says where it is now: ${said}`);
     assert.doesNotMatch(said, /moved the Claude plan sign-in/);
 
-    // The owner signs out in the Terminal (claude auth logout deletes .credentials.json), then Tarsee restarts.
+    // The owner signs out in the Terminal (claude auth logout deletes .credentials.json), then Atlas restarts.
     fs.rmSync(path.join(plan, ".credentials.json"));
     const before = snapshot(vol);
     assert.equal(boot(vol, state, home), "", "the next boot says nothing");

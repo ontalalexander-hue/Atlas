@@ -1,4 +1,4 @@
-/* Tarsee's icon (js/brand-icon.js): the section in Settings → Appearance, and the modal that crops a new icon square.
+/* Atlas's icon (js/brand-icon.js): the section in Settings → Appearance, and the modal that crops a new icon square.
    Colours come from the tokens only (tokens.css), so every theme has them. The modal is a <dialog> over the whole
    page (the top layer), the page dimmed under it, laid out like the dashboard's other modals (style.css,
    .delete-modal); on a narrow screen the previews go under the picture and the two buttons share the row. Every

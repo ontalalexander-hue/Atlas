@@ -1,6 +1,6 @@
 /**
- * mcp-stub.js: a tiny stand-in for Tarsee's loopback MCP endpoint (src/ai/mcp-http.js), for tests that run the real
- * Codex binary. It serves a few tools named like Tarsee's over streamable HTTP (stateless, JSON responses) on
+ * mcp-stub.js: a tiny stand-in for Atlas's loopback MCP endpoint (src/ai/mcp-http.js), for tests that run the real
+ * Codex binary. It serves a few tools named like Atlas's over streamable HTTP (stateless, JSON responses) on
  * 127.0.0.1, takes only its own bearer token, and records every call, so a test can prove Codex reached a tool with the
  * turn's token and that the call was approved without anyone asking.
  *

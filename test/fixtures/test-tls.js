@@ -114,7 +114,7 @@ export function makeTestTls({ hosts = ["127.0.0.1", "localhost"], days = 2 } = {
   const notBefore = new Date(Date.now() - 3_600_000);
   const notAfter = new Date(Date.now() + days * 86_400_000);
   const tag = crypto.randomBytes(4).toString("hex");
-  const caName = `Tarsee test authority ${tag}`;
+  const caName = `Atlas test authority ${tag}`;
   const ca = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const leaf = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   const caPem = certificate({
@@ -125,7 +125,7 @@ export function makeTestTls({ hosts = ["127.0.0.1", "localhost"], days = 2 } = {
     ],
   });
   const certPem = certificate({
-    subject: `Tarsee test server ${tag}`, issuer: caName, publicKey: leaf.publicKey, signingKey: ca.privateKey, notBefore, notAfter,
+    subject: `Atlas test server ${tag}`, issuer: caName, publicKey: leaf.publicKey, signingKey: ca.privateKey, notBefore, notAfter,
     extensions: [
       extension("2.5.29.19", true, seq()),                                  // basicConstraints: not a CA
       extension("2.5.29.15", true, bitString(Buffer.from([0x80]), 7)),      // keyUsage: digitalSignature

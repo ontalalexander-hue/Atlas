@@ -1,5 +1,5 @@
 // Scheduled tasks and the owner's OK (src/lib/cron.js, lib/tools.js schedule_task, routes/settings.js, lib/commands.js
-// /cron, js/cron-core.js). The rule: Tarsee calls an AI model, or spends on an API key, only when the owner sent a
+// /cron, js/cron-core.js). The rule: Atlas calls an AI model, or spends on an API key, only when the owner sent a
 // message, clicked a button that clearly does that, or set the job up themselves. So:
 //   - a task the AI schedules (tarsee_schedule_task) is saved paused, waiting for the owner's OK; the owner's own
 //     tasks (the Settings form, /cron add) are switched on as before;
@@ -78,7 +78,7 @@ const chatCtx = () => ({ db, settingsStore: settings, conversationId: convs.crea
 /** The owner, typing in the dashboard's chat. */
 const owner = (text) => processCommand(text, { settingsStore: settings, db, platform: "web" }).then((r) => String(r.response));
 
-/** Call one of Tarsee's tools the way Claude Code does: its in-process MCP server, around the turn's tool context. */
+/** Call one of Atlas's tools the way Claude Code does: its in-process MCP server, around the turn's tool context. */
 async function callInProcess(ctx, name, args) {
   const mcp = createTarseeMcp(ctx, { quiet: true });
   const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
@@ -92,7 +92,7 @@ async function callInProcess(ctx, name, args) {
   }
 }
 
-/** The same, the way Codex does: over Tarsee's loopback HTTP endpoint, with the turn's grant. */
+/** The same, the way Codex does: over Atlas's loopback HTTP endpoint, with the turn's grant. */
 async function callOverHttp(mcp, name, args) {
   const transport = new StreamableHTTPClientTransport(new URL(mcp.url), { requestInit: { headers: { Authorization: `Bearer ${mcp.token}` } } });
   const client = new Client({ name: "codex-test", version: "1.0.0" }, { capabilities: {} });
@@ -738,7 +738,7 @@ describe("a schedule with a step of 0 can't take the server down", () => {
   const HANGS = ["*/0 * * * *", "0 9 * * */7", "0 9 * * 0-6/7"];
   const FINE = ["*/5 * * * *", "0 9 * * 1-5", "0 0 * * 7"];
 
-  // Tarsee's cron code, in a worker with little memory and a time limit: a schedule that reached node-cron unchecked
+  // Atlas's cron code, in a worker with little memory and a time limit: a schedule that reached node-cron unchecked
   // fails the test in a few seconds instead of filling the test run's memory.
   const WORKER = `
 const { parentPort, workerData } = require("node:worker_threads");
@@ -901,7 +901,7 @@ describe("Settings > Automation > Scheduled tasks (js/cron-core.js)", () => {
   it("says who made it", () => {
     assert.match(CronCore.jobHtml(job({ createdBy: "ai", awaitingOwner: true, enabled: false })), /Made by the AI in a chat/);
     assert.match(CronCore.jobHtml(job()), /Made by you/);
-    assert.match(CronCore.jobHtml(job({ createdBy: undefined })), /Made before Tarsee noted who makes each task/);
+    assert.match(CronCore.jobHtml(job({ createdBy: undefined })), /Made before Atlas noted who makes each task/);
   });
 
   it("shows the whole prompt and the schedule, escaped", () => {

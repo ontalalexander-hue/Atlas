@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Tarsee CLI — command-line interface for managing Tarsee.
+ * Atlas CLI — command-line interface for managing Atlas.
  */
 
 import { fileURLToPath } from "node:url";
@@ -12,8 +12,8 @@ const args = process.argv.slice(2);
 const command = args[0] || "start";
 
 const COMMANDS = {
-  start: { desc: "Start the Tarsee server", run: cmdStart },
-  stop: { desc: "Stop a running Tarsee server", run: cmdStop },
+  start: { desc: "Start the Atlas server", run: cmdStart },
+  stop: { desc: "Stop a running Atlas server", run: cmdStop },
   status: { desc: "Show server status", run: cmdStatus },
   doctor: { desc: "Run diagnostics", run: cmdDoctor },
   chat: { desc: "Send a one-shot message", run: cmdChat },
@@ -35,7 +35,7 @@ async function main() {
 }
 
 async function cmdStart() {
-  console.log("Starting Tarsee server...");
+  console.log("Starting Atlas server...");
   await import("../server.js");
 }
 
@@ -43,7 +43,7 @@ async function cmdStop() {
   const { readPid, isRunning } = await import("../daemon/pid.js");
   const pid = readPid();
   if (!pid || !isRunning(pid)) {
-    console.log("Tarsee is not running.");
+    console.log("Atlas is not running.");
     return;
   }
   try { process.kill(pid, "SIGTERM"); console.log(`Sent SIGTERM to PID ${pid}`); }
@@ -54,7 +54,7 @@ async function cmdStatus() {
   const { readPid, isRunning } = await import("../daemon/pid.js");
   const pid = readPid();
   if (pid && isRunning(pid)) {
-    console.log(`Tarsee is running (PID: ${pid})`);
+    console.log(`Atlas is running (PID: ${pid})`);
     // Try to fetch status from API
     try {
       const port = process.env.PORT || 3000;
@@ -67,7 +67,7 @@ async function cmdStatus() {
       }
     } catch { console.log("  (Could not fetch live status)"); }
   } else {
-    console.log("Tarsee is not running.");
+    console.log("Atlas is not running.");
   }
 }
 
@@ -100,7 +100,7 @@ async function cmdChat(chatArgs) {
     console.log();
   } catch (err) {
     console.error("Error:", err.message);
-    console.error("Is Tarsee running? Try: tarsee start");
+    console.error("Is Atlas running? Try: tarsee start");
   }
 }
 
@@ -112,8 +112,8 @@ async function cmdInteractive() {
 function cmdVersion() {
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../../package.json"), "utf8"));
-    console.log(`Tarsee v${pkg.version || "1.0.0"}`);
-  } catch { console.log("Tarsee v1.0.0"); }
+    console.log(`Atlas v${pkg.version || "1.0.0"}`);
+  } catch { console.log("Atlas v1.0.0"); }
 }
 
 function cmdHelp() {

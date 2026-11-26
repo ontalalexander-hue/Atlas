@@ -1,5 +1,5 @@
 /**
- * provider-registry.js: every AI Tarsee can talk to, in one table.
+ * provider-registry.js: every AI Atlas can talk to, in one table.
  *
  * A provider is an account the owner chooses (the Claude plan, an Anthropic
  * API key, the ChatGPT plan, an OpenAI API key, OpenRouter, DeepSeek or a
@@ -294,7 +294,7 @@ const PROVIDER_TABLE = {
     consoleUrl: "https://openrouter.ai/activity",
     baseUrl: { [CLAUDE_CODE]: "https://openrouter.ai/api", [CODEX]: "https://openrouter.ai/api/v1" },
     // The attribution title OpenRouter shows (ai.openrouter.appTitle overrides it).
-    defaultAppTitle: "Tarsee",
+    defaultAppTitle: "Atlas",
     catalog: "openrouter",
     // The shipped verified results (models[].verified) land here from the Phase 7 sweep
     // (scripts/smoke-backends.mjs); the live list itself is the runtime catalog (lib/openrouter-catalog.js).
@@ -376,7 +376,7 @@ const PROVIDER_TABLE = {
     testProbe: { method: "GET", path: "/models", auth: "bearer-optional" },
     balanceProbe: null,
     errorHints: {
-      auth: "Your Local AI turned down Tarsee's key. Check it in Settings > AI.",
+      auth: "Your Local AI turned down Atlas's key. Check it in Settings > AI.",
       unreachable: "Can't reach your Local AI at {url}.",
     },
   },
@@ -555,7 +555,7 @@ export function verifiedModels(idOrAlias, store) {
  *  - A claude-* id on any other provider maps through its tier.
  *  - An id the provider does not offer falls back to its default.
  *  - The Claude providers behave as today: tier words stay tier words (with
- *    their "[1m]", which Claude Code reads), ids in Tarsee's table or Claude
+ *    their "[1m]", which Claude Code reads), ids in Atlas's table or Claude
  *    Code's catalog are kept, partial names resolve.
  *  - It never returns a claude-* id for deepseek, chatgpt, openai or local.
  * null means no model is named (the engine's own default), or no such provider.
@@ -677,7 +677,7 @@ export function setLocalModels(rows, store = null) {
   }));
 }
 
-/** The effort levels a model takes (Tarsee's ids, low to max); empty when none is sent. */
+/** The effort levels a model takes (Atlas's ids, low to max); empty when none is sent. */
 export function effortsFor(idOrAlias, model, store = null) {
   const p = getProvider(idOrAlias);
   if (!p) return [];
@@ -791,7 +791,7 @@ export function claudeListPrice(model) {
  */
 export function checkKeySlot(idOrAlias, key) {
   const p = getProvider(idOrAlias);
-  if (!p) return { ok: false, message: "Tarsee doesn't know that AI." };
+  if (!p) return { ok: false, message: "Atlas doesn't know that AI." };
   if (p.kind === "subscription") return { ok: false, message: `The ${p.label} signs in; it takes no API key.` };
   const k = typeof key === "string" ? key.trim().replace(/^["']|["']$/g, "") : "";
   if (!k) return { ok: false, message: "Paste a key first." };
@@ -810,7 +810,7 @@ function resolveClaude(raw) {
   if (tier) return (resolveModelAlias(tier) || tier) + (bare === raw ? "" : "[1m]");
   const known = resolveModelAlias(raw);
   if (known) return known;
-  // A release Claude Code's catalog lists before Tarsee's table does.
+  // A release Claude Code's catalog lists before Atlas's table does.
   if (parsePickerId(raw)) return raw;
   return getRecommendedModel();
 }

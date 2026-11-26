@@ -35,7 +35,7 @@ const Setup = {
 
   // --- Step 1: Choose your AI ---
   //
-  // Who will talk to this Tarsee, then three big choices: My Claude plan, My ChatGPT plan, or My own API key (then
+  // Who will talk to this Atlas, then three big choices: My Claude plan, My ChatGPT plan, or My own API key (then
   // which provider). The chosen one's steps (js/provider-guides-core.js) and its live status sit right under it, and
   // Next is enabled only once that AI is Ready. Nothing is saved but what the person does here: a key they paste and
   // test, a sign-in they finish, "Only use API keys" if they leave it ticked, and the chosen AI as the default.
@@ -67,14 +67,14 @@ const Setup = {
     document.getElementById("setupContent").innerHTML = `
       ${this._progressBar(1)}
       <div class="setup-card-header">
-        <div class="logo-large"><img src="/icon-192.png" alt="Tarsee" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div>
-        <h2>Welcome to Tarsee</h2>
+        <div class="logo-large"><img src="/icon-192.png" alt="Atlas" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"></div>
+        <h2>Welcome to Atlas</h2>
         <p>Your personal AI agent. First, the AI that will answer you.</p>
       </div>
       <div class="setup-card-body setup-ai" id="setupAi">
         <h3 class="setup-ai-title">Choose your AI</h3>
         <fieldset class="setup-ai-who">
-          <legend>Who will talk to this Tarsee?</legend>
+          <legend>Who will talk to this Atlas?</legend>
           <label class="setup-ai-radio"><input type="radio" name="setupWho" value="me" checked><span>Just me</span></label>
           <label class="setup-ai-radio"><input type="radio" name="setupWho" value="others"><span>Other people too (a team, customers)</span></label>
         </fieldset>
@@ -82,7 +82,7 @@ const Setup = {
         <div class="setup-ai-choices" id="setupAiChoices"></div>
         <div class="setup-ai-panel" id="setupAiPanel" aria-live="polite"></div>
         <label class="checkbox-label setup-ai-keysonly"><input type="checkbox" id="setupKeysOnly"><span>Only use API keys</span></label>
-        <div class="setup-ai-note" id="setupKeysOnlyNote">Plan sign-ins (Claude, ChatGPT) stay off, so every message is billed to an API key. Right for a Tarsee other people talk to.</div>
+        <div class="setup-ai-note" id="setupKeysOnlyNote">Plan sign-ins (Claude, ChatGPT) stay off, so every message is billed to an API key. Right for a Atlas other people talk to.</div>
         <div class="setup-ai-note" id="setupAiTerms"></div>
         <div id="setupError" class="setup-error" role="alert" hidden></div>
         <button type="button" class="btn btn-primary btn-block" id="setupAiNext" disabled>Next</button>
@@ -113,7 +113,7 @@ const Setup = {
     } catch (err) {
       const panel = document.getElementById("setupAiPanel");
       if (panel) {
-        panel.innerHTML = `<div class="ai-test-result" data-tone="bad">✗ Couldn't read Tarsee's AI settings: ${this._esc(err.message)}</div>` +
+        panel.innerHTML = `<div class="ai-test-result" data-tone="bad">✗ Couldn't read Atlas's AI settings: ${this._esc(err.message)}</div>` +
           `<button type="button" class="btn btn-sm" data-setup="retry">Try again</button>`;
       }
       return;
@@ -156,7 +156,7 @@ const Setup = {
     const note = document.getElementById("setupKeysOnlyNote");
     if (note && k.locked) {
       note.textContent = "Locked on by the Railway variable TARSEE_KEYS_ONLY=1: plan sign-ins stay off." +
-        (keyIds.length ? "" : " No API-key AI is switched on in this version of Tarsee, so remove that variable to use your plan.");
+        (keyIds.length ? "" : " No API-key AI is switched on in this version of Atlas, so remove that variable to use your plan.");
     }
     const keysOnly = this._aiKeysOnly();
     if (keysOnly && (this._aiChoice === "claude" || this._aiChoice === "chatgpt")) { this._aiChoice = null; this._aiProvider = null; }
@@ -263,7 +263,7 @@ const Setup = {
         `<div class="ai-actions"><button type="button" class="btn btn-sm btn-primary" data-setup="save-local">Save and test</button></div>`;
     }
     const where = c.keySource ? `<div class="ai-keysource">Key: ${esc(c.keySourceText || c.keySource)}${c.keyHint ? ` <code>${esc(c.keyHint)}</code>` : ""}</div>` : "";
-    // A key Tarsee already has (saved, or a Railway variable) is tested as it is: Test sends no key (POST {}).
+    // A key Atlas already has (saved, or a Railway variable) is tested as it is: Test sends no key (POST {}).
     const test = c.keySource ? `<button type="button" class="btn btn-sm" data-setup="test">Test</button>` : "";
     return where +
       `<form class="ai-key-form" autocomplete="off" data-no-submit><label class="ai-label" for="setupKey">${c.keySource ? "Replace the key" : `Paste your ${esc(p.shortName)} key`}</label>` +
@@ -609,7 +609,7 @@ const Setup = {
       <div style="background:var(--bg-elevated);border-radius:12px;padding:24px;max-width:460px;width:100%;border:1px solid var(--border);margin:auto">
         ${this._progressBar(4)}
         <h2 style="font-size:18px;margin-bottom:4px">Connect Channels</h2>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Optional: talk to Tarsee from the apps you already use. Pick one and Settings shows you each step; you can add more any time in Settings → Channels.</p>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Optional: talk to Atlas from the apps you already use. Pick one and Settings shows you each step; you can add more any time in Settings → Channels.</p>
 
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">${cards}
         </div>
@@ -642,7 +642,7 @@ const Setup = {
   /** Welcome tour — highlight key UI elements */
   showWelcomeTour() {
     const tips = [
-      { selector: "#callBtn", text: `Call ${(typeof Chat !== "undefined" && Chat.botName) || "Tarsee"}: talk it through out loud, hands-free. It answers in its own voice, and you can talk over it.`, pos: "below" },
+      { selector: "#callBtn", text: `Call ${(typeof Chat !== "undefined" && Chat.botName) || "Atlas"}: talk it through out loud, hands-free. It answers in its own voice, and you can talk over it.`, pos: "below" },
       { selector: "#consoleToggleBtn", text: "Server console: see what your agent is doing", pos: "below" },
       { selector: "#settingsBtn", text: "Settings: configure everything", pos: "above" },
       { selector: ".channel-list", text: "Your channels: web, Telegram, Discord, WhatsApp, Slack, email", pos: "right" },
@@ -780,7 +780,7 @@ const Setup = {
       if (jsonMatch) identity = JSON.parse(jsonMatch[0]);
     } catch {}
 
-    const botName = identity.name || "Tarsee";
+    const botName = identity.name || "Atlas";
     const systemPrompt = identity.systemPrompt || identity.personality || "";
 
     try {

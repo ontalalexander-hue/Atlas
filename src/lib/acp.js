@@ -1,5 +1,5 @@
 /**
- * Agent Control Protocol (ACP) for Tarsee.
+ * Agent Control Protocol (ACP) for Atlas.
  * Provides session management, turn-based execution, and provenance tracking
  * for IDE integrations and external clients.
  */

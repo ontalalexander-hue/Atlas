@@ -79,7 +79,7 @@ describe("buildQueryOptions: the Claude plan", () => {
       assert.deepEqual(b.options.allowedTools, b.options.tools, id);
       assert.equal(b.options.permissionMode, "bypassPermissions", id);
       assert.equal(b.options.allowDangerouslySkipPermissions, true, id);
-      assert.equal(b.options.strictMcpConfig, id !== "claude", id === "claude" ? "the plan keeps the owner's own MCP servers (.mcp.json, plugins), as before" : `${id}: only Tarsee's own MCP servers`);
+      assert.equal(b.options.strictMcpConfig, id !== "claude", id === "claude" ? "the plan keeps the owner's own MCP servers (.mcp.json, plugins), as before" : `${id}: only Atlas's own MCP servers`);
       assert.deepEqual(b.options.mcpServers, { tarsee: { name: "tarsee-stub" } }, id);
       assert.deepEqual(b.options.additionalDirectories, [BUNDLED_SKILLS_DIR], id);
       assert.equal(b.options.includePartialMessages, true, id);
@@ -87,17 +87,17 @@ describe("buildQueryOptions: the Claude plan", () => {
     }
   });
 
-  it("the system prompt is Tarsee's preamble then the caller's, rendered fresh every request (never snapshotted)", () => {
+  it("the system prompt is Atlas's preamble then the caller's, rendered fresh every request (never snapshotted)", () => {
     const b = build("claude", { systemPrompt: "You are helpful.\uD800" });
     assert.equal(b.options.systemPrompt.type, "custom");
     assert.equal(b.options.systemPrompt.snapshot, false);
-    assert.match(b.options.systemPrompt.prompt, /^You ARE Tarsee/);
+    assert.match(b.options.systemPrompt.prompt, /^You ARE Atlas/);
     assert.match(b.options.systemPrompt.prompt, /\n\nYou are helpful\.$/, "a lone surrogate is stripped");
     const parts = build("deepseek", { key: KEYS.deepseek, systemParts: { stable: "STABLE", volatile: "VOLATILE" } });
     const p = parts.options.systemPrompt.prompt;
     assert.ok(Array.isArray(p));
     assert.equal(p.length, 3);
-    assert.match(p[0], /^You ARE Tarsee[\s\S]*\n\nSTABLE$/);
+    assert.match(p[0], /^You ARE Atlas[\s\S]*\n\nSTABLE$/);
     assert.equal(p[1], SYSTEM_PROMPT_DYNAMIC_BOUNDARY);
     assert.equal(p[2], "VOLATILE");
   });
@@ -153,7 +153,7 @@ describe("buildQueryOptions: the gateways", () => {
     noCanaries(e, "deepseek");
     assert.equal(b.options.model, "deepseek-flash[1m]");
     assert.equal(b.options.fallbackModel, undefined, "Flash has nothing below it");
-    assert.equal(b.options.maxBudgetUsd, undefined, "the SDK can't price DeepSeek: Tarsee's own guard keeps the ceiling");
+    assert.equal(b.options.maxBudgetUsd, undefined, "the SDK can't price DeepSeek: Atlas's own guard keeps the ceiling");
     assert.equal(b.options.thinking, undefined, "no thinking summaries until confirmed on the gateway");
     assert.equal(b.options.effort, "high");
     assert.deepEqual(b.options.settingSources, ["project"]);
@@ -179,7 +179,7 @@ describe("buildQueryOptions: the gateways", () => {
     assert.equal(b.options.fallbackModel, undefined);
     assert.equal(b.options.effort, "high", "Claude's efforts on anthropic/*");
     const d = build("openrouter", { key: KEYS.openrouter });
-    assert.equal(d.options.env.ANTHROPIC_CUSTOM_HEADERS, "X-OpenRouter-Title: Tarsee");
+    assert.equal(d.options.env.ANTHROPIC_CUSTOM_HEADERS, "X-OpenRouter-Title: Atlas");
   });
 
   it("every key and gateway provider runs host-managed (settings files can't move it, its key stays out of the shell's environment); the plan doesn't", () => {
@@ -203,7 +203,7 @@ describe("buildQueryOptions: the gateways", () => {
 });
 
 describe("R6: apiKeySourceRefusal", () => {
-  it("allows only the credential Tarsee set up, per provider", () => {
+  it("allows only the credential Atlas set up, per provider", () => {
     assert.deepEqual(API_KEY_SOURCES.claude, ["none", "oauth"]);
     assert.equal(apiKeySourceRefusal("claude", "none"), null);
     assert.equal(apiKeySourceRefusal("claude-code", "oauth"), null);
@@ -614,7 +614,7 @@ describe("run(): cost and the turn budget", () => {
     }
   });
 
-  it("a gateway turn over its ceiling is stopped by Tarsee's own guard", async () => {
+  it("a gateway turn over its ceiling is stopped by Atlas's own guard", async () => {
     const q = fakeQuery([init(), msgStart("m1", { input_tokens: 2_000_000 }), msgDelta({ output_tokens: 10 }), WAIT]);
     const events = await collect(runOpts("deepseek", q, { maxBudgetUsd: 0.01 }));
     const err = events.find((e) => e.type === "error");

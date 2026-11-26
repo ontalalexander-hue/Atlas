@@ -7,9 +7,9 @@
   const paint = () => {
     if (navigator.onLine === false) {
       title.textContent = "You're offline";
-      detail.textContent = "This device has no connection. Tarsee reconnects when it's back.";
+      detail.textContent = "This device has no connection. Atlas reconnects when it's back.";
     } else {
-      title.textContent = "Can't reach Tarsee";
+      title.textContent = "Can't reach Atlas";
       detail.textContent = "Your server didn't answer. It may be restarting; this page reconnects by itself.";
     }
   };

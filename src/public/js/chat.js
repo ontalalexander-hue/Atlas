@@ -25,7 +25,7 @@ const Chat = {
   _collapsed: new Set(),
   _expanded: new Set(),
   _navQuery: "",
-  botName: "Tarsee",
+  botName: "Atlas",
   lastMessageRole: null,
   lastMessageTime: 0,
   pendingFiles: [],
@@ -514,7 +514,7 @@ const Chat = {
       card.className = "context-overflow-card";
       card.innerHTML = `
         <div class="context-overflow-title">Context overflowed: snapshot saved</div>
-        <div class="context-overflow-body">Your last message pushed the model past its window. Tarsee saved a recovery checkpoint to <code class="context-overflow-path"></code>. Start a fresh session and the next instance will read this checkpoint as a handoff.</div>
+        <div class="context-overflow-body">Your last message pushed the model past its window. Atlas saved a recovery checkpoint to <code class="context-overflow-path"></code>. Start a fresh session and the next instance will read this checkpoint as a handoff.</div>
         <div class="context-overflow-actions">
           <button type="button" class="context-overflow-fresh">Start fresh session</button>
           <button type="button" class="context-overflow-dismiss">Dismiss</button>
@@ -546,9 +546,9 @@ const Chat = {
       // Ignore default/autofill names — only use names set via IDENTITY.md
       const name = data.botName;
       const ignored = ["admin", "user", "root", "tarsee", ""];
-      this.setBotName(name && !ignored.includes(name.toLowerCase()) ? name : "Tarsee");
+      this.setBotName(name && !ignored.includes(name.toLowerCase()) ? name : "Atlas");
     } catch {
-      this.setBotName("Tarsee");
+      this.setBotName("Atlas");
     }
 
     // IDENTITY.md may name it too. (Its emoji is not shown: the icon is the picture, set in Settings.)
@@ -572,7 +572,7 @@ const Chat = {
   },
 
   setBotName(name) {
-    this.botName = name || "Tarsee";
+    this.botName = name || "Atlas";
     if (!this.currentChannelKey && !(typeof Settings !== "undefined" && Settings.isOpen) && !(typeof Usage !== "undefined" && Usage.isOpen)) {
       this.elements.topbarTitle.textContent = this.botName;
     }
@@ -1326,7 +1326,7 @@ const Chat = {
       empty.textContent = s.state === "queued"
         ? "Waiting for the reply above to finish. It starts right after."
         : s.state === "running"
-          ? `Nothing to show yet: ${Chat.botName || "Tarsee"} is thinking. Each step shows here as it happens.`
+          ? `Nothing to show yet: ${Chat.botName || "Atlas"} is thinking. Each step shows here as it happens.`
           : "It ended before any step.";
       for (const k of s.order) {
         const r = s.rows.get(k);
@@ -2948,7 +2948,7 @@ function canvasEmbedHtml(canvasId) {
     <!-- No allow-same-origin. Canvas HTML is model-authored and the model
          reads untrusted input, so pairing allow-scripts with
          allow-same-origin handed any prompt injection full authority on
-         Tarsee's origin: the API token, the vault, the Claude credentials.
+         Atlas's origin: the API token, the vault, the Claude credentials.
          Dropping it keeps scripts working inside a null origin. The server
          sends a matching CSP sandbox header so a directly-opened canvas is
          covered too. -->

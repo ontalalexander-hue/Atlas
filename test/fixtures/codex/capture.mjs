@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Re-captures the Codex JSONL fixtures in this folder from the REAL pinned codex binary (@openai/codex 0.167.0, the
- * one @openai/codex-sdk starts), run with Tarsee's own options (providers/codex-options.js) against the fake
+ * one @openai/codex-sdk starts), run with Atlas's own options (providers/codex-options.js) against the fake
  * Responses server (../fake-responses.js) and the MCP stub (../mcp-stub.js). No network, no real key: every key here
  * is an obvious fake. Run it after a Codex bump:
  *
@@ -46,7 +46,7 @@ const SCENARIOS = {
     turns: [() => ({ reasoning: "Weighing a friendly greeting.", text: "Hello from the fake.", usage: { input_tokens: 1200, cached_input_tokens: 200, output_tokens: 30, reasoning_output_tokens: 12 } })],
   },
   "tools": {
-    why: "every tool kind a Tarsee turn sees: a command that works, one that fails, Tarsee's MCP tool, one that errors, a patch that adds, updates and deletes, then the answer",
+    why: "every tool kind a Atlas turn sees: a command that works, one that fails, Atlas's MCP tool, one that errors, a patch that adds, updates and deletes, then the answer",
     model: "gpt-5.5",
     prep: (ws) => {
       fs.writeFileSync(path.join(ws, "readme.txt"), "old words\n");
@@ -106,7 +106,7 @@ async function capture(name, scenario) {
     const o = buildCodexOptions({ providerId: "local", model: scenario.model }, {
       env: { PATH: process.env.PATH, SystemRoot: process.env.SystemRoot, TEMP: process.env.TEMP, TMP: process.env.TMP, HOME: process.env.HOME },
       stateDir: tmp, workspace: ws, mcp: { url: mcp.url, token: MCP_TOKEN }, key: KEY, localUrl: scenario.localUrl || fake.url,
-      developerInstructions: "You are Tarsee (capture run).", contextTokens: 128_000,
+      developerInstructions: "You are Atlas (capture run).", contextTokens: 128_000,
     });
     fs.mkdirSync(o.home, { recursive: true });
     const codex = new Codex({ env: o.env, config: o.config });

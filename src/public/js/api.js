@@ -1,5 +1,5 @@
 /**
- * Tarsee API Client.
+ * Atlas API Client.
  * Handles all communication with the server, including CSRF tokens and auth.
  */
 const API = {

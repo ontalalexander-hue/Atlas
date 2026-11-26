@@ -62,8 +62,8 @@ describe("email channel: what reaches the SMTP server (nodemailer 10)", () => {
   const cfg = normalizeConfig({
     imap: { host: "imap.test", user: "agent@example.com" },
     smtp: { host: "127.0.0.1", port: 0, user: "agent@example.com", password: "s3cret" },
-    fromName: "Tarsee",
-    signature: "<p>Sent by <b>Tarsee</b></p>",
+    fromName: "Atlas",
+    signature: "<p>Sent by <b>Atlas</b></p>",
   });
   const sender = { cfg, selfAddress: "agent@example.com" };
 
@@ -100,7 +100,7 @@ describe("email channel: what reaches the SMTP server (nodemailer 10)", () => {
     assert.equal(header(got.data, "Subject"), "Re: Invoice for October");
     assert.equal(header(got.data, "In-Reply-To"), "<orig-2@example.com>");
     assert.equal(header(got.data, "References"), "<orig-1@example.com> <orig-2@example.com>");
-    assert.match(header(got.data, "From"), /"?Tarsee"? <agent@example\.com>/);
+    assert.match(header(got.data, "From"), /"?Atlas"? <agent@example\.com>/);
     assert.match(got.data, /Content-Type: multipart\/alternative/i, "an HTML signature makes a text and an HTML part");
     assert.match(got.data, /Paid, thanks\./);
   });
@@ -129,7 +129,7 @@ describe("email channel: what reaches the SMTP server (nodemailer 10)", () => {
     await transport.sendMail(buildDirectMail("a@example.com, b@example.com", "Ping", sender));
     const got = smtp.mails.at(-1);
     assert.deepEqual(got.rcpt.map((r) => r.match(/<(.+)>/)[1]), ["a@example.com", "b@example.com"]);
-    assert.equal(header(got.data, "Subject"), "Tarsee");
+    assert.equal(header(got.data, "Subject"), "Atlas");
     assert.throws(() => buildDirectMail(" , ", "x", sender), /needs a target address/);
   });
 

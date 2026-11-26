@@ -1,4 +1,4 @@
-/* Tarsee's own questions (js/dialogs.js): a yes or no, or a line of text, in place of the browser's confirm() and
+/* Atlas's own questions (js/dialogs.js): a yes or no, or a line of text, in place of the browser's confirm() and
    prompt(). A modal <dialog> over the whole page (the top layer), the page dimmed under it; a press on the dim,
    outside the panel, answers no. The panel is the dashboard's own modal (style.css, "Delete Modal": .delete-modal,
    its text, its text box and its Cancel and red buttons; .btn-primary for a yes that deletes nothing).

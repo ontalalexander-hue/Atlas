@@ -1,4 +1,4 @@
-// tarsee_railway (src/lib/railway-admin.js): Railway projects, variable names, set_variable and redeploy, done by Tarsee
+// tarsee_railway (src/lib/railway-admin.js): Railway projects, variable names, set_variable and redeploy, done by Atlas
 // with a token it reads from the vault, so a secret never goes through a command or the model's context. Railway is
 // never reached: fetch is a stand-in that answers like Railway's GraphQL API, and the vault is a stand-in or a
 // temporary one.
@@ -34,7 +34,7 @@ const E_PROD = id(11), E_STAGE = id(12), E_OLD = id(13);
 const S_WATCH = id(21), S_WEB = id(22), S_W1 = id(23), S_W2 = id(24);
 const D_LAST = id(31), D_NEW = id(32);
 const E_TARSEE = id(43), S_TARSEE = id(44), D_TARSEE = id(45);
-/** Where Tarsee runs, as Railway tells a service. */
+/** Where Atlas runs, as Railway tells a service. */
 const ON_RAILWAY = { RAILWAY_PROJECT_ID: P_TARSEE, RAILWAY_ENVIRONMENT_ID: E_TARSEE, RAILWAY_SERVICE_ID: S_TARSEE };
 
 /** What the token can see, with its variables and deployments. */
@@ -46,7 +46,7 @@ function railwayData() {
         { id: P_TWIN1, name: "Twin", deletedAt: null, environments: [{ id: id(41), name: "production" }], services: [] },
         { id: P_TWIN2, name: "twin", deletedAt: null, environments: [{ id: id(42), name: "production" }], services: [] },
         { id: P_GONE, name: "Old Thing", deletedAt: "2026-09-01T00:00:00Z", environments: [], services: [] },
-        { id: P_TARSEE, name: "Tarsee", deletedAt: null, environments: [{ id: E_TARSEE, name: "production" }], services: [{ id: S_TARSEE, name: "tarsee" }] },
+        { id: P_TARSEE, name: "Atlas", deletedAt: null, environments: [{ id: E_TARSEE, name: "production" }], services: [{ id: S_TARSEE, name: "tarsee" }] },
       ],
       variables: {
         [E_PROD]: [
@@ -145,9 +145,9 @@ describe("list_projects", () => {
     const { out, lines, rw } = await run({ action: "list_projects" });
     assert.match(out, /^Railway projects in the owner's Railway account \(4\):/, out);
     assert.match(out, new RegExp(`- Acme \\(id ${P_ACME}\\)`));
-    assert.match(out, new RegExp(`- Tarsee \\(id ${P_TARSEE}\\)\\n`));
+    assert.match(out, new RegExp(`- Atlas \\(id ${P_TARSEE}\\)\\n`));
     assert.ok(!out.includes("Old Thing"), "a deleted project is not listed");
-    assert.ok(!out.includes("Tarsee runs here"), "off Railway nothing is marked");
+    assert.ok(!out.includes("Atlas runs here"), "off Railway nothing is marked");
     assert.equal(rw.calls.length, 1);
     assert.equal(rw.calls[0].url, API_URL);
     assert.equal(rw.calls[0].method, "POST");
@@ -197,45 +197,45 @@ describe("the token: the vault's RAILWAY_API_TOKEN, else the environment's", () 
   });
 });
 
-describe("on Railway: Tarsee's own project, environment and service by default", () => {
+describe("on Railway: Atlas's own project, environment and service by default", () => {
   it("reads where it runs from Railway's variables, ids only", () => {
     assert.deepEqual(hereOf(ON_RAILWAY), { projectId: P_TARSEE, environmentId: E_TARSEE, serviceId: S_TARSEE });
     assert.deepEqual(hereOf({ RAILWAY_PROJECT_ID: "not-an-id" }), { projectId: null, environmentId: null, serviceId: null });
     assert.deepEqual(hereOf({}), { projectId: null, environmentId: null, serviceId: null });
   });
 
-  it("list_projects marks Tarsee's own project, environment and service", async () => {
+  it("list_projects marks Atlas's own project, environment and service", async () => {
     const all = await run({ action: "list_projects" }, { env: ON_RAILWAY });
-    assert.match(all.out, new RegExp(`- Tarsee \\(id ${P_TARSEE}\\) \\(Tarsee runs here\\)`));
-    const one = await run({ action: "list_projects", project: "tarsee" }, { env: ON_RAILWAY });
-    assert.match(one.out, /- production \(id [^)]+\) \(Tarsee runs here\)/);
-    assert.match(one.out, /- tarsee \(id [^)]+\) \(Tarsee itself\)/);
+    assert.match(all.out, new RegExp(`- Atlas \\(id ${P_TARSEE}\\) \\(Atlas runs here\\)`));
+    const one = await run({ action: "list_projects", project: "atlas" }, { env: ON_RAILWAY });
+    assert.match(one.out, /- production \(id [^)]+\) \(Atlas runs here\)/);
+    assert.match(one.out, /- tarsee \(id [^)]+\) \(Atlas itself\)/);
   });
 
-  it("with no project, list_variables is about Tarsee's own service (an id goes straight to it)", async () => {
+  it("with no project, list_variables is about Atlas's own service (an id goes straight to it)", async () => {
     const { out, rw } = await run({ action: "list_variables" }, { env: ON_RAILWAY });
-    assert.match(out, new RegExp(`^Variables on tarsee \\(service id ${S_TARSEE}\\) in production \\(environment id ${E_TARSEE}\\), project "Tarsee"`));
+    assert.match(out, new RegExp(`^Variables on tarsee \\(service id ${S_TARSEE}\\) in production \\(environment id ${E_TARSEE}\\), project "Atlas"`));
     assert.match(out, /- SETUP_PASSWORD\n/);
     assert.ok(!out.includes("1234"));
     assert.deepEqual(rw.calls.map((c) => c.op), ["TarseeProject", "TarseeVariableNames"]);
   });
 
-  it("another project named is not given Tarsee's environment or service", async () => {
+  it("another project named is not given Atlas's environment or service", async () => {
     const { out } = await run({ action: "list_variables", project: "Acme" }, { env: ON_RAILWAY });
     assert.match(out, /service is required: the service's name or id in the project "Acme"/);
   });
 
-  it("redeploying Tarsee itself, or setting a variable on it with a deploy, says it restarts Tarsee and ends the turn", async () => {
+  it("redeploying Atlas itself, or setting a variable on it with a deploy, says it restarts Atlas and ends the turn", async () => {
     const re = await run({ action: "redeploy", approved_by: GO }, { env: ON_RAILWAY });
     assert.match(re.out, new RegExp(`^Asked Railway to redeploy tarsee \\(service id ${S_TARSEE}\\)`));
     assert.deepEqual(re.rw.calls.at(-1).body.variables, { id: D_TARSEE });
-    assert.match(re.out, /This is Tarsee's own service: the deploy restarts Tarsee, which ends the turn that asked for it\./);
+    assert.match(re.out, /This is Atlas's own service: the deploy restarts Atlas, which ends the turn that asked for it\./);
     const set = await run({ action: "set_variable", name: "LOG_LEVEL", value: "debug", approved_by: GO }, { env: ON_RAILWAY });
-    assert.match(set.out, /restarts Tarsee/);
+    assert.match(set.out, /restarts Atlas/);
     const quiet = await run({ action: "set_variable", name: "LOG_LEVEL", value: "debug", deploy: false, approved_by: GO }, { env: ON_RAILWAY });
-    assert.ok(!/restarts Tarsee/.test(quiet.out), "no deploy, no restart");
+    assert.ok(!/restarts Atlas/.test(quiet.out), "no deploy, no restart");
     const other = await run({ action: "redeploy", project: "Acme", service: "watchdog", approved_by: GO }, { env: ON_RAILWAY });
-    assert.ok(!/restarts Tarsee/.test(other.out), "another service is not Tarsee");
+    assert.ok(!/restarts Atlas/.test(other.out), "another service is not Atlas");
   });
 });
 
@@ -243,7 +243,7 @@ describe("names to ids: project, environment and service", () => {
   it("a project name that matches nothing lists the projects and the near ones, and nothing is changed", async () => {
     const { out, rw } = await run({ action: "set_variable", project: "acme-prod", service: "watchdog", name: "X_FLAG", value: "on", approved_by: GO });
     assert.match(out, /There is no project "acme-prod" in the owner's Railway account\. Did you mean "Acme" \(id 0+-0000-4000-8000-0+1\)\?/);
-    assert.match(out, /The projects there: .*Tarsee \(id /);
+    assert.match(out, /The projects there: .*Atlas \(id /);
     assert.match(out, /Nothing was changed\.$/);
     assert.equal(rw.writes().length, 0);
   });
@@ -552,7 +552,7 @@ describe("wording", () => {
     assert.match(tools, /## Railway \(projects, variables, redeploys\)\n- List projects, services and variable names, set a variable or redeploy with tarsee_railway\./);
     assert.match(tools, /pass set_variable from_key \(the vault key name\)/);
     assert.match(tools, /approved_by/);
-    assert.match(tools, /Redeploying Tarsee's own service restarts it/);
+    assert.match(tools, /Redeploying Atlas's own service restarts it/);
     const section = tools.slice(tools.indexOf("## Railway"));
     assert.ok(!section.includes("\u2014"));
   });
@@ -617,7 +617,7 @@ describe("the real vault (here a temporary one) and tools.js", () => {
       assert.match(tool.description, /never put a Railway token or a secret value in a command/);
       assert.match(tool.description, /value is for plain, non-secret text only/);
       assert.match(tool.description, /needs the owner's go/);
-      assert.match(tool.description, /TARSEE'S OWN SERVICE: .*restarts Tarsee and ends the turn doing it/);
+      assert.match(tool.description, /TARSEE'S OWN SERVICE: .*restarts Atlas and ends the turn doing it/);
       assert.match(tool.description, /NOTHING HERE DELETES/);
       assert.match(tool.inputSchema.properties.value.description, /NON-SECRET/);
       const res = await mcp.callTool({ name: "tarsee_railway", arguments: { action: "list_projects", project: "Acme" } });

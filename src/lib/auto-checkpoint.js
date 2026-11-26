@@ -102,7 +102,7 @@ export function composeMechanicalCheckpoint(db, settings) {
   const now = new Date();
   const lines = [];
 
-  lines.push("# Tarsee Session Checkpoint (auto)");
+  lines.push("# Atlas Session Checkpoint (auto)");
   lines.push(`*Written: ${now.toISOString()}*`);
   lines.push("*Source: auto-checkpoint (mechanical). Manual `/checkpoint` produces a richer, AI-synthesized handoff.*");
   lines.push("");
@@ -245,7 +245,7 @@ export function snapshotForContextOverflow(db, settings, reason) {
   const body = composeMechanicalCheckpoint(db, settings);
   if (!body) return null;
   const header = [
-    "# Tarsee Context-Overflow Snapshot",
+    "# Atlas Context-Overflow Snapshot",
     `*Auto-saved: ${new Date().toISOString()}*`,
     `*Trigger: ${reason}*`,
     "*This was an emergency snapshot — the user's last message may have been truncated by the model. Re-read the most recent conversation in the dump below before proceeding, and confirm with the user where they were.*",

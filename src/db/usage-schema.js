@@ -7,7 +7,7 @@
  *                   (input, cache read, cache write, output) and its timing
  *   usage_prompts   the prompts typed into each session, used to work out which
  *                   conversation a session belongs to when nothing else says
- *   usage_sessions  Claude Code session id -> Tarsee conversation id
+ *   usage_sessions  Claude Code session id -> Atlas conversation id
  *   usage_turns     each turn of the agent (from the live timeline) with the sums
  *                   of the calls placed in it
  *   usage_meta      small bookkeeping values (the last timeline event read, ...)

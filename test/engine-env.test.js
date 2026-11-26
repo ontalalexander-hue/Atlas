@@ -1,6 +1,6 @@
 // Credential isolation for the agent engines (src/ai/engine-env.js, design 4.5 R1 to R10): each provider's turn gets
 // exactly its own credential and nothing else. The server's environment here is full of canaries (every credential,
-// Claude sign-in variable, Tarsee secret and Railway provider key a host might have set), and the vault offers a
+// Claude sign-in variable, Atlas secret and Railway provider key a host might have set), and the vault offers a
 // CODEX_API_KEY next to a benign SCRIPT_KEY. No canary may reach any engine, except the operator's Claude sign-in
 // variables on the Claude plan. Also: the test-only base-URL seam is inert outside NODE_ENV=test and off loopback, a
 // missing key refuses the turn, the per-provider homes, the settings-file guards for both engines, and that the
@@ -154,7 +154,7 @@ describe("engine-env canary matrix: exactly the provider's own credential, on ev
       ANTHROPIC_DEFAULT_FABLE_MODEL: "~anthropic/claude-opus-latest", ANTHROPIC_SMALL_FAST_MODEL: "~anthropic/claude-haiku-latest",
       CLAUDE_CODE_SUBAGENT_MODEL: "~anthropic/claude-sonnet-latest", ...GATEWAY_FLAGS,
       CLAUDE_CODE_MAX_CONTEXT_TOKENS: "200000", CLAUDE_CODE_AUTO_COMPACT_WINDOW: "200000",
-      ANTHROPIC_CUSTOM_HEADERS: "X-OpenRouter-Title: Tarsee",
+      ANTHROPIC_CUSTOM_HEADERS: "X-OpenRouter-Title: Atlas",
     }));
   });
 
@@ -219,7 +219,7 @@ describe("engine-env canary matrix: exactly the provider's own credential, on ev
     }
   });
 
-  it("on every path: the Tarsee secrets and the Railway provider keys never pass", () => {
+  it("on every path: the Atlas secrets and the Railway provider keys never pass", () => {
     for (const [id, engine] of PATHS) {
       const env = build(id, engine);
       for (const name of TARSEE_SECRETS) assert.ok(!(name in env), `${id}/${engine}: ${name}`);
@@ -335,7 +335,7 @@ describe("hostFor: where a provider's turn goes, always a code constant (R3)", (
     assert.equal(hostFor(P.openai, "codex", { env: {} }), "https://api.openai.com/v1", "OpenAI's host is named, not left to Codex's default");
   });
 
-  it("the sign-in plans have no host of Tarsee's: the engine's own sign-in host, and no key goes with it", () => {
+  it("the sign-in plans have no host of Atlas's: the engine's own sign-in host, and no key goes with it", () => {
     assert.equal(hostFor(P.claude, "claude-code", { env: {} }), null);
     assert.equal(hostFor(P.chatgpt, "codex", { env: {} }), null);
   });
@@ -486,7 +486,7 @@ describe("the test-only base-URL seam", () => {
   });
 });
 
-describe("R8: the vault never puts Codex settings or Tarsee's own secrets in the agent's environment", () => {
+describe("R8: the vault never puts Codex settings or Atlas's own secrets in the agent's environment", () => {
   const vault = {
     CODEX_API_KEY: "sk-test-canary-1", CODEX_HOME: "/evil", OPENAI_BASE_URL: "http://canary.invalid",
     ENCRYPTION_KEY: "sk-test-canary-2", SETUP_PASSWORD: "sk-test-canary-3", SCRIPT_KEY: "ok", OPENAI_API_KEY: "sk-test-script",
@@ -741,7 +741,7 @@ describe("Codex's config.toml guard (R5's counterpart for Codex)", () => {
 
   it("passes the seeded config and what Codex itself writes there (project trust, notices, model choice)", () => {
     const seeded = [
-      "\uFEFF# Seeded by Tarsee: no secrets here.",
+      "\uFEFF# Seeded by Atlas: no secrets here.",
       "cli_auth_credentials_store = \"file\"",
       "check_for_update_on_startup = false",
       "forced_login_method = \"api\"   # the key homes",

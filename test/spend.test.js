@@ -47,7 +47,7 @@ describe("pricing a turn's tokens", () => {
     const want = (200_000 * r.in + 50_000 * r.out + 4_000_000 * r.cacheRead + 100_000 * r.cacheWrite) / 1e6;
     assert.ok(want > 0);
     close(priceUsage("openai", "gpt-6-luna", usage, "2026-11-09T12:00:00Z"), want);
-    // The same counts under Tarsee's own names (lib/token-usage.js rows) price the same.
+    // The same counts under Atlas's own names (lib/token-usage.js rows) price the same.
     close(priceUsage("openai", "gpt-6-luna", { input: 200_000, output: 50_000, cacheRead: 4_000_000, cacheWrite: 100_000 }, "2026-11-09T12:00:00Z"), want);
   });
 

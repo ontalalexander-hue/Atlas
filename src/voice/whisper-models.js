@@ -12,7 +12,7 @@
  *               let faster-whisper download it (still used, and deletable)
  * faster-whisper is always handed the folder, never a model name, so it never downloads anything itself.
  *
- * This file imports nothing of Tarsee's but install-common.js: the Docker build runs it on its own,
+ * This file imports nothing of Atlas's but install-common.js: the Docker build runs it on its own,
  *   node whisper-models.js download base.en /opt/tarsee/whisper-models
  */
 
@@ -164,7 +164,7 @@ export async function downloadWhisperModel(name, root, { fetch: fetchImpl, onPro
 
 /**
  * Delete a model's downloaded copy and any copy in the old Hugging Face cache. A model that comes with the image is
- * left (it is part of Tarsee): { removed: [folders], kept: <image folder> | null }.
+ * left (it is part of Atlas): { removed: [folders], kept: <image folder> | null }.
  */
 export function deleteWhisperModel(name, dirs, catalog = WHISPER_MODELS) {
   const m = entryFor(name, catalog);

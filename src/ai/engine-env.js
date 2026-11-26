@@ -6,7 +6,7 @@
  * a third-party gateway, a stray ANTHROPIC_API_KEY moving plan turns onto metered billing, a Railway provider key
  * reaching the agent's shell. So every environment is built the same way (R2):
  *
- *   base  = the server's env minus every credential name, Tarsee's own secrets and the Railway provider keys
+ *   base  = the server's env minus every credential name, Atlas's own secrets and the Railway provider keys
  *   env   = base + the vault's keys (so scripts read them by name) + the cost savers (Claude Code only)
  *   env   = env minus every credential name again (a vault entry can't re-add one)
  *   env   = env + this provider's credential block, and nothing else
@@ -53,7 +53,7 @@ export const PLAN_SIGN_IN_NAMES = Object.freeze([
   "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_OAUTH_REFRESH_TOKEN", "CLAUDE_CODE_OAUTH_SCOPES", "CLAUDE_CODE_OAUTH_CLIENT_ID",
 ]);
 
-/** Tarsee's own secrets: never in any engine's environment. */
+/** Atlas's own secrets: never in any engine's environment. */
 export const TARSEE_SECRETS = Object.freeze(["ENCRYPTION_KEY", "SETUP_PASSWORD", "TARSEE_API_TOKEN"]);
 
 /**
@@ -69,7 +69,7 @@ export const CODEX = "codex";
  * A turn that must not start, and why. code is one of:
  *   needs-key             no key for a provider that needs one (R4)
  *   needs-setup           Local AI without a usable server address
- *   needs-mcp-token       a Codex turn started without its per-turn token for Tarsee's tools (a caller bug)
+ *   needs-mcp-token       a Codex turn started without its per-turn token for Atlas's tools (a caller bug)
  *   bad-key               a key that can't be sent as-is (a line break, or the entry's wrongSlot matched)
  *   bad-model             a gateway pin that names a Claude model (it would go to the wrong host)
  *   wrong-engine          a provider on an engine it doesn't run on, or with no host there
@@ -123,7 +123,7 @@ const HOMES = {
 /** Providers whose key is optional (Local AI's server may need none). */
 const KEY_OPTIONAL = new Set(["local"]);
 
-/** Sign-in providers: no key, and no host of Tarsee's (the engine signs in to its own). */
+/** Sign-in providers: no key, and no host of Atlas's (the engine signs in to its own). */
 const SIGN_IN_IDS = new Set(["claude", "chatgpt"]);
 
 function entryOf(provider) {
@@ -151,7 +151,7 @@ function cleanLayer(obj) {
 }
 
 /**
- * R2's first step: the server's env minus credentials, Tarsee's secrets, the Railway provider keys and any stripNames.
+ * R2's first step: the server's env minus credentials, Atlas's secrets, the Railway provider keys and any stripNames.
  * Also what agentVaultEnv() should compare against (its `env` option), so a vault key that shares a name with a
  * stripped Railway variable (OPENAI_API_KEY, say) still reaches scripts instead of being skipped as "already set".
  */
@@ -329,7 +329,7 @@ function contextEnv(context, merged) {
  *   contextTokens  the turn model's context (default from entry.models; pass contextTokensFor() for OpenRouter)
  *   appTitle, referer   OpenRouter's attribution headers
  *   home        the provider's CLAUDE_CONFIG_DIR (default homeFor(id, "claude-code", opts))
- *   stateDir    Tarsee's state folder (config.STATE_DIR), required for a key home unless `home` is given
+ *   stateDir    Atlas's state folder (config.STATE_DIR), required for a key home unless `home` is given
  *
  * Blocks:
  *   claude      the operator's Claude sign-in variables (PLAN_SIGN_IN_NAMES), only those set in the server's
@@ -393,7 +393,7 @@ export function claudeEnvFor(provider, opts = {}) {
     ...contextEnv(context, merged),
   };
   if (id === "openrouter") {
-    const headers = [`X-OpenRouter-Title: ${oneLine(opts.appTitle) || "Tarsee"}`];
+    const headers = [`X-OpenRouter-Title: ${oneLine(opts.appTitle) || "Atlas"}`];
     const referer = oneLine(opts.referer);
     if (referer) headers.push(`HTTP-Referer: ${referer}`);
     block.ANTHROPIC_CUSTOM_HEADERS = headers.join("\n");
@@ -407,7 +407,7 @@ export function claudeEnvFor(provider, opts = {}) {
  * The environment for a Codex turn on `provider` (its registry entry). No base URL ever goes in it (Codex hosts go in
  * its config, from hostFor(), and OPENAI_BASE_URL is stripped), and no key is ever placed in config or argv.
  *
- * opts: env, vaultEnv, key, mcpToken (required: the per-turn token for Tarsee's MCP endpoint), home, stateDir
+ * opts: env, vaultEnv, key, mcpToken (required: the per-turn token for Atlas's MCP endpoint), home, stateDir
  * (config.STATE_DIR, required unless `home` is given).
  *
  * Blocks (all get CODEX_HOME and TARSEE_MCP_TOKEN):
@@ -424,7 +424,7 @@ export function codexEnvFor(provider, opts = {}) {
   const id = assertRuns(entry, CODEX);
   const env = opts.env ?? process.env;
   const mcpToken = String(opts.mcpToken ?? "").trim();
-  if (!mcpToken || /[\r\n\0]/.test(mcpToken)) throw new CredentialError("needs-mcp-token", "This turn has no token for Tarsee's tools.", id);
+  if (!mcpToken || /[\r\n\0]/.test(mcpToken)) throw new CredentialError("needs-mcp-token", "This turn has no token for Atlas's tools.", id);
   const merged = finalizeEnv({ env, vaultEnv: opts.vaultEnv, stripNames: [entry.envKey] });
   const block = { CODEX_HOME: opts.home || homeFor(id, CODEX, opts), TARSEE_MCP_TOKEN: mcpToken };
   if (id === "openai") {
@@ -533,7 +533,7 @@ export function homeIsolationRefusal(home, { providerId, engine, exists = fs.exi
     return {
       code: "credential-isolation",
       file,
-      message: `${file} is a sign-in file in a folder meant only for an API key. Tarsee won't start this turn while it is there; delete it (or sign in from the Terminal without pointing at this folder).`,
+      message: `${file} is a sign-in file in a folder meant only for an API key. Atlas won't start this turn while it is there; delete it (or sign in from the Terminal without pointing at this folder).`,
     };
   }
   if (keyClaudeHome) {
@@ -543,7 +543,7 @@ export function homeIsolationRefusal(home, { providerId, engine, exists = fs.exi
       return {
         code: "credential-isolation",
         file: configFile,
-        message: `${configFile} holds an Anthropic Console key saved by /login (primaryApiKey), in a folder meant only for this provider's key. Tarsee won't start this turn while it is there; remove the primaryApiKey entry (or run /login from the Terminal without pointing at this folder).`,
+        message: `${configFile} holds an Anthropic Console key saved by /login (primaryApiKey), in a folder meant only for this provider's key. Atlas won't start this turn while it is there; remove the primaryApiKey entry (or run /login from the Terminal without pointing at this folder).`,
       };
     }
   }
@@ -601,14 +601,14 @@ export function settingsFileGuard(paths, { readFile = (p) => fs.readFileSync(p, 
   return {
     ok: false,
     files,
-    message: `A Claude Code settings file would change which account this AI uses, so Tarsee won't start the turn. Remove these entries: ${lines.join("; ")}`,
+    message: `A Claude Code settings file would change which account this AI uses, so Atlas won't start the turn. Remove these entries: ${lines.join("; ")}`,
   };
 }
 
 // --- Codex's config.toml (R5's counterpart for Codex) --------------------------------------------------------------
 
 /**
- * The root entries a Codex config.toml may have: what Tarsee seeds (cli_auth_credentials_store,
+ * The root entries a Codex config.toml may have: what Atlas seeds (cli_auth_credentials_store,
  * check_for_update_on_startup, forced_login_method) and what Codex itself writes there when used from the Terminal
  * (project trust, notices, the model and effort chosen, the TUI's settings, the Windows sandbox choice the TUI asks for
  * on first run, feature switches from /experimental, the /personality choice). Codex 0.167's turns (`codex exec`)
@@ -629,7 +629,7 @@ const CODEX_ALLOWED = new Set(CODEX_CONFIG_ALLOWED);
 
 /**
  * The Codex files a turn would load: the home's config.toml and .env, then the workspace's project config. Those are
- * the only ones: every Codex run Tarsee starts switches the project root search off (project_root_markers=[], in
+ * the only ones: every Codex run Atlas starts switches the project root search off (project_root_markers=[], in
  * providers/codex-options.js and codex-cli.js CODEX_BASE_ARGS), so no .codex/config.toml above the workspace loads,
  * and Codex reads a .env only from its home (checked against the pinned binary: one in the workspace or the process's
  * folder is not loaded).
@@ -790,10 +790,10 @@ export function codexConfigGuard(paths, { readFile = (p) => fs.readFileSync(p, "
   const parts = [];
   if (configs.length) {
     const lines = configs.map((f) => (f.unreadable ? `${f.file} (can't be read safely)` : `${f.file}: ${f.entries.join(", ")}`));
-    parts.push(`A Codex config file could change where this AI's key goes, so Tarsee won't start the turn. Remove these entries: ${lines.join("; ")}`);
+    parts.push(`A Codex config file could change where this AI's key goes, so Atlas won't start the turn. Remove these entries: ${lines.join("; ")}`);
   }
   for (const f of dotenvs) {
-    parts.push(`Codex loads ${f.file} into its own environment (a proxy, a certificate file or a token there would override the turn's), so Tarsee won't start it; set the file aside.`);
+    parts.push(`Codex loads ${f.file} into its own environment (a proxy, a certificate file or a token there would override the turn's), so Atlas won't start it; set the file aside.`);
   }
   return { ok: false, files, message: parts.join(" ") };
 }

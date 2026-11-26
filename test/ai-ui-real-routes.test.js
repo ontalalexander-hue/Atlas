@@ -58,7 +58,7 @@ try {
 }
 const skip = browser ? false : "no Chromium, Chrome or Edge for Playwright";
 
-// --- The world outside Tarsee -------------------------------------------------------------------------------------
+// --- The world outside Atlas -------------------------------------------------------------------------------------
 
 /** Every request the router made: where it went and with what Authorization. */
 const net = [];
@@ -124,7 +124,7 @@ async function logout() {
   return { ok: true };
 }
 
-// --- Tarsee: the real /api/ai, the dashboard's files, and a stand-in for the rest of /api -------------------------
+// --- Atlas: the real /api/ai, the dashboard's files, and a stand-in for the rest of /api -------------------------
 
 const db = initDb(path.join(tmp, "tarsee.db"));
 const store = new SettingsStore(db, new AuditLog(db));
@@ -161,7 +161,7 @@ function makeApp() {
   }));
   app.get("/api/auth/status", (_req, res) => res.json({ authenticated: true, needsPassword: true }));
   app.get("/api/auth/api-token", (_req, res) => res.json({ apiToken: null }));
-  app.get("/api/settings/setup-status", (_req, res) => res.json({ needsSetup: world.needsSetup, needsPersonality: false, botName: "Tarsee" }));
+  app.get("/api/settings/setup-status", (_req, res) => res.json({ needsSetup: world.needsSetup, needsPersonality: false, botName: "Atlas" }));
   // As routes/settings.js GET / does: every setting, a key shown as its last 4 characters.
   app.get("/api/settings", (_req, res) => res.json({
     settings: store.all().map((s) => (s.key.endsWith(".apiKey") && typeof s.value === "string" && s.value.length > 4 ? { ...s, value: "***" + s.value.slice(-4) } : s)),

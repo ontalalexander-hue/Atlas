@@ -1,13 +1,13 @@
 /**
- * codex-events.js: what the Codex SDK streams, as Tarsee's events (design 4.8 "Event mapping"). Pure: no I/O.
+ * codex-events.js: what the Codex SDK streams, as Atlas's events (design 4.8 "Event mapping"). Pure: no I/O.
  *
  * `codex exec --experimental-json` reports a turn as items (a command, a call to an MCP tool, a patch, a to-do list, a
  * web search, a reasoning summary, a message) that start, update and complete, then turn.completed with the usage or
- * turn.failed. Tarsee's channels, live view, tool status lines and loop guard all speak Claude Code's vocabulary, so
+ * turn.failed. Atlas's channels, live view, tool status lines and loop guard all speak Claude Code's vocabulary, so
  * the items become the same events Claude Code's turns give, with Claude Code's tool names:
  *
  *   command_execution   Bash {command}             (the shell's own "bash -lc" / PowerShell wrapper taken off)
- *   mcp_tool_call       mcp__<server>__<tool>      (Tarsee's tools: mcp__tarsee__tarsee_<name>), input = arguments
+ *   mcp_tool_call       mcp__<server>__<tool>      (Atlas's tools: mcp__tarsee__tarsee_<name>), input = arguments
  *   file_change         Write {file_path} for an added file, Edit {file_path} for an update or a delete
  *                       ({change: "delete"}), one per file in the patch
  *   todo_list           TodoWrite {todos}, each time the list changes
@@ -103,7 +103,7 @@ export function usageDelta(now, baseline) {
   return out;
 }
 
-/** Codex's usage as Tarsee's (Anthropic's shape): its input_tokens includes the cached and cache-written parts. */
+/** Codex's usage as Atlas's (Anthropic's shape): its input_tokens includes the cached and cache-written parts. */
 function tarseeUsage(d) {
   return {
     input_tokens: Math.max(0, d.input_tokens - d.cached_input_tokens - d.cache_write_input_tokens),
@@ -222,7 +222,7 @@ export function classifyCodexFailure(providerId, rawMessage, { model = null, loc
   const id = normalizeProviderId(providerId) || String(providerId || "");
   const message = cleanCodexError(rawMessage);
   if (MISSING_BINARY_RE.test(message)) {
-    return { kind: "unknown", recoverable: false, message: "**Codex isn't installed where Tarsee can run it** (the @openai/codex package or its program for this system is missing). Reinstall Tarsee's dependencies, then try again." };
+    return { kind: "unknown", recoverable: false, message: "**Codex isn't installed where Atlas can run it** (the @openai/codex package or its program for this system is missing). Reinstall Atlas's dependencies, then try again." };
   }
   if (RESUME_FAILED_RE.test(message)) return { kind: "session", recoverable: true, message: friendly(id, "session") };
   if (/subscription_sharing_usage_unavailable/i.test(message)) {
@@ -293,7 +293,7 @@ function closeOpen(state, why) {
 
 // --- Mapping -------------------------------------------------------------------------------------------------------
 
-/** Tarsee's events for one Codex SDK event. */
+/** Atlas's events for one Codex SDK event. */
 export function mapCodexEvent(ev, state) {
   if (!ev || typeof ev !== "object" || state.done) return [];
   switch (ev.type) {

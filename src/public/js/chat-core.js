@@ -202,10 +202,10 @@
     return /^[\w:.-]{1,120}$/.test(id) ? { kind: "chat", id } : { kind: "other" };
   }
 
-  /** The tab's title: "<chat> · Tarsee", or the bot's name alone. */
-  function pageTitle(name, botName = "Tarsee") {
+  /** The tab's title: "<chat> · Atlas", or the bot's name alone. */
+  function pageTitle(name, botName = "Atlas") {
     const n = String(name || "").trim();
-    const b = String(botName || "Tarsee").trim() || "Tarsee";
+    const b = String(botName || "Atlas").trim() || "Atlas";
     return n && n !== b ? `${n} · ${b}` : b;
   }
 
@@ -272,7 +272,7 @@
   function stepLabel(step, { running = false } = {}) {
     const raw = String(step?.name || "tool");
     const name = raw.replace(/^mcp__[^_]+(?:_[^_]+)*?__/, "");
-    const key = name.toLowerCase().replace(/^tarsee_/, "");   // (Tarsee's own tools: mcp__tarsee__tarsee_send_file)
+    const key = name.toLowerCase().replace(/^tarsee_/, "");   // (Atlas's own tools: mcp__tarsee__tarsee_send_file)
     const s = summaryOf(step?.summary);
     const say = (now, past, rest = "") => clip(rest ? `${running ? now : past} ${rest}` : (running ? now : past));
     switch (key) {
@@ -338,7 +338,7 @@
       case "failed":
         return { title: "Failed", detail: clip(t.error || "Something went wrong", 160), tone: "danger" };
       case "interrupted":
-        return { title: "Interrupted", detail: "Tarsee restarted during this turn", tone: "danger" };
+        return { title: "Interrupted", detail: "Atlas restarted during this turn", tone: "danger" };
       default:
         if (!n) return { title: "", detail: "", tone: "muted" };
         return { title: `Used ${plural(n, "tool")}`, detail: [dur, failed ? `${failed} failed` : ""].filter(Boolean).join(" · "), tone: failed ? "warn" : "muted" };

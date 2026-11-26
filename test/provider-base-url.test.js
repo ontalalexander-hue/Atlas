@@ -65,7 +65,7 @@ describe("boot fixup: old per-provider base URLs", () => {
       putRaw(`ai.${id}.baseUrl`, "http://canary.invalid");
     }
     putRaw("ai.local.baseUrl", "http://192.168.1.20:11434/v1");
-    putRaw("ai.openrouter.appTitle", "Tarsee");
+    putRaw("ai.openrouter.appTitle", "Atlas");
     putRaw("channel.whatsapp", JSON.stringify({ baseUrl: "https://gate.whapi.cloud" }));
     putRaw("ai.openrouter.baseUrlNote", "kept");
     const first = quiet(() => store.removeProviderBaseUrls());
@@ -74,7 +74,7 @@ describe("boot fixup: old per-provider base URLs", () => {
       assert.equal(raw(`ai.${id}.baseUrl`), null, id);
     }
     assert.equal(raw("ai.local.baseUrl"), "http://192.168.1.20:11434/v1");
-    assert.equal(raw("ai.openrouter.appTitle"), "Tarsee");
+    assert.equal(raw("ai.openrouter.appTitle"), "Atlas");
     assert.equal(raw("ai.openrouter.baseUrlNote"), "kept");
     assert.ok(raw("channel.whatsapp"));
     assert.deepEqual(quiet(() => store.removeProviderBaseUrls()), { removed: 0 });

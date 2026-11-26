@@ -336,7 +336,7 @@ describe("pdf_read from a web address", () => {
 });
 
 describe("tarsee_pdf_read (MCP)", () => {
-  /** Connect an MCP client to the Tarsee server, call a tool and return its text; or list the tools. */
+  /** Connect an MCP client to the Atlas server, call a tool and return its text; or list the tools. */
   async function withClient(fn) {
     const server = createTarseeMcp(ctx);
     const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();

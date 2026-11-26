@@ -1,4 +1,4 @@
-// The Local AI bridge (src/ai/local-bridge.js): Codex 0.167 sends Tarsee's tools as one {type: "namespace"} tool,
+// The Local AI bridge (src/ai/local-bridge.js): Codex 0.167 sends Atlas's tools as one {type: "namespace"} tool,
 // which LM Studio, Ollama before 0.34 and llama-server drop, and finds the tool to run by the reply's {namespace, name}.
 // The bridge flattens the tools on the way to the owner's server and puts the namespace back on the way out, cleans up
 // what strict servers refuse, and keeps the owner's key out of the Codex process. Every key and token here is a fake.
@@ -10,8 +10,8 @@ import {
 } from "../src/ai/local-bridge.js";
 
 const fn = (name, extra = {}) => ({ type: "function", name, description: `${name} does a thing`, strict: false, parameters: { type: "object", properties: {} }, ...extra });
-/** Tarsee's tools as Codex 0.167 sends them (namespace "mcp__tarsee", captured from the pinned binary). */
-const TARSEE_NS = { type: "namespace", name: "mcp__tarsee", description: "Tarsee's tools", tools: [fn("tarsee_calculator"), fn("tarsee_datetime")] };
+/** Atlas's tools as Codex 0.167 sends them (namespace "mcp__tarsee", captured from the pinned binary). */
+const TARSEE_NS = { type: "namespace", name: "mcp__tarsee", description: "Atlas's tools", tools: [fn("tarsee_calculator"), fn("tarsee_datetime")] };
 
 describe("flat names: one fixed rule, at most 64 characters, no clashes", () => {
   it("joins the namespace and the name with __ (none added when the namespace already ends in __)", () => {
@@ -101,13 +101,13 @@ describe("requests: what any Local AI server takes", () => {
   });
 
   it("the developer messages at the start become one (with the instructions); a later one becomes a user message", () => {
-    // Codex 0.167 sends two developer messages first (its instructions, then Tarsee's), and no instructions field;
+    // Codex 0.167 sends two developer messages first (its instructions, then Atlas's), and no instructions field;
     // strict chat templates (the Qwen3.5 family's) refuse a system message that isn't first.
     const { body } = rewriteRequest({
       instructions: "Base instructions.",
       input: [
         { type: "message", role: "developer", content: [{ type: "input_text", text: "Permissions." }] },
-        { type: "message", role: "developer", content: [{ type: "input_text", text: "You are Tarsee." }, { type: "input_text", text: "Tools: calculator." }] },
+        { type: "message", role: "developer", content: [{ type: "input_text", text: "You are Atlas." }, { type: "input_text", text: "Tools: calculator." }] },
         { type: "message", role: "user", content: [{ type: "input_text", text: "hello" }] },
         { type: "message", role: "developer", content: [{ type: "input_text", text: "The model changed." }] },
         { role: "system", content: "A late system note." },
@@ -116,7 +116,7 @@ describe("requests: what any Local AI server takes", () => {
     assert.equal(body.instructions, undefined, "folded into the one message at the start");
     assert.deepEqual(body.input.map((i) => i.role), ["developer", "user", "user", "user"]);
     assert.equal(body.input[0].content.length, 1);
-    assert.equal(body.input[0].content[0].text, "Base instructions.\n\nPermissions.\n\nYou are Tarsee.\n\nTools: calculator.");
+    assert.equal(body.input[0].content[0].text, "Base instructions.\n\nPermissions.\n\nYou are Atlas.\n\nTools: calculator.");
     assert.equal(body.input[2].content[0].text, "The model changed.");
     assert.equal(body.input[3].content, "A late system note.");
     // One developer message and no instructions: as it was.

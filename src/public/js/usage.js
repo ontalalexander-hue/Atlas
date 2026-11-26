@@ -7,7 +7,7 @@
  * plan covers); speed and the cache's share; each day or hour in a small chart;
  * tokens and spend by AI provider, model, channel and chat; the heaviest jobs;
  * and every job, each opening to its numbers and its turns, to be renamed,
- * merged with the job before it or split again (in Tarsee's own dialogs,
+ * merged with the job before it or split again (in Atlas's own dialogs,
  * js/dialogs.js). Once more than one AI did work, a filter shows one at a time.
  *
  * In a chat: a quiet line under each reply ("12.4k tokens · 38 tk/s · 41s",
@@ -50,7 +50,7 @@ const Usage = {
 
   /** The agent's name, as the rest of the dashboard calls it. */
   _bot() {
-    return (typeof Chat !== "undefined" && Chat.botName) || "Tarsee";
+    return (typeof Chat !== "undefined" && Chat.botName) || "Atlas";
   },
 
   // ------------------------------------------------------------------ opening and closing

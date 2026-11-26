@@ -1,5 +1,5 @@
 /**
- * Canvas/A2UI server for Tarsee.
+ * Canvas/A2UI server for Atlas.
  * Serves AI-generated HTML/CSS/JS UIs from a canvas directory.
  */
 import fs from "node:fs";
@@ -82,7 +82,7 @@ function escapeHtml(s) {
  *
  * Canvas HTML is written by the model, and the model reads untrusted input:
  * inbound email, WhatsApp messages, fetched web pages. A prompt injection that
- * reaches create_canvas used to get script execution on Tarsee's own origin —
+ * reaches create_canvas used to get script execution on Atlas's own origin —
  * the page could call /api/auth/api-token, read the vault through /api/files,
  * and exfiltrate the Claude credentials, because the app-wide CSP allows
  * 'unsafe-inline' and the chat embedded it with allow-same-origin.
@@ -90,7 +90,7 @@ function escapeHtml(s) {
  * The CSP `sandbox` directive applies to top-level navigations as well as
  * frames, so it holds whether the canvas is opened directly or embedded. No
  * allow-same-origin: the page still renders and its own scripts still run, but
- * in a null origin with no access to Tarsee's cookies, storage, or same-origin
+ * in a null origin with no access to Atlas's cookies, storage, or same-origin
  * API surface.
  */
 function applyCanvasIsolation(res) {
@@ -101,7 +101,7 @@ function applyCanvasIsolation(res) {
     "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com",
     "img-src 'self' data: blob:",
     "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
-    // No 'self' here: a canvas has no business calling Tarsee's own API.
+    // No 'self' here: a canvas has no business calling Atlas's own API.
     "connect-src https://cdn.jsdelivr.net https://cdn.tailwindcss.com",
     "object-src 'none'",
     "base-uri 'none'",
@@ -124,7 +124,7 @@ export function canvasMiddleware(req, res, next) {
   if (!req.auth?.authenticated) {
     return res.status(401).type("html").send(
       "<!DOCTYPE html><html><body style=\"background:#1a1a1a;color:#ececec;font-family:sans-serif;padding:40px\">"
-      + "<h1>Sign in required</h1><p>Log in to Tarsee to view this canvas.</p></body></html>",
+      + "<h1>Sign in required</h1><p>Log in to Atlas to view this canvas.</p></body></html>",
     );
   }
 
@@ -143,7 +143,7 @@ export function canvasMiddleware(req, res, next) {
         .sort((a, b) => b.modified - a.modified);
 
       if (canvases.length === 0) {
-        return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#1a1a1a;color:#ececec;font-family:Poppins,sans-serif;padding:40px;text-align:center}h1{color:#c45a35}p{color:#a8a8a0}</style></head><body><h1>Canvas Gallery</h1><p>No canvases yet. Ask Tarsee to create one!</p></body></html>`);
+        return res.send(`<!DOCTYPE html><html><head><title>Canvas Gallery</title><style>body{background:#1a1a1a;color:#ececec;font-family:Poppins,sans-serif;padding:40px;text-align:center}h1{color:#c45a35}p{color:#a8a8a0}</style></head><body><h1>Canvas Gallery</h1><p>No canvases yet. Ask Atlas to create one!</p></body></html>`);
       }
 
       // Canvas names are directory names on disk and are model-controlled, so

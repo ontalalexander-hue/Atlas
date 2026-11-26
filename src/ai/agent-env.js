@@ -8,16 +8,16 @@
  * "always deny" in Settings > Tool Permissions, no key goes in either.
  *
  * Every key whose name is an environment variable name in capitals goes in, except:
- *   - names already set in Tarsee's own environment (those win)
+ *   - names already set in Atlas's own environment (those win)
  *   - Claude's settings and login (CLAUDE_*) and Anthropic API keys (ANTHROPIC_*), which would move the agent off
  *     the Claude subscription onto pay-per-use billing; Codex's (CODEX_*) and OPENAI_BASE_URL, which would change
  *     the Codex engine's login, home or host (ai/engine-env.js strips them again before every turn)
- *   - Tarsee's own secrets (ENCRYPTION_KEY, SETUP_PASSWORD)
- *   - names that change how programs run rather than what they can reach: Tarsee's own settings (TARSEE_*), Node
+ *   - Atlas's own secrets (ENCRYPTION_KEY, SETUP_PASSWORD)
+ *   - names that change how programs run rather than what they can reach: Atlas's own settings (TARSEE_*), Node
  *     and the loader (NODE_*, LD_*, DYLD_*), npm's, Python's start-up and paths, the shell's, and the proxies
  * A value over 32 KB, or one with a NUL in it, stays out too (tarsee_get_key still has it).
  * TARSEE_AGENT_ENV_KEYS: a comma-separated list of names to use instead of every key, or "off" for none.
- * Read from the vault at most once a minute for the default call (Tarsee's own environment); a call that passes its own
+ * Read from the vault at most once a minute for the default call (Atlas's own environment); a call that passes its own
  * `env` (engine-env's baseEnv(), say) compares against that one, so it is never answered from, or stored in, that cache.
  * Denying get_key applies at once either way.
  */

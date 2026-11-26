@@ -1,5 +1,5 @@
 // A stand-in for the pinned `codex` binary, for test/codex-device-login.test.js and test/codex-models.test.js. It is
-// started through a platform shim next to it (codex.cmd on Windows, codex on POSIX), the way Tarsee starts any
+// started through a platform shim next to it (codex.cmd on Windows, codex on POSIX), the way Atlas starts any
 // codex binary, so the tests exercise real child processes: spawning, ANSI on stdout, files in CODEX_HOME, killing
 // the whole process tree. What it prints copies the real binary's formats (codex-cli 0.167.0, captured into this
 // folder: device-auth.stdout.txt, model-list.bundled.json, refresh-failed.stderr.txt).

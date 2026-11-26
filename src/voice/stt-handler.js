@@ -11,7 +11,7 @@
  *                                isn't slowed by it -> { ok, model } or { ok: false, error }
  *
  * Local transcription runs one persistent worker (stt_worker.py) with the Python that has faster-whisper
- * (stt-install.js findSttRuntime: Tarsee's own install, or the Docker image's python3). The model loads once and
+ * (stt-install.js findSttRuntime: Atlas's own install, or the Docker image's python3). The model loads once and
  * stays loaded; after 10 idle minutes the worker stops to give its memory back. The worker is always handed a model
  * folder on disk, never a name, so transcribing never downloads anything. When the chosen model isn't on disk, the
  * closest one that is transcribes and the chosen one downloads in the background.
@@ -229,7 +229,7 @@ async function transcribeLocal(audioBuffer, settingsStore) {
     const mb = Math.round(modelBytes(model.missing) / 1e6);
     const started = downloadQuietly(model.missing);
     throw sttError(started
-      ? `No speech model is downloaded yet. Tarsee is downloading ${model.missing} (${mb} MB) now: try again in a minute.`
+      ? `No speech model is downloaded yet. Atlas is downloading ${model.missing} (${mb} MB) now: try again in a minute.`
       : "No speech model is downloaded yet. Download one in Settings > Voice > Speech-to-text.", 503, "stt-unavailable");
   }
   if (model.wanted && downloadQuietly(model.wanted)) {

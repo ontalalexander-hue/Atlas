@@ -135,7 +135,7 @@ export async function checkPhononInstall() {
  * opts.model, opts.voices  replace PHONON_MODEL / PHONON_VOICES (tests)
  * opts.retryDelayMs   pause before retrying a failed download (tests shorten it)
  * opts.ensureRuntime  async () => void, makes `import ptts` work (tests replace it)
- * opts.allowPythonDownload  with no usable Python here, download Tarsee's own (the owner clicked Install or Retry)
+ * opts.allowPythonDownload  with no usable Python here, download Atlas's own (the owner clicked Install or Retry)
  * opts.pin            replaces python-runtime.js STANDALONE_PYTHON (tests)
  * opts.smokeTest      async (paths) => string, a real synthesis (tests replace it)
  * opts.onProgress     (status) => void, on every chunk downloaded
@@ -179,7 +179,7 @@ async function runInstall(opts) {
       fetch: opts.fetch,
       pin: opts.pin,
       retryDelayMs,
-      // Tarsee's own Python, when it has to be downloaded first: counted in the progress too.
+      // Atlas's own Python, when it has to be downloaded first: counted in the progress too.
       onPythonProgress: ({ bytesDone, bytesTotal }) => {
         _status.file = `Python (${Math.round(bytesDone / 1e6)} of ${Math.round(bytesTotal / 1e6)} MB)`;
         _status.bytesTotal = APPROX_TOTAL_BYTES + bytesTotal;
@@ -316,7 +316,7 @@ async function run(python, args, { timeout = 120_000, env, lines = 3 } = {}) {
  * pinned ptts there (a prebuilt wheel; its only dependency is numpy).
  *
  * The venv is made from the same Python speech-to-text uses (python-runtime.js):
- * one found on this computer (on Windows, the py launcher), else Tarsee's own
+ * one found on this computer (on Windows, the py launcher), else Atlas's own
  * CPython, which is downloaded only when opts.allowPythonDownload (the owner
  * clicked Install or Retry; the background install on boot never downloads it).
  */
@@ -428,7 +428,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
       if (s.percent >= shown + 10) { shown = s.percent - (s.percent % 10); console.log(`[phonon] ${s.phase} ${s.percent}%`); }
     },
   }).then(() => {
-    console.log("[phonon] installed. A running Tarsee switches to it after a restart, or when Settings -> Voice is saved.");
+    console.log("[phonon] installed. A running Atlas switches to it after a restart, or when Settings -> Voice is saved.");
     process.exit(0);
   }, (err) => {
     console.error(`[phonon] install failed: ${err.message}`);

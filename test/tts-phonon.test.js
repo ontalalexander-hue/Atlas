@@ -567,7 +567,7 @@ describe("Phonon's Python runtime", () => {
     assert.equal((await checkPhononInstall()).state, "installed");
   });
 
-  it("no Python at all: the background install on boot fails in plain words; Install (a click) downloads Tarsee's own Python first", async () => {
+  it("no Python at all: the background install on boot fails in plain words; Install (a click) downloads Atlas's own Python first", async () => {
     py.set({ pythons: {}, pip: { mode: "ok", delayMs: 1 } });
     setPythonForTests({ spawn: py.spawn, candidates: [cand("python3")] });
     const hub = hubFiles();
@@ -591,7 +591,7 @@ describe("Phonon's Python runtime", () => {
     });
     const status = await installPhonon({ ...smoke, fetch: host.fetch, model: MODEL, voices: VOICES, allowPythonDownload: true, pin });
     assert.equal(status.state, "installed");
-    assert.ok(standaloneReady(pin), "Tarsee's own Python, shared with speech-to-text");
+    assert.ok(standaloneReady(pin), "Atlas's own Python, shared with speech-to-text");
     assert.equal(py.calls().find((c) => c.args?.includes("venv")).cmd, interpreterIn(standaloneDir(pin)));
   });
 });

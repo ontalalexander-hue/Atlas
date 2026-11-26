@@ -90,7 +90,7 @@ const AMBIGUOUS_EMOJI = [
 /**
  * The subset of that block with Emoji_Presentation=Yes — always wide, VS16 or
  * not. ✅ ❌ ⚡ ⭐ are extremely common in model status columns, so getting
- * these wrong misaligns the most-used table shape in Tarsee.
+ * these wrong misaligns the most-used table shape in Atlas.
  */
 const DEFAULT_EMOJI = [
   [0x231a, 0x231b], [0x23e9, 0x23ec], [0x23f0, 0x23f0], [0x23f3, 0x23f3],
@@ -344,7 +344,7 @@ export function stripInlineMd(s) {
     .replace(/\*([^*\n]+?)\*/g, "$1")               // *italic*
     // _italic_ only when the underscores are NOT inside a word — otherwise
     // this eats snake_case, and identifiers are exactly what shows up in
-    // Tarsee's tables (column names, env vars, file paths).
+    // Atlas's tables (column names, env vars, file paths).
     .replace(/(^|[^\w\\])_([^_\n]+?)_(?!\w)/g, "$1$2")
     .replace(/~~([\s\S]+?)~~/g, "$1")               // strikethrough
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")      // links -> text only; the
@@ -440,7 +440,7 @@ function fence(lines) {
 /**
  * Before/after column pairs get a "→" instead of the "·" separator.
  * WHY a special case at all: a before/after delta is THE most common shape in
- * Tarsee's own reports (workload rebalances, budget diffs) and "Before 37.2h →
+ * Atlas's own reports (workload rebalances, budget diffs) and "Before 37.2h →
  * After 6.4h" reads as a transition where "Before 37.2h · After 6.4h" reads as
  * two unrelated facts. Narrow, header-name-driven, and easy to delete.
  */

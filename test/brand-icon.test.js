@@ -1,4 +1,4 @@
-// Tarsee's icon (src/lib/brand-icon.js, the Settings routes for it, js/brand-icon.js): the PNG decoder on every colour
+// Atlas's icon (src/lib/brand-icon.js, the Settings routes for it, js/brand-icon.js): the PNG decoder on every colour
 // type, bit depth and row filter, the resizer, the ICO and the icon set, saving and resetting in a data folder of its
 // own, the middleware that serves an uploaded icon, the manifest with the version on every icon, the three routes,
 // and window.TarseeBrand on a stand-in page. Nothing here touches the network beyond 127.0.0.1.

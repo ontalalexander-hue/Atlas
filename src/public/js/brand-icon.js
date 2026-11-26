@@ -1,6 +1,6 @@
 /**
- * Tarsee's icon (Settings → Appearance, "Tarsee's icon"): upload a picture (PNG, JPG, WebP or SVG, 10 MB at most),
- * crop it square in our own modal, and Tarsee's favicon, tab icons and installed-app icons all become it.
+ * Atlas's icon (Settings → Appearance, "Atlas's icon"): upload a picture (PNG, JPG, WebP or SVG, 10 MB at most),
+ * crop it square in our own modal, and Atlas's favicon, tab icons and installed-app icons all become it.
  *
  * The page draws the crop at 1024 by 1024 and sends that PNG (the master) and the file itself (the original) to
  * POST /api/settings/brand-icon; the server (src/lib/brand-icon.js) makes every size from the master and serves them
@@ -157,7 +157,7 @@
     if (reset && !reset.getAttribute("aria-busy")) reset.disabled = !(status && status.custom);
     const box = $("brandIconStatus");
     if (status && box && !box.classList.contains("is-error")) {
-      say(status.custom ? `Using your own icon${status.updatedAt ? `, saved ${when(status.updatedAt)}` : ""}.` : "Using Tarsee's default icon.");
+      say(status.custom ? `Using your own icon${status.updatedAt ? `, saved ${when(status.updatedAt)}` : ""}.` : "Using Atlas's default icon.");
     }
   }
 
@@ -180,7 +180,7 @@
     const yes = window.TarseeDialog
       ? await TarseeDialog.ask({
         title: "Go back to the default icon?",
-        text: "Your uploaded icon is removed, and Tarsee's own icon comes back on the browser tab, the installed app and in chat.",
+        text: "Your uploaded icon is removed, and Atlas's own icon comes back on the browser tab, the installed app and in chat.",
         yes: "Reset",
         no: "Cancel",
         danger: true,
@@ -194,8 +194,8 @@
       const s = await API.json(STATUS_URL, { method: "DELETE" });
       if (reset) reset.removeAttribute("aria-busy");
       applyStatus(s);
-      say("Back to Tarsee's default icon.");
-      toast("Tarsee's default icon is back.");
+      say("Back to Atlas's default icon.");
+      toast("Atlas's default icon is back.");
     } catch (err) {
       if (reset) { reset.removeAttribute("aria-busy"); reset.disabled = false; }
       say(`The icon could not be reset: ${err.message || err}`, true);
@@ -334,7 +334,7 @@
     dlg.setAttribute("aria-labelledby", "biTitle");
     dlg.setAttribute("aria-describedby", "biHelp");
     const panel = el("div", "bi-panel");
-    const title = el("h2", "bi-title", "Crop Tarsee's icon");
+    const title = el("h2", "bi-title", "Crop Atlas's icon");
     title.id = "biTitle";
     const help = el("p", "bi-help", "Drag the square to move it, or its corners to make it bigger or smaller. With the keyboard: the arrow keys move it (hold Shift to go faster), and plus and minus resize it.");
     help.id = "biHelp";
@@ -564,8 +564,8 @@
         saving = false;
         close();
         applyStatus(s);
-        say(`Saved. Tarsee's icon is your picture now${s.updatedAt ? ` (${when(s.updatedAt)})` : ""}.`);
-        toast("Tarsee's new icon is saved.");
+        say(`Saved. Atlas's icon is your picture now${s.updatedAt ? ` (${when(s.updatedAt)})` : ""}.`);
+        toast("Atlas's new icon is saved.");
       } catch (err) {
         saving = false;
         const words = `The icon could not be saved: ${err.message || err}`;

@@ -668,7 +668,7 @@ export function discordLoginError(err) {
 
 /**
  * What the invite link asks for: what the bot needs to read a channel and answer in it, with files, reactions and
- * threads. Tarsee registers no slash commands, so the link has the bot scope only.
+ * threads. Atlas registers no slash commands, so the link has the bot scope only.
  */
 export const DISCORD_INVITE_PERMISSIONS = [
   PermissionFlagsBits.ViewChannel,

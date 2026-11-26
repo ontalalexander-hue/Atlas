@@ -1,4 +1,4 @@
-// What Tarsee's installers share (src/voice/install-common.js, src/voice/tar-extract.js): downloads only from fixed
+// What Atlas's installers share (src/voice/install-common.js, src/voice/tar-extract.js): downloads only from fixed
 // official hosts over https (redirects followed by hand and checked), every file checked against its published size
 // and hash before it is put in place, a lock so two installs never run at once, and an archive extractor that never
 // writes outside its folder. All against a fake download host: nothing here reaches the network.

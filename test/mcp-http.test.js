@@ -1,5 +1,5 @@
-// Tarsee's tools for the Codex engine (src/ai/mcp-http.js, design 4.9 and 4.5 R12). Codex can't take an in-process MCP
-// server the way Claude Code does, so Tarsee serves the same tarsee_* tools on a loopback streamable-HTTP endpoint, and
+// Atlas's tools for the Codex engine (src/ai/mcp-http.js, design 4.9 and 4.5 R12). Codex can't take an in-process MCP
+// server the way Claude Code does, so Atlas serves the same tarsee_* tools on a loopback streamable-HTTP endpoint, and
 // each Codex turn gets a grant: a URL and a 32-byte bearer token tied to that turn's tool context. These tests drive it
 // with the MCP SDK's real streamable-HTTP client, the way Codex's own client calls it: the full tool list, a call that
 // reaches executeTool with the granted context (and only that one), Tool Permissions, and every refusal (no, wrong,
@@ -151,7 +151,7 @@ describe("the loopback endpoint", () => {
 });
 
 describe("tools over streamable HTTP", () => {
-  it("tools/list returns the full Tarsee tool list, the same one Claude Code gets in-process", async () => {
+  it("tools/list returns the full Atlas tool list, the same one Claude Code gets in-process", async () => {
     const inProcess = createTarseeMcp(ctxFor("conv-list"));
     const [a, b] = InMemoryTransport.createLinkedPair();
     const local = new Client({ name: "in-process", version: "1.0.0" }, { capabilities: {} });
@@ -250,7 +250,7 @@ describe("tools over streamable HTTP", () => {
       console.log = realLog;
       grant.revoke();
     }
-    const builds = lines.filter((l) => l.includes("Creating Tarsee MCP server"));
+    const builds = lines.filter((l) => l.includes("Creating Atlas MCP server"));
     assert.ok(builds.length <= 1, `built ${builds.length} times for one turn`);
     assert.ok(!lines.some((l) => l.includes(grant.token)), "a token reached the log");
   });
@@ -415,7 +415,7 @@ function findCodexBin() {
 }
 
 /**
- * Codex's app-server on stdio, set up the way a Codex turn reaches Tarsee's tools: the tarsee MCP server at the
+ * Codex's app-server on stdio, set up the way a Codex turn reaches Atlas's tools: the tarsee MCP server at the
  * grant's url, its token read from TARSEE_MCP_TOKEN. Its own home, no credentials, its model hosts pointed at a closed
  * port on this machine, and the features that reach out on their own switched off (on startup it otherwise git-fetches
  * OpenAI's plugin list from GitHub, in a child that outlives it), so nothing can leave the machine.
@@ -476,7 +476,7 @@ function codexAppServer(bin, grant) {
 
 const codexBin = findCodexBin();
 describe("with Codex's own MCP client (the pinned codex binary)", { skip: codexBin ? false : "the pinned codex binary is not installed here" }, () => {
-  it("lists every Tarsee tool and runs a call with the granted context", { timeout: 120_000 }, async () => {
+  it("lists every Atlas tool and runs a call with the granted context", { timeout: 120_000 }, async () => {
     const grant = grantTurn(ctxFor("conv-codex"), { turnId: "turn-codex" });
     const codex = codexAppServer(codexBin, grant);
     try {

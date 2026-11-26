@@ -45,7 +45,7 @@
   function whoMade(job) {
     if (job?.createdBy === "ai") return "Made by the AI in a chat";
     if (job?.createdBy === "owner") return "Made by you";
-    return "Made before Tarsee noted who makes each task";
+    return "Made before Atlas noted who makes each task";
   }
 
   /** A task that runs a tool directly, with no AI: its row shows the action, not the prompt. */

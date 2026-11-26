@@ -1,10 +1,10 @@
 // The owner is the person signed in to the dashboard: a live sign-in (the tarsee_session cookie), never the API token
 // alone. The dashboard sends the token with every request too (js/api.js), and the AI's shell runs as the same user, so
-// it can read the token (api.token in the state folder) and Tarsee's database (tarsee.db). So:
+// it can read the token (api.token in the state folder) and Atlas's database (tarsee.db). So:
 //   - the owner's chat commands (/cron, /briefing, /webhook) run only with a live sign-in: the chat route and the
 //     WebSocket name the dashboard ("web") only then, and anything else is refused by commands.js as not the owner;
 //   - the database keeps a hash of each sign-in's id, never the id: an id copied from it signs nobody in, and the ids
-//     an older Tarsee kept are hashed at the next start, with their owners still signed in;
+//     an older Atlas kept are hashed at the next start, with their owners still signed in;
 //   - an owner-only action refused because the sign-in has run out says so plainly, the API token keeps its own words,
 //     and the dashboard shows the message on its sign-in screen.
 // The routes run for real behind the real sign-in, token and CSRF checks; the browser part runs the dashboard from
@@ -26,7 +26,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-owner-session-"));
 process.env.TARSEE_STATE_DIR = tmp;
 process.env.TARSEE_WORKSPACE_DIR = path.join(tmp, "workspace");
 process.env.TARSEE_DATA_DIR = path.join(tmp, "data");
-// No TARSEE_API_TOKEN: Tarsee makes one and saves it in the state folder, as on most installs.
+// No TARSEE_API_TOKEN: Atlas makes one and saves it in the state folder, as on most installs.
 delete process.env.TARSEE_API_TOKEN;
 delete process.env.TARSEE_SESSION_MAX_AGE_DAYS;
 process.env.SETUP_PASSWORD = "test-owner-pin-4821";
@@ -186,7 +186,7 @@ const aiTask = (over = {}) => cron.addCronJob({ schedule: "0 9 * * 1", prompt: "
 const seenOf = (job) => ({ schedule: job.schedule, prompt: job.prompt });
 const switchOn = (job, headers) => call("PATCH", `/api/settings/cron/${encodeURIComponent(job.id)}`, { enabled: true, seen: seenOf(job) }, headers);
 
-/** Every byte of Tarsee's database on disk, as the AI's shell could read it: the file and its write-ahead log. */
+/** Every byte of Atlas's database on disk, as the AI's shell could read it: the file and its write-ahead log. */
 function databaseBytes() {
   return Buffer.concat([DB_PATH, `${DB_PATH}-wal`].filter((f) => fs.existsSync(f)).map((f) => fs.readFileSync(f)));
 }
@@ -315,7 +315,7 @@ describe("the database keeps no sign-in id", () => {
     assert.deepEqual(stateOf(job.id), ["waiting", false, false]);
   });
 
-  it("a sign-in an older Tarsee stored as its id is hashed at the next start, and its cookie still signs in", async () => {
+  it("a sign-in an older Atlas stored as its id is hashed at the next start, and its cookie still signs in", async () => {
     const kept = await signIn();   // stored by this version: hashed already
     const legacy = crypto.randomBytes(32).toString("hex");
     db.prepare("INSERT INTO sessions (id, created_at, ip) VALUES (?, ?, ?)").run(legacy, Date.now(), "127.0.0.1");
@@ -464,7 +464,7 @@ describe("the dashboard, signed in when it opened, after its sign-in has run out
       const json = (status, data) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(data) });
       if (p === "/api/auth/status") return json(200, { authenticated: true, method: "session", needsPassword: true });
       if (p === "/api/auth/api-token") return json(200, { apiToken: "dashboard-api-token" });
-      if (p === "/api/settings/setup-status") return json(200, { needsSetup: false, needsPersonality: false, hasKey: true, botName: "Tarsee", provider: "claude-code" });
+      if (p === "/api/settings/setup-status") return json(200, { needsSetup: false, needsPersonality: false, hasKey: true, botName: "Atlas", provider: "claude-code" });
       if (p === "/api/settings" && method === "GET") return json(200, { settings: [] });
       if (p === "/api/settings/cron" && method === "GET") return json(200, { jobs: [WAITING], activeJobs: 0, totalJobs: 1 });
       if (p === `/api/settings/cron/${WAITING.id}` && method === "PATCH") return json(refusals.switchOn.status, refusals.switchOn.body);

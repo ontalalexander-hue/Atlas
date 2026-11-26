@@ -9,12 +9,12 @@
  *   apiKey         the OpenAI key, for the openai provider only (the SDK turns it into CODEX_API_KEY in the child)
  *   threadOptions  startThread()/resumeThread()'s options
  * No key or token is ever placed in config or on the command line: the custom providers read theirs from
- * TARSEE_PROVIDER_KEY (env_key), Tarsee's tools from TARSEE_MCP_TOKEN (bearer_token_env_var), and none of the three
+ * TARSEE_PROVIDER_KEY (env_key), Atlas's tools from TARSEE_MCP_TOKEN (bearer_token_env_var), and none of the three
  * reaches the agent's shell (shell_environment_policy, R7). Every host comes from engine-env hostFor(), OpenAI's
  * included, and none is ever passed as the SDK's baseUrl.
  *
  * Provider blocks:
- *   chatgpt     Codex's own ChatGPT sign-in in .codex-home (forced_login_method "chatgpt"); no host of Tarsee's.
+ *   chatgpt     Codex's own ChatGPT sign-in in .codex-home (forced_login_method "chatgpt"); no host of Atlas's.
  *               The model is only ever one the signed-in account lists (a free account can't use the paid ones),
  *               and none at all when that list is unknown: Codex then picks.
  *   openai      the built-in provider with the SDK's apiKey, OpenAI's host passed explicitly (openai_base_url), so no
@@ -30,14 +30,14 @@ import { PROVIDERS, normalizeProviderId } from "../provider-registry.js";
 import { CODEX, CODEX_SHELL_EXCLUDED, CredentialError, codexChatgptTestHosts, codexEnvFor, hostFor } from "../engine-env.js";
 import { compactWindowTokens } from "../context-limits.js";
 
-/** How long one call to a Tarsee tool may take (a browser task, a long fetch): over the 180 s floor the design sets. */
+/** How long one call to a Atlas tool may take (a browser task, a long fetch): over the 180 s floor the design sets. */
 export const MCP_TOOL_TIMEOUT_SEC = 300;
 const MCP_STARTUP_TIMEOUT_SEC = 20;
 
 /** What Codex may say about a tool's output before trimming it for the model (tokens). */
 const TOOL_OUTPUT_TOKEN_LIMIT = 3000;
 
-/** The custom provider each key provider runs as (Tarsee's own names, so none can shadow a built-in one). */
+/** The custom provider each key provider runs as (Atlas's own names, so none can shadow a built-in one). */
 const CUSTOM_PROVIDERS = {
   openrouter: { name: "OpenRouter" },
   deepseek: { name: "DeepSeek" },
@@ -45,11 +45,11 @@ const CUSTOM_PROVIDERS = {
 };
 
 /**
- * Codex features a Tarsee turn keeps off. Tarsee's own tools do these jobs, the same on every engine: ChatGPT's apps
+ * Codex features a Atlas turn keeps off. Atlas's own tools do these jobs, the same on every engine: ChatGPT's apps
  * and plugins (connectors that would bring their own tools and hosts), extra agents and goals, the built-in browser
  * and computer use, picture generation (its pictures don't reach a chat), tool suggestions, and installing a skill's
  * MCP servers on the fly. Hooks too: a hook is a program Codex runs around each tool call with the turn's whole
- * environment (the engine's own key included, which is kept out of the shell's environment), and Tarsee uses none. Also
+ * environment (the engine's own key included, which is kept out of the shell's environment), and Atlas uses none. Also
  * unbounded_connection_retries: with it, a server that isn't there (a Local AI that is switched off) is retried for
  * ever and the turn never ends; without it Codex gives up after its usual retries and the turn says where it looked.
  * Set on every turn's command line, so a config file can't switch one back on.
@@ -60,7 +60,7 @@ const FEATURES_OFF = Object.freeze([
   "memories", "hooks", "unbounded_connection_retries",
 ]);
 
-/** The effort levels Codex takes that Tarsee also names (lib/model-picker.js EFFORT_IDS). */
+/** The effort levels Codex takes that Atlas also names (lib/model-picker.js EFFORT_IDS). */
 const CODEX_EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 
 /** The per-argument limit developer_instructions must fit: 128 KiB per argument on Linux, 32K characters in all on Windows. */
@@ -124,7 +124,7 @@ const TRIMMED_MIDDLE = "\n[… trimmed to fit; the workspace files are on disk]\
 /**
  * Instructions that fit in maxBytes. Broken surrogate halves go first (they can't be sent). When it is still too long,
  * the saved memories lose their last rows first (search_memories finds them again), down to none; then, if that
- * wasn't enough, the middle of the text goes, never either end: the start is the preamble (Tarsee's tools and how to
+ * wasn't enough, the middle of the text goes, never either end: the start is the preamble (Atlas's tools and how to
  * use memory), the end the conversation's own prompt and the channel hint (how to send a file there).
  */
 export function capInstructions(text, maxBytes) {
@@ -151,7 +151,7 @@ export function capInstructions(text, maxBytes) {
   return head + TRIMMED_MIDDLE + tail;
 }
 
-/** Tarsee's effort level as Codex's, or undefined to send none (an unknown level, or one this model doesn't take). */
+/** Atlas's effort level as Codex's, or undefined to send none (an unknown level, or one this model doesn't take). */
 export function codexEffort(effort, allowed = null) {
   const e = typeof effort === "string" ? effort.trim().toLowerCase() : "";
   if (!CODEX_EFFORTS.has(e)) return undefined;
@@ -163,7 +163,7 @@ export function codexEffort(effort, allowed = null) {
  * The model to name on the command line, or undefined for Codex's own default.
  *   chatgpt  only a model the signed-in account's live list has, the one it marks as its default included (left out,
  *            a `model` in the home's config.toml, which the Terminal's /model writes, would run instead of the model
- *            Tarsee shows and records); nothing when the list is unknown or empty, or doesn't have it. A ChatGPT model
+ *            Atlas shows and records); nothing when the list is unknown or empty, or doesn't have it. A ChatGPT model
  *            is never hard-coded.
  *   others   the model as chosen; nothing for none or "default".
  */
@@ -217,7 +217,7 @@ const oneLine = (s) => String(s ?? "").replace(/[\r\n\0]+/g, " ").trim();
  *   key             the provider's key (openai, openrouter, deepseek; local's is optional)
  *   stateDir        config.STATE_DIR (the key and sign-in homes live under it), or home to name the home outright
  *   workspace       the agent's working folder (required)
- *   mcp             the turn's grant for Tarsee's tools: { url, token } (required)
+ *   mcp             the turn's grant for Atlas's tools: { url, token } (required)
  *   developerInstructions   the stable instructions (preamble, workspace CLAUDE.md, stable system prompt)
  *   localUrl        Local AI's server address (ai.local.baseUrl, else TARSEE_LOCAL_AI_URL): checked, never sent to Codex
  *   localBridge     Local AI only, required: the turn's bridge {url, token} (local-bridge.js open()); Codex's base_url
@@ -226,7 +226,7 @@ const oneLine = (s) => String(s ?? "").replace(/[\r\n\0]+/g, " ").trim();
  *   contextTokens   the model's context window; compactWindow   TARSEE_COMPACT_WINDOW's value (default from env)
  *   thinkingSummaries   ask for reasoning summaries (the dashboard's live view)
  *   accountModels   the ChatGPT account's live model list ([{id, efforts?, default?}])
- *   skillsDir       Tarsee's bundled skills (added to the turn's folders)
+ *   skillsDir       Atlas's bundled skills (added to the turn's folders)
  *   turnMark        a value unique to this turn, set as TARSEE_CODEX_TURN so Stop can find everything the turn started
  *   platform        for the instructions' size limit (default process.platform)
  * Throws CredentialError (engine-env's codes) when the turn can't start: a missing key, Local AI without an address,
@@ -239,7 +239,7 @@ export function buildCodexOptions(target, ctx = {}) {
   const env = ctx.env ?? process.env;
   const workspace = String(ctx.workspace ?? "").trim();
   if (!workspace) throw new TypeError("buildCodexOptions: the turn's workspace folder is required");
-  if (!ctx.mcp?.url) throw new CredentialError("needs-mcp-token", "This turn has no grant for Tarsee's tools.", id);
+  if (!ctx.mcp?.url) throw new CredentialError("needs-mcp-token", "This turn has no grant for Atlas's tools.", id);
 
   // Local AI: the owner's address is checked (none refuses the turn), and Codex is given the turn's bridge instead.
   let bridge = null;
@@ -312,7 +312,7 @@ export function buildCodexOptions(target, ctx = {}) {
     // The 5 minutes themselves stay: a slow local model still streams within them.
     if (id === "local") provider.stream_max_retries = 1;
     if (id === "openrouter") {
-      const headers = { "X-OpenRouter-Title": oneLine(ctx.appTitle) || entry.defaultAppTitle || "Tarsee" };
+      const headers = { "X-OpenRouter-Title": oneLine(ctx.appTitle) || entry.defaultAppTitle || "Atlas" };
       const referer = oneLine(ctx.referer);
       if (referer) headers["HTTP-Referer"] = referer;
       provider.http_headers = headers;

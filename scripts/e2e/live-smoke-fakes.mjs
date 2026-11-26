@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * scripts/e2e/live-smoke-fakes.mjs: proves scripts/e2e/live-smoke.mjs against a REAL Tarsee whose AIs are fakes, so
+ * scripts/e2e/live-smoke-fakes.mjs: proves scripts/e2e/live-smoke.mjs against a REAL Atlas whose AIs are fakes, so
  * the owner's morning live test is known to work before any real key goes in.
  *
  * It boots `node src/server.js` the way scripts/e2e/ai-api-e2e.mjs does (a free port, a fresh temp TARSEE_STATE_DIR,
@@ -9,7 +9,7 @@
  * for Claude Code, fake-responses.js for Codex, test-tls.js for ChatGPT's HTTPS backend) behind small fronts that also
  * answer what live-smoke's Test reads: DeepSeek's GET /user/balance, OpenRouter's GET /api/v1/key and Local AI's
  * GET /v1/models. The engines are the real ones. The fake models do what they are asked: live-smoke's "work out
- * A * B" gets a call to Tarsee's tarsee_calculator (on Codex directly, behind tool_search, or from code mode's exec,
+ * A * B" gets a call to Atlas's tarsee_calculator (on Codex directly, behind tool_search, or from code mode's exec,
  * as each model is offered it) and the tool's own result as the reply; Verify's four checks get a code word, a
  * tarsee_datetime call, a real shell echo and a recall from the session's own history.
  *
@@ -23,12 +23,12 @@
  *   rejected-key     DeepSeek's address turns the key down: exit 1, Test FAIL and the chat refused, the key nowhere
  *   rejected-turn    OpenAI's Test passes, then its model turns the key down mid-chat quoting it: exit 1, turn FAIL
  *   not-ready        --only claude (no Claude sign-in here): exit 1, the chat refused
- *   cut-stream       --only deepseek through a proxy in front of Tarsee: DeepSeek's model starts its answer and goes
+ *   cut-stream       --only deepseek through a proxy in front of Atlas: DeepSeek's model starts its answer and goes
  *                    quiet, and the proxy resets the chat's connection. Exit 1, the turn FAIL; POST /api/chat/stop
- *                    comes before the DELETE, the turn is over on Tarsee when the DELETE comes, and the engine's own
+ *                    comes before the DELETE, the turn is over on Atlas when the DELETE comes, and the engine's own
  *                    call to the model is ended by the stop (its signal fired)
  *   cut-stream-clean the same, with the proxy closing the connection cleanly and no "done"
- *   pin-password     Tarsee started again with a 4-digit SETUP_PASSWORD (this year), the six AIs set up here named
+ *   pin-password     Atlas started again with a 4-digit SETUP_PASSWORD (this year), the six AIs set up here named
  *                    with --only, every chat's factors carrying the password: exit 0, and the header's date, every
  *                    sum and every other number print whole
  *   verify-local-llama  Local AI moved to a llama.cpp llama-server (a front answering /v1/models, /props and /health
@@ -36,7 +36,7 @@
  *                    function): --only local --verify passes Test (build and context named), Verify and the calculator
  *                    chat through the Local AI bridge, every request llama-server got had plain function tools and
  *                    the owner's key; Codex's own request sent straight to it (no bridge) has its calculator dropped.
- *                    Run on a Tarsee without the bridge, this scenario fails at Verify's tool check.
+ *                    Run on a Atlas without the bridge, this scenario fails at Verify's tool check.
  * plus redact() on its own, and scans: nothing live-smoke printed carries a key, token, cookie value, password or
  * canary; every test chat was deleted; nothing reached a stripped host variable.
  *
@@ -248,7 +248,7 @@ function additionalToolNames(body) {
 }
 
 /**
- * A call to one of Tarsee's tools, however this request offers it: outright (in Codex's mcp__tarsee namespace, or as
+ * A call to one of Atlas's tools, however this request offers it: outright (in Codex's mcp__tarsee namespace, or as
  * the plain function the Local AI bridge makes of it, which a Local AI model calls by that flat name), behind
  * tool_search, or inside exec.
  */
@@ -381,10 +381,10 @@ function llamaFront(req, p) {
 }
 
 /**
- * A proxy in front of Tarsee, standing where a Railway edge would: live-smoke talks to it, and it notes every request
+ * A proxy in front of Atlas, standing where a Railway edge would: live-smoke talks to it, and it notes every request
  * in order (with the conversation a POST names). With cut ("destroy" or "end") it gives up on the chat's reply (POST
- * /api/chat/send) once Tarsee has said which AI answers and ready() says the model's call is under way: "destroy"
- * resets the connection, "end" closes it cleanly with no "done". Either way it hangs up on Tarsee too, as a proxy
+ * /api/chat/send) once Atlas has said which AI answers and ready() says the model's call is under way: "destroy"
+ * resets the connection, "end" closes it cleanly with no "done". Either way it hangs up on Atlas too, as a proxy
  * that gives up does. beforeDelete(conversationId) runs before a chat's DELETE is passed on, and what it returns is
  * kept on that request's note.
  */
@@ -578,7 +578,7 @@ async function runSmoke(name, args, { password = SETUP_PASSWORD, url = BASE, fac
   clearTimeout(timer);
   const run = { name, args, code, stdout, stderr, secs: Math.round((Date.now() - started) / 1000), rows: parseTable(stdout) };
   runs[name] = run;
-  const how = [url !== BASE && "through a proxy in front of Tarsee", factors && `the factors set to ${factors.join(", ")}`].filter(Boolean).join("; ");
+  const how = [url !== BASE && "through a proxy in front of Atlas", factors && `the factors set to ${factors.join(", ")}`].filter(Boolean).join("; ");
   fs.writeFileSync(path.join(OUT, `live-smoke-${name}.txt`), scrub(`$ node scripts/e2e/live-smoke.mjs ${args.join(" ")}\n(exit ${code}, ${run.secs} s${how ? `; ${how}` : ""})\n\n${stdout}${stderr ? `\n--- stderr ---\n${stderr}` : ""}`));
   return run;
 }
@@ -611,7 +611,7 @@ function leaksIn(text) {
   for (const [label, re] of [
     ["an sk- key", /\bsk-(?!\[redacted\])[A-Za-z0-9_-]{8,}/],
     ["a JWT", /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{6,}\./],
-    ["a Tarsee cookie value", /\btarsee_(?:session|csrf)=(?!\[redacted\])[^;\s]+/],
+    ["a Atlas cookie value", /\btarsee_(?:session|csrf)=(?!\[redacted\])[^;\s]+/],
     ["a Bearer value", /\bBearer\s+(?!\[redacted\])[A-Za-z0-9._~+/=-]{6,}/i],
     ["a 32+ hex run (a session id or key)", /\b[a-f0-9]{32,}\b/i],
   ]) {
@@ -789,7 +789,7 @@ try {
     });
   }
 
-  // --- llama.cpp's llama-server as the Local AI: it drops the namespace tool Codex 0.167 puts Tarsee's tools in, so
+  // --- llama.cpp's llama-server as the Local AI: it drops the namespace tool Codex 0.167 puts Atlas's tools in, so
   // without the Local AI bridge Verify's tool check and the calculator chat fail; through the bridge they pass.
   if (!SKIP_VERIFY && want("verify-local-llama")) {
     const before3 = await chats();
@@ -807,10 +807,10 @@ try {
       const model = fakeL.responses().filter((r) => r.body && typeof r.body === "object" && r.body.input !== undefined);
       expect(model.length >= 4, `${model.length} model requests`);
       expect(model.every((r) => Array.isArray(r.dropped) && r.dropped.length === 0), "llama-server had a tool to drop", model.map((r) => r.dropped));
-      expect(model.every((r) => fr.toolNames(r.body).includes("mcp__tarsee__tarsee_calculator")), "Tarsee's calculator wasn't offered as a plain function", fr.toolNames(model[0].body));
+      expect(model.every((r) => fr.toolNames(r.body).includes("mcp__tarsee__tarsee_calculator")), "Atlas's calculator wasn't offered as a plain function", fr.toolNames(model[0].body));
       expect(model.every((r) => !(r.body.input || []).some((i) => i?.namespace)), "a namespace reached llama-server in the history");
       expect(model.every((r) => r.headers.authorization === `Bearer ${KEYS.local}`), "the owner's key didn't reach llama-server (or something else did)", model.map((r) => r.headers.authorization?.slice(0, 12)));
-      // And without the bridge: Codex's own request (Tarsee's tools in their namespace) straight to llama-server, as
+      // And without the bridge: Codex's own request (Atlas's tools in their namespace) straight to llama-server, as
       // before the bridge: it drops the namespace, and the model has no calculator to call.
       const direct = await fetch(`${llamaMux.origin}/v1/responses`, {
         method: "POST",
@@ -818,7 +818,7 @@ try {
         body: JSON.stringify({
           model: LLAMA_MODEL, stream: true,
           tools: [{ type: "function", name: "exec_command", parameters: { type: "object", properties: {} } }, { type: "namespace", name: "mcp__tarsee", tools: [{ type: "function", name: "tarsee_calculator", parameters: { type: "object", properties: {} } }] }],
-          input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "Use Tarsee's calculator tool to work out 12 * 34, then reply with just the number." }] }],
+          input: [{ type: "message", role: "user", content: [{ type: "input_text", text: "Use Atlas's calculator tool to work out 12 * 34, then reply with just the number." }] }],
         }),
       });
       const words = await direct.text();
@@ -867,10 +867,10 @@ try {
   if (want("bad-options")) await check("bad options: a stray argument (a pasted key) is refused without being shown", async () => {
     const run = await runSmoke("bad-options", [KEYS.openai, "--only", "nope"]);
     expect(run.code === 1, `exit ${run.code}`, run.stdout);
-    expect(/isn't an option/.test(run.stdout) && /isn't an AI Tarsee knows/.test(run.stdout), "no words for the bad options", run.stdout);
+    expect(/isn't an option/.test(run.stdout) && /isn't an AI Atlas knows/.test(run.stdout), "no words for the bad options", run.stdout);
   });
 
-  // --- A reply that never finishes: Tarsee keeps a turn running when the page that sent it goes away, so the test
+  // --- A reply that never finishes: Atlas keeps a turn running when the page that sent it goes away, so the test
   // must stop it (as the chat's Stop does) and see it over before it deletes the chat, or the turn runs on, on the
   // owner's key, in a chat nobody can see.
   for (const [name, how, words] of [
@@ -900,13 +900,13 @@ try {
       const del = front.requests.findIndex((x) => x.method === "DELETE" && x.path === `/api/chat/conversations/${encodeURIComponent(conv)}`);
       expect(stop > send, "no POST /api/chat/stop for the chat after its reply was cut", order.slice(send));
       expect(del > stop, "the chat wasn't deleted after the stop", order.slice(send));
-      expect(front.requests[del].before && !front.requests[del].before.error && !front.requests[del].before.activeTurn, "the chat's turn was still at work on Tarsee when its DELETE came", front.requests[del].before);
+      expect(front.requests[del].before && !front.requests[del].before.error && !front.requests[del].before.activeTurn, "the chat's turn was still at work on Atlas when its DELETE came", front.requests[del].before);
       // The engine's own call to the model, held open until then, ended once the stop came: the engine's signal fired.
       const call = await until(() => dsMux.requests.slice(callsBefore).find((x) => x.cutAt), { timeoutMs: 10_000 });
       expect(call && call.cutAt >= front.requests[stop].at, "the engine's call to the model wasn't ended by the stop", { call: call || null, stopAt: front.requests[stop].at });
       expect(/INFO deepseek · .* · cleanup: the reply didn't finish, so its turn was stopped first/.test(run.stdout), "no line saying the turn was stopped first", run.stdout);
       expect(/PASS deepseek · .* · cleanup: the test chat is deleted/.test(run.stdout), "no line saying the chat was deleted", run.stdout);
-      // (From the turn's line, not the whole run: live-smoke may first wait out Tarsee's limit of five sign-ins a minute.)
+      // (From the turn's line, not the whole run: live-smoke may first wait out Atlas's limit of five sign-ins a minute.)
       const at = (re) => Number(/^\[\s*([\d.]+)s\]/.exec(run.stdout.split(/\r?\n/).find((l) => re.test(l)) || "")?.[1]);
       const tookSecs = at(/ · cleanup: the test chat is deleted/) - at(/FAIL deepseek · .* · turn: /);
       expect(!/· usage:/.test(run.stdout) && tookSecs < 20, `an unfinished turn's usage was waited for (${tookSecs} s from the turn to the delete)`, run.stdout);
@@ -918,12 +918,12 @@ try {
     await front.close();
   }
 
-  // --- A 4-digit password (SETUP_PASSWORD is often a PIN): Tarsee started again with this year as its password, and
+  // --- A 4-digit password (SETUP_PASSWORD is often a PIN): Atlas started again with this year as its password, and
   // every chat's factors carrying it. Nothing is blanked out of the date, the sums or anything else live-smoke prints.
   const PIN = String(new Date().getUTCFullYear());
   if (want("pin-password")) await killServer();
   if (want("pin-password")) await bootServer({ tmp, fakeA, dsMux, orMux, fakeR, chatgptMux, caFile, trap, password: PIN });
-  if (want("pin-password")) await check(`pin-password: Tarsee with a 4-digit SETUP_PASSWORD (this year), every chat's factors carrying it: exit 0, and the header's date, every sum and every other number print whole`, async () => {
+  if (want("pin-password")) await check(`pin-password: Atlas with a 4-digit SETUP_PASSWORD (this year), every chat's factors carrying it: exit 0, and the header's date, every sum and every other number print whole`, async () => {
     const signed = await signIn(PIN);
     expect(signed.login === 200 && signed.csrf === 200, `the harness couldn't sign in with the 4-digit password (${signed.login}, ${signed.csrf})`);
     const before = await chats();

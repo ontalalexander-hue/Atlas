@@ -6,7 +6,7 @@ import { buildPreamble } from "../src/ai/preamble.js";
 
 /** The text providers/claude-code.js built inline before the move (commit 4013fe7, lines 437-478), verbatim. */
 function claudePreambleBeforeTheMove(cwd, timezone) {
-  return `You ARE Tarsee — a headless AI agent running 24/7 on a server.
+  return `You ARE Atlas — a headless AI agent running 24/7 on a server.
 
 ## MCP Tools (call as mcp__tarsee__tarsee_<name>)
 - **send_message**(channel, message, channel_id) — push to Telegram/Discord/WhatsApp/Slack/web
@@ -23,7 +23,7 @@ function claudePreambleBeforeTheMove(cwd, timezone) {
 - **calculator**(expression) — precise math. ALWAYS use this for any calculation, never do math in your head
 - **datetime**(timezone?, date?, format?) — current date/time/day or timezone conversion. ALWAYS use this for dates and days of the week, never guess. Default timezone: ${timezone}
 - **browser**(action, url?, selector?, text?, ...) — stealth Playwright browser with captcha solving
-- **discord_admin**(action, ...) — list, make and edit Discord channels and make webhooks with Tarsee's own bot (never the bot token from Bash); changes need approved_by, a webhook URL goes to the vault, nothing deletes
+- **discord_admin**(action, ...) — list, make and edit Discord channels and make webhooks with Atlas's own bot (never the bot token from Bash); changes need approved_by, a webhook URL goes to the vault, nothing deletes
 - **railway**(action, project?, environment?, service?, ...) — list Railway projects and variable names, set a variable (secrets via from_key, a vault key name) or redeploy, with the vault's RAILWAY_API_TOKEN; writes need approved_by. Use it instead of Railway calls from Bash
 
 ## Memory
@@ -60,32 +60,32 @@ describe("buildPreamble", () => {
 
   it("defaults to Claude Code and the configured timezone", () => {
     const text = buildPreamble({ cwd: "/w" });
-    assert.match(text, /^You ARE Tarsee/);
+    assert.match(text, /^You ARE Atlas/);
     assert.match(text, /Default timezone: \S+/);
     assert.match(text, /## Workspace: \/w$/);
     assert.ok(text.includes("Use Bash to run any of these directly."));
   });
 
-  it("names every Tarsee tool the agent can call, discord_admin and railway included", () => {
+  it("names every Atlas tool the agent can call, discord_admin and railway included", () => {
     const text = buildPreamble({ engine: "claude-code", cwd: "/w", timezone: "UTC" });
     for (const tool of TOOLS) assert.ok(text.includes(`**${tool}**(`), tool);
     assert.ok(text.includes("**discord_admin**(action, ...)"));
   });
 
-  it("Codex: the same Tarsee tools, Codex's own exec_command and apply_patch, no Claude Code tool names", () => {
+  it("Codex: the same Atlas tools, Codex's own exec_command and apply_patch, no Claude Code tool names", () => {
     const text = buildPreamble({ engine: "codex", cwd: "/w", timezone: "UTC" });
-    assert.match(text, /^You ARE Tarsee/);
+    assert.match(text, /^You ARE Atlas/);
     assert.ok(text.includes("mcp__tarsee__tarsee_<name>"));
     // The pinned codex 0.167's command tool is exec_command (no tool is called "shell"), and on its gpt-6.1 models
-    // every tool, Tarsee's included, is reached from inside its JavaScript exec tool.
+    // every tool, Atlas's included, is reached from inside its JavaScript exec tool.
     assert.match(text, /\bexec_command\b/);
     assert.doesNotMatch(text, /shell tool/);
     assert.match(text, /\bapply_patch\b/);
-    assert.ok(text.includes("await tools.mcp__tarsee__tarsee_<name>({...})"), "how to call Tarsee's tools from exec");
+    assert.ok(text.includes("await tools.mcp__tarsee__tarsee_<name>({...})"), "how to call Atlas's tools from exec");
     assert.match(text, /ALL_TOOLS/);
     assert.ok(!text.includes("Use Bash to run"));
     assert.ok(!text.includes("from Bash"), "Codex has no tool called Bash");
-    // gpt-5.5 gets Tarsee's tools behind tool_search (it can't be switched off): offered only where it exists.
+    // gpt-5.5 gets Atlas's tools behind tool_search (it can't be switched off): offered only where it exists.
     assert.match(text, /tool_search where that tool is offered/);
     assert.ok(!buildPreamble({ engine: "claude-code", cwd: "/w", timezone: "UTC" }).includes("tool_search"));
     assert.ok(!buildPreamble({ engine: "claude-code", cwd: "/w", timezone: "UTC" }).includes("ALL_TOOLS"));

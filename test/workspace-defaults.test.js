@@ -38,7 +38,7 @@ function workspaceFrom(name, files) {
 function assertNeutral(text, what) {
   assert.doesNotMatch(text, /powered by/i, what);
   assert.doesNotMatch(text, /\bClaude\b/, `${what}: no Claude (the file name CLAUDE.md aside)`);
-  assert.doesNotMatch(text, /mcp__/, `${what}: Codex names Tarsee's tools differently: say tarsee_*`);
+  assert.doesNotMatch(text, /mcp__/, `${what}: Codex names Atlas's tools differently: say tarsee_*`);
   assert.doesNotMatch(text, /\bBash\b/, `${what}: say the shell`);
   assert.doesNotMatch(text, /Read, Write, Edit|\bGrep, Glob\b/, what);
   assert.doesNotMatch(text, /\b(Opus|Sonnet|Haiku|Fable)\b/, `${what}: no Claude model names`);
@@ -61,9 +61,9 @@ describe("the default workspace files work on any AI", () => {
     assert.ok(seeded.includes("SOUL.md") && seeded.includes("TOOLS.md"), seeded.join(", "));
     for (const f of seeded) assertNeutral(fs.readFileSync(path.join(ws, f), "utf8"), `env.js ${f}`);
   });
-  it("SOUL.md still says what the agent can do and to use Tarsee's own tools for platform actions", () => {
+  it("SOUL.md still says what the agent can do and to use Atlas's own tools for platform actions", () => {
     const soul = fs.readFileSync(path.join(DEFAULTS, "SOUL.md"), "utf8");
-    assert.match(soul, /You are \*\*Tarsee\*\*/);
+    assert.match(soul, /You are \*\*Atlas\*\*/);
     assert.match(soul, /run any command/);
     assert.match(soul, /tarsee_\* tools/);
     assert.match(soul, /grep/i);
@@ -169,7 +169,7 @@ describe("an install seeded with the Claude-only defaults", () => {
   it("keeps a file the owner wrote, Claude and all", () => {
     const dir = fs.mkdtempSync(path.join(tmp, "own-"));
     const own = {
-      "SOUL.md": "# Soul\n\nYou are **Tarsee** — my agent, powered by Claude, and proud of it.\n- Use Bash for everything.\n",
+      "SOUL.md": "# Soul\n\nYou are **Atlas** — my agent, powered by Claude, and proud of it.\n- Use Bash for everything.\n",
       "AGENTS.md": "# Agent Team\n- **Coder** (Opus) — only the hard stuff, my rule.\n",
     };
     for (const [n, t] of Object.entries(own)) fs.writeFileSync(path.join(dir, n), t);

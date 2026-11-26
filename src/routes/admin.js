@@ -24,14 +24,14 @@ export const adminRouter = Router();
  * scripts, but what the agent is able to do is for the owner's own eyes.
  */
 function requireOwnerSession(req, res, next) {
-  if (!req.auth?.authenticated) return res.status(401).json({ error: "Sign in to Tarsee first." });
-  if (req.auth.method !== "session") return res.status(403).json({ error: "Open this from Tarsee's dashboard while signed in." });
+  if (!req.auth?.authenticated) return res.status(401).json({ error: "Sign in to Atlas first." });
+  if (req.auth.method !== "session") return res.status(403).json({ error: "Open this from Atlas's dashboard while signed in." });
   next();
 }
 
 /**
  * GET /api/admin/tool-registry
- * Every tool the agent can run, for Settings > Security: Tarsee's own (lib/tools.js and the tarsee MCP server's
+ * Every tool the agent can run, for Settings > Security: Atlas's own (lib/tools.js and the tarsee MCP server's
  * live list, push_notification and pdf_read among them) and the engines' built-in ones, as
  * [{ name, label, description, group, policyCovered, mcpName, engines, mode }] (lib/tool-registry.js). mode is the
  * current Tool Permissions setting of a tool it covers, null for one it can't (the engines' own).

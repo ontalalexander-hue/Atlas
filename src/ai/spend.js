@@ -23,7 +23,7 @@
  * lib/token-usage.js); spendBetween() adds them up without counting a turn's calls twice.
  *
  * Usage objects use Claude's vocabulary, as the engines' usage events do: input_tokens (new input, cache reads NOT
- * included), output_tokens, cache_read_input_tokens, cache_creation_input_tokens. Tarsee's own row names (input,
+ * included), output_tokens, cache_read_input_tokens, cache_creation_input_tokens. Atlas's own row names (input,
  * output, cacheRead, cacheWrite) are accepted too. A reported cost rides along as usage.cost or usage.costUsd.
  */
 import { BACKGROUND_DEFAULTS } from "../config/constants.js";
@@ -192,7 +192,7 @@ export function checkTurnBudget(opts = {}) {
  * The recorded spend between two moments, per provider: { totalUsd, byProvider: { id: usd }, estimated }. Each turn
  * counts once at its end (its own cost_usd: its calls' sum, or the engine's exact figure), and calls that belong to
  * no turn count themselves, so nothing is counted twice. Plans never add anything. provider: only that one.
- * estimated is true when any counted row is Tarsee's estimate rather than the provider's own figure (a turn without
+ * estimated is true when any counted row is Atlas's estimate rather than the provider's own figure (a turn without
  * cost_exact, or a call in no turn, which is always priced from the table).
  */
 export function spendBetween(db, from, to = Number.MAX_SAFE_INTEGER, { provider = null } = {}) {

@@ -376,7 +376,7 @@ function download(u, { lookup, maxBytes, timeoutMs }) {
   const tooBig = () => new Error(`the download is too big (over ${maxBytes >= 1024 * 1024 ? `${Math.round(maxBytes / 1024 / 1024)} MB` : `${maxBytes} bytes`})`);
   return new Promise((resolve, reject) => {
     const mod = u.protocol === "https:" ? https : http;
-    const req = mod.get(u, { lookup, agent: false, timeout: timeoutMs, headers: { "User-Agent": "Tarsee", Accept: "application/pdf,*/*" } }, (res) => {
+    const req = mod.get(u, { lookup, agent: false, timeout: timeoutMs, headers: { "User-Agent": "Atlas", Accept: "application/pdf,*/*" } }, (res) => {
       const status = res.statusCode || 0;
       if (status >= 300 && status < 400 && res.headers.location) { res.resume(); resolve({ redirect: res.headers.location }); return; }
       if (status !== 200) { res.resume(); reject(new Error(`the address answered HTTP ${status}`)); return; }

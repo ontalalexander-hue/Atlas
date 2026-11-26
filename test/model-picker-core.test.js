@@ -35,7 +35,7 @@ const PICKER = buildPicker({
       m("claude-haiku-4-5-20251001", "Haiku 4.5", "overflow", "haiku", null, null),
     ],
   },
-  // Tarsee's list has no family words: the SDK's bundled CLI would take one to an older model (lib/model-catalog.js).
+  // Atlas's list has no family words: the SDK's bundled CLI would take one to an older model (lib/model-catalog.js).
   aliases: {},
 });
 const DEFAULTS = { model: "sonnet", effort: "medium" };
@@ -229,17 +229,17 @@ describe("model picker on the page: every ready AI in its own group", () => {
 
   it("number keys count the pickable rows on top, across the AIs", () => {
     assert.equal(P.numberKey(G, "1").name, "Opus 5.5");
-    assert.equal(P.numberKey(G, "4").name, "Haiku 5.5", "Fable 5.1 joins from Tarsee's table: the catalog has no Fable");
+    assert.equal(P.numberKey(G, "4").name, "Haiku 5.5", "Fable 5.1 joins from Atlas's table: the catalog has no Fable");
     assert.equal(P.numberKey(G, "5").name, "GPT-6 Luna");
     assert.equal(P.topRows(G).every((e) => e.selectable !== false), true);
   });
 });
 
-// A chat given a model before Tarsee had other AIs kept it as a bare model ("haiku", "claude-sonnet-4-6") with no AI.
+// A chat given a model before Atlas had other AIs kept it as a bare model ("haiku", "claude-sonnet-4-6") with no AI.
 // A chat with no AI of its own runs on the default AI, and the turn layer (ai/turn.js resolveTarget) runs such a
 // model there when that AI has Claude's models (the Claude plan, an Anthropic key); any other AI runs its default
 // model instead. The button says what runs.
-describe("model picker on the page: a model chosen before Tarsee had other AIs", async () => {
+describe("model picker on the page: a model chosen before Atlas had other AIs", async () => {
   const STATES_KEY = { ...STATES, claude: "needs-sign-in", anthropic: "ready" };
   const keyStore = { get: (k) => (k === "ai.activeProvider" ? "anthropic" : store.get(k)) };
   const KEY = await getModelGroups({ store: keyStore, isShipped: () => true, statusFor: (id) => ({ state: STATES_KEY[id], detail: "", fix: "" }), env: {}, listChatgptModels: async () => [] });

@@ -2,7 +2,7 @@
 /**
  * smoke-backends.mjs: run Verify's four-step probe (src/ai/verify-model.js) on each AI and print the results.
  *
- * Each AI gets the same check the owner's Verify button runs: a plain reply, a call to Tarsee's tarsee_datetime tool,
+ * Each AI gets the same check the owner's Verify button runs: a plain reply, a call to Atlas's tarsee_datetime tool,
  * a shell command, and a resumed turn that must remember the first. Run it on every engine bump (design 4.11): the
  * shipped verified list must not go stale. --json prints the results in the shape that list is built from.
  *
@@ -21,7 +21,7 @@
  * usual secret patterns are. Nothing is recorded in Settings.
  *
  * Exit code: 0 when every AI passed, 1 when any failed or was asked for without a credential, 2 when there was nothing
- * to run or Tarsee couldn't be set up.
+ * to run or Atlas couldn't be set up.
  */
 import fs from "node:fs";
 import os from "node:os";
@@ -179,7 +179,7 @@ export async function main({ argv = process.argv.slice(2), env = process.env, ve
   return results.every((r) => !r.skipped && r.result?.ok) ? 0 : 1;
 }
 
-/** The real probe: a scratch settings database (keys from the environment only), Tarsee's turn layer, no recording. */
+/** The real probe: a scratch settings database (keys from the environment only), Atlas's turn layer, no recording. */
 async function prepareReal({ env, err }) {
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "tarsee-smoke-"));
   // Before anything reads the config: the settings database lives here, empty, so no saved key can be used.
@@ -200,7 +200,7 @@ async function prepareReal({ env, err }) {
       ({ runTurn } = await import("../src/ai/turn.js"));
     } catch (e) {
       await close();
-      return { ok: false, error: `Tarsee's turn layer (src/ai/turn.js) couldn't be loaded: ${e.message}` };
+      return { ok: false, error: `Atlas's turn layer (src/ai/turn.js) couldn't be loaded: ${e.message}` };
     }
     if (typeof runTurn !== "function") {
       await close();
@@ -231,7 +231,7 @@ async function prepareReal({ env, err }) {
     };
   } catch (e) {
     await close();
-    return { ok: false, error: `Tarsee couldn't be set up for the check: ${e.message}` };
+    return { ok: false, error: `Atlas couldn't be set up for the check: ${e.message}` };
   }
 }
 

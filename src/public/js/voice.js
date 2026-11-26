@@ -298,7 +298,7 @@ const SpeechToText = {
 
   /**
    * { ok: true, text }, or { ok: false, kind, reason }. kind: "not-set-up" (nothing on the server can turn speech into
-   * words: HTTP 501), "failed" (it tried and couldn't), "network" (no answer from Tarsee). reason: the server's own
+   * words: HTTP 501), "failed" (it tried and couldn't), "network" (no answer from Atlas). reason: the server's own
    * words, which say what to change.
    */
   async transcribe(blob, filename = "recording.webm") {
@@ -326,7 +326,7 @@ const SpeechToText = {
     const k = result?.kind;
     if (k === "network") {
       return {
-        title: call ? "Couldn't reach Tarsee to hear that. Check the connection." : "Couldn't reach Tarsee, so the recording wasn't turned into words. Check the connection and try again.",
+        title: call ? "Couldn't reach Atlas to hear that. Check the connection." : "Couldn't reach Atlas, so the recording wasn't turned into words. Check the connection and try again.",
         reason: "", settings: false, retry: true,
       };
     }
