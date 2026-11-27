@@ -1,5 +1,5 @@
 // Ofis jihozlari. Har biri rejadagi kataklardan joyini oladi: <Decor L={L} item={{ type, cells, ... }} />
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
@@ -391,13 +391,181 @@ function Clock() {
 }
 
 function Sign() {
-  const project = useOffice((s) => s.project);
-  const tex = useMemo(() => textTexture(project ? `AGENT OFFICE · ${project.toUpperCase()}` : 'AGENT OFFICE', { color: '#1b1f27' }), [project]);
+  const tex = useMemo(() => textTexture('ATLAS OFFICE', { color: '#1b1f27' }), []);
   return (
     <group position={[0, 1.12, 0.07]}>
       <RoundedBox args={[3.4, 0.42, 0.04]} radius={0.02}><meshStandardMaterial color="#f7f5f1" /></RoundedBox>
       <mesh position-z={0.022}><planeGeometry args={[3.3, 0.5]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>
-      <mesh position={[-1.55, 0, 0.025]}><circleGeometry args={[0.1, 20]} /><meshBasicMaterial color="#f0a548" /></mesh>
+      <mesh position={[-1.55, 0, 0.025]}><circleGeometry args={[0.1, 20]} /><meshBasicMaterial color="#1f7ae0" /></mesh>
+    </group>
+  );
+}
+
+// ---------- Equipment room ----------
+function Shelf({ tools }) {
+  const items = tools
+    ? ['#3b82c4', '#2a2e35', '#e8684a', '#2a2e35', '#ffd166', '#2a2e35']
+    : ['#c9a27a', '#b98f63', '#c9a27a', '#d8b78e', '#b98f63', '#c9a27a'];
+  return (
+    <group>
+      {[-0.95, 0.95].map((x) => [-0.2, 0.2].map((z) => (
+        <mesh key={`${x}${z}`} position={[x, 0.95, z]} castShadow><boxGeometry args={[0.05, 1.9, 0.05]} /><meshStandardMaterial color={METAL} metalness={0.5} roughness={0.5} /></mesh>
+      )))}
+      {[0.2, 0.75, 1.3, 1.85].map((y) => <mesh key={y} position-y={y} castShadow><boxGeometry args={[1.95, 0.04, 0.5]} /><meshStandardMaterial color="#8d939c" metalness={0.4} roughness={0.5} /></mesh>)}
+      {[0.2, 0.75, 1.3].map((y, r) => items.slice(0, 4).map((c, i) => (
+        <mesh key={`${r}${i}`} position={[-0.68 + i * 0.45, y + (tools ? 0.14 : 0.19), 0]} castShadow>
+          <boxGeometry args={tools ? [0.3, 0.22, 0.3] : [0.38, 0.32, 0.4]} />
+          <meshStandardMaterial color={items[(i + r) % items.length]} roughness={0.85} />
+        </mesh>
+      )))}
+    </group>
+  );
+}
+
+function Lockers() {
+  return (
+    <group>
+      <RoundedBox args={[1.9, 1.9, 0.5]} radius={0.02} position-y={0.95} castShadow><meshStandardMaterial color="#5f7fa6" roughness={0.6} metalness={0.2} /></RoundedBox>
+      {[0, 1, 2, 3].map((i) => (
+        <group key={i} position={[-0.705 + i * 0.47, 0.95, 0.255]}>
+          <mesh><planeGeometry args={[0.43, 1.8]} /><meshStandardMaterial color={i % 2 ? '#6c8db5' : '#7396bf'} roughness={0.6} /></mesh>
+          <mesh position={[0.15, 0, 0.005]}><planeGeometry args={[0.03, 0.14]} /><meshBasicMaterial color="#1f232a" /></mesh>
+          {[0.62, 0.7, 0.78].map((y) => <mesh key={y} position={[0, y, 0.005]}><planeGeometry args={[0.28, 0.02]} /><meshBasicMaterial color="#3f5a7c" /></mesh>)}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function Workbench() {
+  return (
+    <group>
+      <RoundedBox args={[1.9, 0.07, 0.8]} radius={0.02} position-y={0.85} castShadow receiveShadow><meshStandardMaterial color={OAK} roughness={0.6} /></RoundedBox>
+      {[-0.85, 0.85].map((x) => <mesh key={x} position={[x, 0.42, 0]} castShadow><boxGeometry args={[0.07, 0.84, 0.7]} /><meshStandardMaterial color={METAL} /></mesh>)}
+      {/* a laptop being set up, a headset and a box of parts */}
+      <mesh position={[-0.45, 0.9, 0.05]}><boxGeometry args={[0.42, 0.02, 0.3]} /><meshStandardMaterial color="#c9ced6" metalness={0.6} roughness={0.3} /></mesh>
+      <mesh position={[-0.45, 1.04, -0.1]} rotation-x={-0.25}><boxGeometry args={[0.42, 0.28, 0.02]} /><meshStandardMaterial color="#1b1f27" emissive="#3a72d6" emissiveIntensity={0.5} /></mesh>
+      <mesh position={[0.25, 0.93, 0.1]} rotation-x={Math.PI / 2}><torusGeometry args={[0.11, 0.025, 8, 20, Math.PI]} /><meshStandardMaterial color={METAL} /></mesh>
+      <mesh position={[0.65, 0.98, -0.05]} castShadow><boxGeometry args={[0.34, 0.2, 0.3]} /><meshStandardMaterial color="#e8684a" roughness={0.8} /></mesh>
+    </group>
+  );
+}
+
+function Crates() {
+  return (
+    <group>
+      <mesh position={[0, 0.25, 0]} castShadow><boxGeometry args={[0.8, 0.5, 0.7]} /><meshStandardMaterial color="#c9a27a" roughness={0.9} /></mesh>
+      <mesh position={[0.05, 0.72, 0.02]} rotation-y={0.3} castShadow><boxGeometry args={[0.6, 0.42, 0.55]} /><meshStandardMaterial color="#b98f63" roughness={0.9} /></mesh>
+    </group>
+  );
+}
+
+// ---------- Training room ----------
+function Whiteboard() {
+  return (
+    <group position-z={-0.3}>
+      <RoundedBox args={[2.8, 1.3, 0.05]} radius={0.02} position-y={1.25} castShadow><meshStandardMaterial color="#8d939c" metalness={0.4} roughness={0.5} /></RoundedBox>
+      <mesh position={[0, 1.25, 0.028]}><planeGeometry args={[2.68, 1.18]} /><meshStandardMaterial color="#fbfbf8" roughness={0.3} /></mesh>
+      {[[-0.9, 1.55, 0.7, '#1f7ae0'], [-0.75, 1.35, 1.0, '#1b1f27'], [-0.85, 1.15, 0.8, '#1b1f27'], [0.7, 1.45, 0.6, '#e8684a'], [0.6, 1.0, 0.8, '#2f9e64']].map(([x, y, w, c], i) => (
+        <mesh key={i} position={[x, y, 0.03]}><planeGeometry args={[w, 0.035]} /><meshBasicMaterial color={c} /></mesh>
+      ))}
+      {[-1.2, 1.2].map((x) => <mesh key={x} position={[x, 0.3, 0]}><boxGeometry args={[0.05, 0.6, 0.05]} /><meshStandardMaterial color={METAL} /></mesh>)}
+    </group>
+  );
+}
+
+function SchoolDesk() {
+  return (
+    <group>
+      <RoundedBox args={[1.5, 0.05, 0.6]} radius={0.02} position-y={0.74} castShadow receiveShadow><meshStandardMaterial color="#f4f1ec" roughness={0.4} /></RoundedBox>
+      {[-0.68, 0.68].map((x) => <mesh key={x} position={[x, 0.37, 0]}><boxGeometry args={[0.04, 0.74, 0.5]} /><meshStandardMaterial color={METAL} /></mesh>)}
+      <mesh position={[0, 0.78, 0.02]}><boxGeometry args={[0.36, 0.02, 0.26]} /><meshStandardMaterial color="#c9ced6" metalness={0.5} roughness={0.3} /></mesh>
+      {[-0.38, 0.38].map((x) => (
+        <group key={x} position={[x, 0, 0.62]}>
+          <RoundedBox args={[0.42, 0.06, 0.4]} radius={0.03} position-y={0.46} castShadow><meshStandardMaterial color="#3b82c4" roughness={0.8} /></RoundedBox>
+          <RoundedBox args={[0.4, 0.36, 0.05]} radius={0.03} position={[0, 0.72, 0.19]} castShadow><meshStandardMaterial color="#3b82c4" roughness={0.8} /></RoundedBox>
+          <mesh position-y={0.23}><cylinderGeometry args={[0.025, 0.1, 0.44, 8]} /><meshStandardMaterial color={METAL} /></mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// ---------- Reception, by the front door ----------
+function Reception() {
+  const tex = useMemo(() => textTexture('ATLAS', { w: 512, h: 160, color: '#ffffff', font: '800 110px Inter, system-ui, sans-serif' }), []);
+  const lamps = useOffice((s) => s.sky.lamps);
+  return (
+    <group position-z={0.1}>
+      <RoundedBox args={[2.1, 1.05, 0.6]} radius={0.05} position-y={0.52} castShadow receiveShadow><meshStandardMaterial color="#f4f1ec" roughness={0.5} /></RoundedBox>
+      <RoundedBox args={[2.2, 0.06, 0.7]} radius={0.02} position-y={1.08} castShadow><meshStandardMaterial color={OAK} roughness={0.45} /></RoundedBox>
+      <mesh position={[0, 0.55, 0.305]}><planeGeometry args={[1.7, 0.5]} /><meshStandardMaterial color="#1f7ae0" emissive="#1f7ae0" emissiveIntensity={0.35 + lamps * 0.9} /></mesh>
+      <mesh position={[0, 0.55, 0.31]}><planeGeometry args={[1.3, 0.4]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>
+      <mesh position={[0.75, 1.2, 0]}><cylinderGeometry args={[0.07, 0.06, 0.18, 12]} /><meshStandardMaterial color="#ece7df" /></mesh>
+      <mesh position={[0.75, 1.38, 0]}><icosahedronGeometry args={[0.13, 1]} /><meshStandardMaterial color="#5aa166" roughness={0.8} /></mesh>
+      <mesh position={[-0.6, 1.15, -0.05]}><boxGeometry args={[0.3, 0.1, 0.2]} /><meshStandardMaterial color={METAL} /></mesh>
+    </group>
+  );
+}
+
+// ---------- The floor board: how much of the Claude plan is left, and what got done today ----------
+const fmtTokens = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n || 0));
+const fmtReset = (ms) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  const sameDay = d.toDateString() === new Date().toDateString();
+  return sameDay ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : d.toLocaleDateString([], { weekday: 'short', hour: 'numeric' });
+};
+
+function UsageBoard() {
+  const usage = useOffice((s) => s.usage);
+  const working = useOffice((s) => Object.values(s.agents).filter((a) => a.state === 'working' || a.state === 'thinking').length);
+  const canvas = useMemo(() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 512; return c; }, []);
+  const tex = useMemo(() => { const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }, [canvas]);
+  useEffect(() => {
+    const g = canvas.getContext('2d');
+    g.fillStyle = '#0b1220'; g.fillRect(0, 0, 1024, 512);
+    g.fillStyle = '#1f7ae0'; g.fillRect(0, 0, 1024, 84);
+    g.fillStyle = '#fff'; g.font = '800 46px Inter, system-ui, sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.fillText('CLAUDE USAGE', 32, 44);
+    g.font = '600 30px Inter, system-ui, sans-serif'; g.textAlign = 'right';
+    g.fillText(working ? `${working} working now` : 'floor is quiet', 992, 44);
+
+    const row = (y, title, w, used) => {
+      g.textAlign = 'left'; g.fillStyle = '#9fb3cc'; g.font = '700 30px Inter, system-ui, sans-serif';
+      g.fillText(title, 32, y);
+      const left = w?.leftPct;
+      if (typeof left === 'number') {
+        const color = left > 40 ? '#4cc38a' : left > 15 ? '#f0a548' : '#ff5a5f';
+        g.fillStyle = '#1b2638'; g.fillRect(32, y + 28, 640, 44);
+        g.fillStyle = color; g.fillRect(32, y + 28, Math.max(6, 640 * (left / 100)), 44);
+        g.fillStyle = '#fff'; g.font = '800 54px Inter, system-ui, sans-serif'; g.textAlign = 'right';
+        g.fillText(`${Math.round(left)}%`, 870, y + 50);
+        g.fillStyle = '#9fb3cc'; g.font = '600 26px Inter, system-ui, sans-serif';
+        g.fillText('left', 940, y + 54);
+        g.textAlign = 'left'; g.fillStyle = '#7f92ab'; g.font = '500 24px Inter, system-ui, sans-serif';
+        g.fillText(`${w.resetsAt ? `resets ${fmtReset(w.resetsAt)}` : ''}${used ? `   ·   ${fmtTokens(used.tokens)} tokens` : ''}`, 32, y + 98);
+      } else {
+        g.fillStyle = '#fff'; g.font = '800 50px Inter, system-ui, sans-serif';
+        g.fillText(used ? `${fmtTokens(used.tokens)} tokens used` : '—', 32, y + 54);
+        g.fillStyle = '#7f92ab'; g.font = '500 24px Inter, system-ui, sans-serif';
+        g.fillText('share of the plan not reported yet', 32, y + 98);
+      }
+    };
+    row(128, '5-HOUR WINDOW', usage?.limits?.fiveHour, usage?.used?.fiveHour);
+    row(268, 'THIS WEEK', usage?.limits?.sevenDay, usage?.used?.sevenDay);
+
+    const done = Object.values(usage?.done || {}).reduce((a, b) => a + b, 0);
+    g.fillStyle = '#121c2e'; g.fillRect(0, 424, 1024, 88);
+    g.textAlign = 'left'; g.fillStyle = '#dbe7f7'; g.font = '700 32px Inter, system-ui, sans-serif';
+    g.fillText(`TODAY   ${done} task${done === 1 ? '' : 's'} done   ·   ${fmtTokens(usage?.used?.today?.tokens || 0)} tokens`, 32, 468);
+    tex.needsUpdate = true;
+  }, [usage, working, canvas, tex]);
+  return (
+    <group position={[0, 0, 0.16]}>
+      {[-1.4, 1.4].map((x) => <mesh key={x} position={[x, 0.3, -0.04]} castShadow><boxGeometry args={[0.07, 0.6, 0.07]} /><meshStandardMaterial color={METAL} metalness={0.5} roughness={0.4} /></mesh>)}
+      <RoundedBox args={[3.3, 1.66, 0.08]} radius={0.03} position-y={1.3} castShadow><meshStandardMaterial color={METAL} roughness={0.4} /></RoundedBox>
+      <mesh position={[0, 1.3, 0.045]}><planeGeometry args={[3.18, 1.56]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>
     </group>
   );
 }
@@ -441,6 +609,8 @@ const COMPONENTS = {
   standBoard: StandBoard, armchairs: Armchair, globe: Globe, floorLamp: FloorLamp, printer: Printer, coatRack: CoatRack,
   loungeChair: LoungeChair, easel: Easel, deviceLab: DeviceLab, phoneStand: PhoneStand, beanBag: BeanBag, fridge: Fridge,
   arcade: Arcade, waterCooler: WaterCooler, vending: Vending, bench: Bench, clock: Clock, sign: Sign,
+  shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
+  reception: Reception, usageBoard: UsageBoard,
 };
 
 export default function Decor({ L, item }) {
@@ -460,5 +630,5 @@ export default function Decor({ L, item }) {
     const cz = item.cells.reduce((s, c) => s + c[1], 0) / item.cells.length;
     [x, z] = L.toWorld([cx, cz]);
   }
-  return <group position={[x, 0, z]}><Comp {...item} L={L} /></group>;
+  return <group position={[x, 0, z]} rotation-y={item.rot || 0}><Comp {...item} L={L} /></group>;
 }

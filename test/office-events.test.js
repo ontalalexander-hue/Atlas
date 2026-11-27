@@ -89,3 +89,43 @@ describe("a subagent's steps (lib/tool-steps.js)", () => {
     assert.deepEqual(end.map((x) => [x.kind, x.ok, x.agent]), [["sub_tool_end", false, "researcher"]]);
   });
 });
+
+describe("the Claude plan's limits for the office board (lib/plan-limits.js)", async () => {
+  const { notePlanLimit, planWindows, _resetPlanLimits } = await import("../src/lib/plan-limits.js");
+
+  it("nothing heard: both windows are unknown", () => {
+    _resetPlanLimits();
+    assert.deepEqual(planWindows(), { fiveHour: null, sevenDay: null });
+  });
+
+  it("a share as a fraction or a percentage, a reset time in seconds or milliseconds", () => {
+    _resetPlanLimits();
+    const now = 1_800_000_000_000;
+    assert.equal(notePlanLimit({ status: "allowed", rateLimitType: "five_hour", utilization: 0.42, resetsAt: now / 1000 + 3600 }, now), true);
+    assert.equal(notePlanLimit({ status: "allowed_warning", rateLimitType: "seven_day", utilization: 81, resetsAt: now + 86_400_000 }, now), true);
+    const w = planWindows(now);
+    assert.equal(w.fiveHour.usedPct, 42);
+    assert.equal(w.fiveHour.leftPct, 58);
+    assert.equal(w.fiveHour.resetsAt, now + 3_600_000);
+    assert.equal(w.sevenDay.usedPct, 81);
+    assert.equal(w.sevenDay.status, "allowed_warning");
+  });
+
+  it("a window past its reset starts from zero; other limit types are ignored", () => {
+    _resetPlanLimits();
+    const now = 1_800_000_000_000;
+    notePlanLimit({ status: "rejected", rateLimitType: "five_hour", resetsAt: now + 1000 }, now);
+    assert.equal(planWindows(now).fiveHour.usedPct, 100, "refused with no share given: it is all used");
+    assert.equal(planWindows(now + 2000).fiveHour.usedPct, 0);
+    assert.equal(planWindows(now + 2000).fiveHour.resetsAt, null);
+    assert.equal(notePlanLimit({ status: "allowed", rateLimitType: "overage", utilization: 0.5 }, now), false);
+    assert.equal(notePlanLimit(null, now), false);
+  });
+
+  it("a finished helper job names the helper, so the board can count it", () => {
+    const t = createOfficeTranslator();
+    t.translate(step({ kind: "tool_start", id: "s9", name: "Agent", rawName: "Agent", summary: "Check the totals", subagent: "finance" }));
+    const [end] = t.translate(step({ kind: "tool_end", id: "s9", ok: true }));
+    assert.equal(end.subagent, "finance");
+  });
+});

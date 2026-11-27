@@ -32,6 +32,7 @@ import { resolveModel } from "../../lib/model-catalog.js";
 import { isTranscriptOverCap, transcriptSizeMB, SESSION_JSONL_MAX_MB } from "../../lib/claude-transcript.js";
 import { stepsFromSdkMessage, toolResultsFromSdkMessage, createStreamWatcher, subagentSteps } from "../../lib/tool-steps.js";
 import { sdkAgents } from "../../lib/agent-registry.js";
+import { notePlanLimit } from "../../lib/plan-limits.js";
 import { agentVaultEnv } from "../agent-env.js";
 import { getSecurityManager } from "../../lib/security-manager.js";
 import { getProvider, normalizeProviderId, contextTokensFor, effortsFor, capsFor, engineFor, resolveModelFor } from "../provider-registry.js";
@@ -746,6 +747,12 @@ export async function* run(opts = {}) {
           }
           yield done("end_turn");
           return;
+        }
+
+        case "rate_limit_event": {
+          // The plan's own limits (5-hour window, week), for the office view's board. Never part of the reply.
+          try { notePlanLimit(message.rate_limit_info); } catch { /* the board goes without */ }
+          break;
         }
 
         case "system": {
