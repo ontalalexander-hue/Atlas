@@ -7,6 +7,8 @@ import { useOffice } from './store.js';
 import { rank } from './severity.js';
 import { tr } from './i18n.js';
 import { todayTheme } from './layout.js';
+import { RoomComputer } from './Computer.jsx';
+import { ProjectorScreen } from './Projector.jsx';
 
 const METAL = '#1f232a';
 const OAK = '#c9a27a';
@@ -1174,10 +1176,65 @@ const COMPONENTS = {
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
   opsWall: OpsWall, inboxBoard: InboxBoard, memoryBoard: MemoryBoard, triageBoard: TriageBoard,
-  roomBoard: RoomBoard, agentDesk: AgentDesk, stalls: Stalls,
+  roomBoard: RoomBoard, agentDesk: AgentDesk, stalls: Stalls, roomComputer: RoomComputer,
+  scheduleBoard: ScheduleBoard, lift: Lift, projector: ProjectorScreen,
   frontDesk: FrontDesk, floorLogo: FloorLogo, bed: Bed, medCross: MedCross,
   toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };
+
+// The schedule board: the jobs due today, earlier ones dimmed. A job the owner's computer runs is marked so: the
+// office shows it, Atlas does not run it.
+function ScheduleBoard({ w = 5 }) {
+  const sch = useOffice((s) => s.schedule);
+  const plan = useOffice((s) => s.layout.plan);
+  const W = 1600, H = 900;
+  const tex = useBoard(W, H, (g) => {
+    header(g, W, H, tr('SCHEDULE'), '#7c3aed', new Date().toLocaleDateString([], { weekday: 'long' }));
+    if (!sch) { waiting(g, W, H); return; }
+    const now = Date.now();
+    if (!sch.runs.length) {
+      g.fillStyle = DIM; g.font = F(600, 44);
+      g.fillText(sch.jobs.length ? tr('Nothing due in the next hours') : tr('No scheduled jobs yet'), 32, 200);
+      return;
+    }
+    const past = sch.runs.filter((r) => r.at <= now).slice(-2);
+    const next = sch.runs.filter((r) => r.at > now).slice(0, 8 - past.length);
+    const today = new Date().toDateString();
+    let y = 158;
+    for (const r of [...past, ...next]) {
+      const j = sch.jobs[r.job];
+      if (!j) continue;
+      const done = r.at <= now;
+      const d = new Date(r.at);
+      const time = (d.toDateString() === today ? '' : d.toLocaleDateString([], { weekday: 'short' }) + ' ') + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const soon = !done && r.at - now < 3600_000;
+      g.font = F(800, 40); g.fillStyle = done ? DIM : soon ? WARN : INK; g.fillText(time, 32, y);
+      g.font = F(700, 38); g.fillStyle = done ? DIM : INK; g.fillText(fit(g, j.name, 860), 300, y);
+      g.font = F(600, 30); g.fillStyle = j.where === 'atlas' ? '#93c5fd' : DIM;
+      right(g, fit(g, (j.room ? (plan?.[j.room]?.name ?? j.room) : 'Atlas') + ' · ' + (j.where === 'atlas' ? tr('Atlas runs it') : tr('your PC')), 400), W - 32, y);
+      y += 88;
+    }
+  }, [sch, plan]);
+  return <BoardPanel tex={tex} w={w} h={w * 0.5625} y={1.5} />;
+}
+
+// The lift up to the view deck: steel doors in the wall, a sign over them and a call button.
+function Lift() {
+  const sign = useMemo(() => textTexture('▲ VIEW DECK', { w: 1024, h: 200, font: '800 120px Inter, system-ui, sans-serif' }), []);
+  return (
+    <group rotation-y={Math.PI / 2}>
+      <mesh position={[0, 1.25, -0.47]}><boxGeometry args={[1.7, 2.5, 0.06]} /><meshStandardMaterial color="#5c6470" metalness={0.6} roughness={0.35} /></mesh>
+      {[-0.36, 0.36].map((x) => (
+        <mesh key={x} position={[x, 1.12, -0.43]}><boxGeometry args={[0.7, 2.2, 0.03]} /><meshStandardMaterial color="#c9ced6" metalness={0.85} roughness={0.22} /></mesh>
+      ))}
+      <mesh position={[0, 1.12, -0.414]}><boxGeometry args={[0.012, 2.2, 0.01]} /><meshStandardMaterial color="#3a3f48" /></mesh>
+      <mesh position={[0, 2.38, -0.43]}><planeGeometry args={[1.3, 0.25]} /><meshBasicMaterial color="#111827" /></mesh>
+      <mesh position={[0, 2.38, -0.425]}><planeGeometry args={[1.25, 0.24]} /><meshBasicMaterial map={sign} transparent toneMapped={false} /></mesh>
+      <mesh position={[0.98, 1.1, -0.44]}><boxGeometry args={[0.12, 0.22, 0.03]} /><meshStandardMaterial color="#2a2e35" /></mesh>
+      <mesh position={[0.98, 1.1, -0.42]}><circleGeometry args={[0.035, 16]} /><meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.8} /></mesh>
+    </group>
+  );
+}
 
 export default function Decor({ L, item }) {
   if (item.type === 'entrance') return <Entrance L={L} />;

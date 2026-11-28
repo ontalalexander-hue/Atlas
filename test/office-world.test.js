@@ -29,6 +29,13 @@ test("office plan: a written plan replaces rooms by kind and keeps the rest", ()
   assert.equal(problems.length, 3, problems.join(" | "));
 });
 
+test("office plan: a room keeps a Discord channel id, and anything else is refused", () => {
+  const { plan, problems } = normalizePlan({ rooms: [{ kind: "separate", discord: "123456789012345678" }, { kind: "church", discord: "general" }] });
+  assert.equal(plan.rooms.find((r) => r.kind === "separate").discord, "123456789012345678");
+  assert.equal(plan.rooms.find((r) => r.kind === "church").discord, undefined);
+  assert.match(problems.join(" "), /not a Discord channel id/);
+});
+
 test("office plan: text is parsed, and bad JSON says so", () => {
   assert.equal(normalizePlan('{"rooms":[{"kind":"church","name":"Church wing"}]}').plan.rooms.find((r) => r.kind === "church").name, "Church wing");
   assert.match(normalizePlan("{nope").problems[0], /Not valid JSON/);

@@ -144,6 +144,29 @@ body { background: var(--bg); }
 .room-label.today { background: #fbbf24 !important; color: #1b1f27 !important; font-weight: 700; }
 .agents-head { font-size: 0.8rem; font-weight: 700; opacity: 0.9; margin: 4px 2px 2px; display: grid; gap: 2px; }
 .agents-head span { font-weight: 400; opacity: 0.6; font-size: 0.72rem; }
+.pc-wrap { position: absolute; inset: 0; background: rgba(5, 10, 18, 0.45); display: grid; place-items: center; z-index: 40; }
+.pc { width: min(560px, 94vw); height: min(620px, 82vh); background: #0d1520; border: 1px solid #1f3a4a; border-radius: 14px; display: grid; grid-template-rows: auto auto 1fr auto auto; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); color: #e6edf7; }
+.pc-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: #0f9d8a; color: #fff; gap: 10px; }
+.pc-head b { display: block; font-size: 1rem; }
+.pc-head span { font-size: 0.78rem; opacity: 0.9; }
+.pc-head-actions { display: flex; gap: 10px; align-items: center; }
+.pc-head .link { color: #fff; text-decoration: underline; }
+.pc-x { background: transparent; border: 0; color: #fff; font-size: 1.1rem; cursor: pointer; }
+.pc-link { padding: 10px 14px; background: #11202c; border-bottom: 1px solid #1f3a4a; font-size: 0.82rem; display: grid; gap: 8px; }
+.pc-link-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.pc-link-list button { background: #1b2a3a; color: #e6edf7; border: 1px solid #2c4258; border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.pc-link-list button.on { background: #5865f2; border-color: #5865f2; }
+.pc-link-actions { display: flex; gap: 12px; }
+.pc-msgs { overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.pc-msg { max-width: 85%; padding: 8px 11px; border-radius: 12px; white-space: pre-wrap; font-size: 0.9rem; line-height: 1.35; }
+.pc-msg.me { align-self: flex-end; background: #1f7ae0; color: #fff; }
+.pc-msg.ai { align-self: flex-start; background: #1b2735; }
+.pc-empty { opacity: 0.6; font-size: 0.9rem; margin: auto; }
+.pc-err { color: #f87171; font-size: 0.8rem; padding: 0 14px 6px; }
+.pc-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid #1f3a4a; }
+.pc-input input { flex: 1; background: #0a121b; color: inherit; border: 1px solid #2c4258; border-radius: 10px; padding: 9px 11px; font: inherit; }
+.pc-input button { background: #0f9d8a; color: #fff; border: 0; border-radius: 10px; padding: 0 16px; font-weight: 700; cursor: pointer; }
+.pc-input button:disabled { opacity: 0.5; cursor: default; }
 .tag.visitor { background: rgba(255, 255, 255, 0.92); color: #1b1f27; }
 .sun-alt { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .sun-info { display: flex; justify-content: space-between; gap: 8px; font-size: 0.76rem; color: #cfd5e0; flex-wrap: wrap; }
@@ -411,3 +434,32 @@ body { background: var(--bg); }
   .order-reply { max-height: 28vh; }
   .alerts { max-width: calc(100% - 16px); }
 }
+
+/* the front desk chat */
+.pc-who { opacity: 0.7; font-size: 0.78rem; margin-right: 2px; }
+.pc-head-actions select { background: #0f1722; color: #e6edf6; border: 1px solid #2b3a4d; border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 0.82rem; }
+/* the schedule card in the side panel */
+.sched-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.sched-row { display: grid; grid-template-columns: 74px 1fr; gap: 8px; font-size: 0.82rem; align-items: baseline; }
+.sched-row time { font-variant-numeric: tabular-nums; font-weight: 700; }
+.sched-row.done { opacity: 0.5; }
+.sched-row.soon time { color: #fbbf24; }
+.sched-row small { display: block; opacity: 0.65; font-size: 0.72rem; }
+
+.sched-note { font-size: 0.72rem; opacity: 0.65; margin: 6px 0 0; line-height: 1.35; }
+
+/* five camera views in one row */
+.seg5 { grid-template-columns: repeat(5, 1fr); }
+.seg5 button { padding-left: 2px; padding-right: 2px; font-size: 0.76rem; }
+
+/* the projector's controls and the meeting, at the side so the screen stays in view */
+.proj-panel { position: absolute; left: 16px; bottom: 96px; width: min(440px, calc(100vw - 32px)); max-height: 66vh; z-index: 40; display: flex; flex-direction: column; }
+.proj-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.proj-actions button, .proj-call { background: #1b2735; color: #e6edf6; border: 1px solid #2b3a4d; border-radius: 9px; padding: 7px 10px; font: inherit; font-size: 0.82rem; cursor: pointer; }
+.proj-actions button:hover, .proj-call:hover { background: #24364b; }
+.proj-note { font-size: 0.72rem; opacity: 0.65; margin: 6px 12px; line-height: 1.35; }
+.proj-meeting { border-top: 1px solid #2b3a4d; padding-top: 8px; display: flex; flex-direction: column; min-height: 0; }
+.proj-meeting .pc-msgs { max-height: 30vh; }
+.proj-call { margin: 4px 12px 12px; background: #1f7ae0; border-color: #1f7ae0; color: #fff; font-weight: 600; }
+.proj-meeting-head { display: flex; justify-content: space-between; align-items: center; padding: 0 12px 6px; font-size: 0.85rem; }
+.proj-panel.pc { height: auto; }

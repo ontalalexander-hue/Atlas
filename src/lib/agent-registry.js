@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { resolveModelAlias } from "../config/constants.js";
+import { departmentTeam, ownerPlan } from "./departments.js";
 
 /**
  * Agent Registry — manages agent definitions (Coder, Researcher, Writer, etc.)
@@ -85,7 +86,7 @@ const WHEN = {
  * The team as the Claude Agent SDK's `agents` option: what the main agent can delegate to with its Agent tool.
  * An agent whose definition is unusable (no id or no prompt) is left out.
  */
-export function sdkAgents(agents = getAgents()) {
+export function sdkAgents(agents = [...getAgents(), ...departmentAgents()]) {
   const out = {};
   for (const a of Array.isArray(agents) ? agents : []) {
     if (!a || a.isOrchestrator || a.status === "offline") continue;
@@ -102,6 +103,15 @@ export function sdkAgents(agents = getAgents()) {
 }
 
 let _settingsStore = null;
+
+/** The office's department agents (lib/departments.js), on the same mid-size model as the Researcher. */
+export function departmentAgents() {
+  try {
+    return departmentTeam(ownerPlan(_settingsStore)).map((d) => ({ ...d, model: resolveModelAlias("sonnet") }));
+  } catch {
+    return [];
+  }
+}
 
 export function initAgentRegistry(settingsStore) {
   _settingsStore = settingsStore;

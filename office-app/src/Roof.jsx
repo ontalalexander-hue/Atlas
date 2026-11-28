@@ -6,12 +6,16 @@ import { useFrame } from '@react-three/fiber';
 import { Html, RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
 import { tr } from './i18n.js';
+import { deckLayout } from './deck.js';
 
 // The roof's walking surface: high enough that boss mode, walking about inside with the roof on, has room for its
 // camera (BOSS_CEILING in Boss.jsx stays under it).
-export const TOP = 7.0;
+export const TOP = 5.0;
 const WALL = 1.3; // where the outer walls stop: a band of windows fills the gap up to the slab
 const LIFT = 15;
+// how far the roof is lifted right now: people up on the deck ride along with it
+// (`snap`: put it straight down, for the boss stepping out of the lift onto it)
+export const roofLift = { y: 0, snap: false };
 
 function deckTexture() {
   const c = document.createElement('canvas');
@@ -73,6 +77,16 @@ function Lounger() {
   );
 }
 
+function Bench() {
+  return (
+    <group>
+      <RoundedBox args={[2.0, 0.08, 0.5]} radius={0.03} position-y={0.45} castShadow><meshStandardMaterial color="#b98a5e" roughness={0.7} /></RoundedBox>
+      <RoundedBox args={[2.0, 0.45, 0.07]} radius={0.03} position={[0, 0.72, -0.24]} rotation-x={-0.12} castShadow><meshStandardMaterial color="#b98a5e" roughness={0.7} /></RoundedBox>
+      {[-0.85, 0.85].map((x) => <mesh key={x} position={[x, 0.22, 0]}><boxGeometry args={[0.07, 0.44, 0.45]} /><meshStandardMaterial color="#3a3f48" metalness={0.5} roughness={0.4} /></mesh>)}
+    </group>
+  );
+}
+
 function Planter({ w = 2 }) {
   return (
     <group>
@@ -96,9 +110,10 @@ function AcUnit() {
   );
 }
 
-function Deck({ x0, x1, z0, z1, lamps }) {
+function Deck({ D, lamps }) {
   const wood = useMemo(() => deckTexture(), []);
-  const w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  const { x0, x1, z0, z1, cx, cz } = D;
+  const w = x1 - x0, d = z1 - z0;
   wood.repeat.set(w / 4, d / 4);
   const rail = (key, pos, size) => (
     <group key={key} position={pos}>
@@ -117,17 +132,14 @@ function Deck({ x0, x1, z0, z1, lamps }) {
       {rail('l', [x0, TOP, cz], [0.05, d])}
       {rail('r', [x1, TOP, cz], [0.05, d])}
 
-      <group position={[x0 + 3.2, TOP, cz + 1.4]}><Table color="#1f7ae0" /></group>
-      <group position={[cx + 0.5, TOP, cz + 1.8]}><Table color="#e8684a" /></group>
-      <group position={[x1 - 3.2, TOP, cz + 1.2]}><Table color="#f4efe6" /></group>
-      <group position={[x0 + 2.2, TOP, z0 + 1.6]} rotation-y={0.5}><Lounger /></group>
-      <group position={[x0 + 3.7, TOP, z0 + 1.5]} rotation-y={0.4}><Lounger /></group>
-      <group position={[cx, TOP, z0 + 0.5]}><Planter w={5} /></group>
-      <group position={[x1 - 0.5, TOP, cz - 0.6]} rotation-y={Math.PI / 2}><Planter w={3} /></group>
+      {D.tables.map((t, i) => <group key={i} position={[t.at[0], TOP, t.at[1]]}><Table color={t.color} /></group>)}
+      {D.loungers.map((l, i) => <group key={i} position={[l.at[0], TOP, l.at[1]]} rotation-y={l.rot}><Lounger /></group>)}
+      {D.benches.map((b, i) => <group key={i} position={[b.at[0], TOP, b.at[1]]}><Bench /></group>)}
+      {D.planters.map((p, i) => <group key={i} position={[p.at[0], TOP, p.at[1]]} rotation-y={p.w < p.d ? Math.PI / 2 : 0}><Planter w={Math.max(p.w, p.d)} /></group>)}
 
       {/* coin-operated viewers at the front rail */}
-      {[x0 + 6, x1 - 6].map((x) => (
-        <group key={x} position={[x, TOP, z1 - 0.6]}>
+      {D.viewers.map(([x, z]) => (
+        <group key={x} position={[x, TOP, z]}>
           <mesh position-y={0.6}><cylinderGeometry args={[0.05, 0.08, 1.2, 10]} /><meshStandardMaterial color="#5c6470" metalness={0.6} roughness={0.4} /></mesh>
           <mesh position={[0, 1.28, 0.05]} rotation-x={Math.PI / 2 - 0.25}><cylinderGeometry args={[0.13, 0.16, 0.5, 14]} /><meshStandardMaterial color="#2f6fb5" metalness={0.4} roughness={0.4} /></mesh>
         </group>
@@ -152,16 +164,19 @@ function Deck({ x0, x1, z0, z1, lamps }) {
 export default function Roof({ L }) {
   const mode = useOffice((s) => s.roofMode);
   const busy = useOffice((s) => Object.values(s.agents).some((a) => (a.state !== 'idle' && !(a.state === 'walking' && a.away))));
+  const bossOnDeck = useOffice((s) => s.boss && s.bossOnDeck);
   const picked = useOffice((s) => !!s.selected || !!s.order?.busy || s.boss);
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 10) / 10);
   const setRoofClosed = useOffice((s) => s.setRoofClosed);
   const roofClosed = useOffice((s) => s.roofClosed);
   const boss = useOffice((s) => s.boss);
   const bossOutside = useOffice((s) => s.bossOutside);
-  const wantOpen = mode === 'off' || (mode === 'auto' && (busy || picked));
+  // with the boss up on the deck the roof stays where it is: they are standing on it
+  const wantOpen = !bossOnDeck && (mode === 'off' || (mode === 'auto' && (busy || picked)));
   const ref = useRef();
   const st = useRef({ y: wantOpen ? LIFT : 0, open: wantOpen });
   const sign = useMemo(() => textTexture('ATLAS'), []);
+  const liftSign = useMemo(() => textTexture('▼ LIFT'), []);
 
   // closing waits a moment, so the roof does not bounce between two steps of the same job
   useEffect(() => {
@@ -172,17 +187,20 @@ export default function Roof({ L }) {
 
   useFrame((_, dt) => {
     const s = st.current;
+    if (roofLift.snap) { roofLift.snap = false; s.open = false; s.y = 0; }
     const target = s.open ? LIFT : 0;
     s.y += (target - s.y) * Math.min(1, dt * 4);
     if (!ref.current) return;
     ref.current.position.y = s.y;
+    roofLift.y = s.y;
     ref.current.visible = s.y < LIFT - 0.4;
     const closed = s.y < 0.6;
     if (closed !== useOffice.getState().roofClosed && !s.open) setRoofClosed(closed);
   });
 
   const W = L.W, H = L.H;
-  const x0 = -W / 2 + 1.2, x1 = Math.min(-W / 2 + 21, W / 2 - 14), z0 = 0.8, z1 = H / 2 - 0.9;
+  const D = useMemo(() => deckLayout(W, H), [W, H]);
+  const { x0, x1, z1 } = D;
   const par = [[0, -H / 2 - 0.15, W + 0.9, 0.3], [0, H / 2 + 0.15, W + 0.9, 0.3], [-W / 2 - 0.15, 0, 0.3, H + 0.3], [W / 2 + 0.15, 0, 0.3, H + 0.3]];
   const panels = [];
   for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) panels.push([W / 2 - 13 + c * 2.3, -H / 2 + 2.6 + r * 2.2]);
@@ -217,7 +235,7 @@ export default function Roof({ L }) {
         <mesh position-z={0.105}><planeGeometry args={[6.6, 1.6]} /><meshBasicMaterial map={sign} transparent toneMapped={false} /></mesh>
       </group>
 
-      <Deck x0={x0} x1={x1} z0={z0} z1={z1} lamps={lamps} />
+      <Deck D={D} lamps={lamps} />
       {roofClosed && !boss && (
         <Html position={[(x0 + x1) / 2, TOP + 0.1, z1 - 0.2]} center distanceFactor={16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`room-label ${lamps > 0.5 ? 'night' : 'day'}`}>{tr('View deck')}</div>
@@ -230,6 +248,8 @@ export default function Roof({ L }) {
         <mesh position-y={2.45}><boxGeometry args={[3.7, 0.12, 3.3]} /><meshStandardMaterial color="#3a3f48" /></mesh>
         <mesh position={[0, 1.05, 1.51]}><planeGeometry args={[1.1, 2.0]} /><meshStandardMaterial color="#2f6fb5" roughness={0.5} /></mesh>
         <mesh position={[0.38, 1.05, 1.52]}><circleGeometry args={[0.05, 12]} /><meshStandardMaterial color="#c9ced6" metalness={0.8} roughness={0.3} /></mesh>
+        <mesh position={[0, 2.2, 1.515]}><planeGeometry args={[1.4, 0.34]} /><meshStandardMaterial color="#1f2937" roughness={0.6} /></mesh>
+        <mesh position={[0, 2.2, 1.52]}><planeGeometry args={[1.3, 0.3]} /><meshBasicMaterial map={liftSign} transparent toneMapped={false} /></mesh>
       </group>
 
       {/* the working part of the roof: solar panels, air conditioning, a water tank */}

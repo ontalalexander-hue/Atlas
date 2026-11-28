@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
+import Mart from './Mart.jsx';
 
 function label(text, { w = 1024, h = 200, color = '#fff', bg = null, font = '800 120px Inter, system-ui, sans-serif' } = {}) {
   const c = document.createElement('canvas');
@@ -44,68 +45,6 @@ function StreetLamp({ lamps }) {
 }
 
 
-// The store: front faces +x, toward the office's front door.
-function Store({ lamps }) {
-  const sign = useMemo(() => label('ATLAS MART', { color: '#ffffff', bg: '#1f7ae0' }), []);
-  const open = useMemo(() => label('OPEN 24/7', { w: 512, h: 160, color: '#16321f', bg: '#8fe3a8', font: '800 84px Inter, system-ui, sans-serif' }), []);
-  const glow = 0.35 + lamps * 1.3;
-  return (
-    <group>
-      {/* walls and roof */}
-      <RoundedBox args={[5, 2.7, 6.4]} radius={0.06} position-y={1.35} castShadow receiveShadow><meshStandardMaterial color="#f4efe6" roughness={0.9} /></RoundedBox>
-      <mesh position-y={2.76} castShadow><boxGeometry args={[5.4, 0.14, 6.8]} /><meshStandardMaterial color="#3a3f48" roughness={0.7} /></mesh>
-      <mesh position={[0, 0.2, 0]}><boxGeometry args={[5.06, 0.4, 6.46]} /><meshStandardMaterial color="#d8d0c2" roughness={0.9} /></mesh>
-      {/* sign on the roof, readable from the front and from the camera's side */}
-      <group position={[2.2, 3.3, 0]}>
-        <mesh castShadow><boxGeometry args={[0.2, 0.9, 5.2]} /><meshStandardMaterial color="#1f7ae0" /></mesh>
-        <mesh position-x={0.105} rotation-y={Math.PI / 2}><planeGeometry args={[5.1, 0.86]} /><meshBasicMaterial map={sign} toneMapped={false} /></mesh>
-      </group>
-      <group position={[0, 3.3, 3.1]}>
-        <mesh castShadow><boxGeometry args={[4.4, 0.9, 0.2]} /><meshStandardMaterial color="#1f7ae0" /></mesh>
-        <mesh position-z={0.105}><planeGeometry args={[4.3, 0.82]} /><meshBasicMaterial map={sign} toneMapped={false} /></mesh>
-      </group>
-      {/* shop window and door (front, +x) */}
-      <mesh position={[2.51, 1.45, -1.1]} rotation-y={Math.PI / 2}>
-        <planeGeometry args={[3.4, 1.7]} />
-        <meshStandardMaterial color="#cfe7ff" emissive="#ffe9b8" emissiveIntensity={glow} roughness={0.1} />
-      </mesh>
-      {/* shelves seen through the window */}
-      {[0, 1, 2].map((r) => (
-        <group key={r} position={[2.52, 0.85 + r * 0.5, -1.1]} rotation-y={Math.PI / 2}>
-          <mesh><planeGeometry args={[3.2, 0.04]} /><meshBasicMaterial color="#6b7280" /></mesh>
-          {Array.from({ length: 11 }).map((_, i) => (
-            <mesh key={i} position={[-1.45 + i * 0.29, 0.17, 0.001]}><planeGeometry args={[0.2, 0.3]} /><meshBasicMaterial color={['#e8684a', '#ffd166', '#2f9e64', '#3b82c4', '#b05cc2'][(i + r * 2) % 5]} toneMapped={false} /></mesh>
-          ))}
-        </group>
-      ))}
-      <mesh position={[2.51, 1.1, 1.9]} rotation-y={Math.PI / 2}>
-        <planeGeometry args={[1.2, 2.1]} />
-        <meshStandardMaterial color="#9fd0ee" emissive="#ffe9b8" emissiveIntensity={glow * 0.8} roughness={0.1} />
-      </mesh>
-      <mesh position={[2.53, 1.1, 1.9]} rotation-y={Math.PI / 2}><planeGeometry args={[0.04, 2.1]} /><meshBasicMaterial color="#2b2f36" /></mesh>
-      <mesh position={[2.52, 2.35, 1.9]} rotation-y={Math.PI / 2}><planeGeometry args={[1.1, 0.34]} /><meshBasicMaterial map={open} toneMapped={false} /></mesh>
-      {/* striped awning */}
-      {Array.from({ length: 10 }).map((_, i) => (
-        <mesh key={i} position={[2.95, 2.42, -2.7 + i * 0.6]} rotation-z={-0.38} castShadow>
-          <boxGeometry args={[1.1, 0.05, 0.6]} /><meshStandardMaterial color={i % 2 ? '#ffffff' : '#e8684a'} roughness={0.8} />
-        </mesh>
-      ))}
-      {/* out front: ice box, crates of drinks, a bin and a bench */}
-      <RoundedBox args={[0.8, 1.0, 1.3]} radius={0.04} position={[3.0, 0.5, -2.4]} castShadow><meshStandardMaterial color="#e9f2fb" roughness={0.4} /></RoundedBox>
-      <mesh position={[3.41, 0.62, -2.4]} rotation-y={Math.PI / 2}><planeGeometry args={[1.1, 0.5]} /><meshStandardMaterial color="#7cc4f0" emissive="#7cc4f0" emissiveIntensity={0.3 + lamps} /></mesh>
-      {[[3.0, -1.2, '#e8684a'], [3.0, -0.65, '#ffd166'], [3.05, -0.92, '#3b82c4']].map(([x, z, c], i) => (
-        <mesh key={i} position={[x, i === 2 ? 0.6 : 0.2, z]} castShadow><boxGeometry args={[0.5, 0.38, 0.5]} /><meshStandardMaterial color={c} roughness={0.8} /></mesh>
-      ))}
-      <mesh position={[3.0, 0.4, 2.95]} castShadow><cylinderGeometry args={[0.24, 0.2, 0.8, 16]} /><meshStandardMaterial color="#3f8350" roughness={0.7} /></mesh>
-      <group position={[3.3, 0, 0.4]} rotation-y={Math.PI / 2}>
-        <RoundedBox args={[1.5, 0.08, 0.45]} radius={0.03} position-y={0.45} castShadow><meshStandardMaterial color="#c9a27a" /></RoundedBox>
-        {[-0.6, 0.6].map((x) => <mesh key={x} position={[x, 0.22, 0]}><boxGeometry args={[0.06, 0.44, 0.4]} /><meshStandardMaterial color="#1f232a" /></mesh>)}
-      </group>
-      {lamps > 0.3 && <pointLight position={[4, 2.2, 0]} intensity={14 * lamps} distance={10} decay={1.6} color="#ffe2a8" />}
-    </group>
-  );
-}
-
 export default function Outside({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 10) / 10);
   const ground = useOffice((s) => s.sky.ground);
@@ -122,7 +61,7 @@ export default function Outside({ L }) {
   const [spx, spz] = L.toWorld(o.storeSpot);
 
   const trees = [
-    [left - 3, -10, 1.1, 0], [left - 7, -11.5, 0.9, 1], [left - 11.5, -9.5, 1.2, 2], [left - 2.6, 9, 1, 1],
+    [left - 3, -10, 1.1, 0], [left - 7, -11.5, 0.9, 1], [left - 11.5, -12.5, 1.2, 2], [left - 13, 12, 1, 1],
     [left - 9.5, 10.5, 1.15, 0], [left - 11.5, 15, 0.95, 2], [left + 6, L.H / 2 + 4.8, 1, 2], [left + 15, L.H / 2 + 5, 1.15, 0],
     [left + 27, L.H / 2 + 4.8, 0.95, 1], [left + L.W - 5, L.H / 2 + 5, 1.1, 2], [left + 12, -L.H / 2 - 4.2, 1.1, 1], [left + 30, -L.H / 2 - 4.4, 1, 0],
     [left + L.W + 3.5, -6, 1.1, 0], [left + L.W + 3.8, 7, 0.95, 2],
@@ -152,7 +91,7 @@ export default function Outside({ L }) {
         <planeGeometry args={[2.6, 7]} /><meshStandardMaterial color={paving} roughness={0.95} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
 
-      <group position={[sx, 0, sz]}><Store lamps={lamps} /></group>
+      <Mart m={L.mart.world} lamps={lamps} />
 
       {/* the streets and the rest of the city: City.jsx */}
 

@@ -5,6 +5,8 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useOffice } from './store.js';
 import { CITY, TYPES, EXTENT, STREET, LOT } from './city.js';
+import Shops from './Shops.jsx';
+import Traffic from './Traffic.jsx';
 
 const rnd = (seed) => { let s = seed; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; };
 const FACADES = [
@@ -187,6 +189,8 @@ export default function City() {
       <Instances geometry={geo.car} material={mat.car} mats={parts.cars} colors={parts.carColors} />
       <Instances geometry={geo.cabin} material={mat.cabin} mats={parts.cabins} />
       <Buildings lamps={lamps} />
+      <Shops lamps={lamps} />
+      <Traffic />
     </group>
   );
 }

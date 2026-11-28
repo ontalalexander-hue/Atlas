@@ -29,6 +29,18 @@ function spans(lo, hi) {
   return out;
 }
 
+// Across the street from the office's front door: a row of shops facing it, a supermarket with its car park, and
+// green on either side. Their own made-up names and colours. Each faces -z (the office), its front at z0.
+export const STORES = [
+  { id: 'quickstop', name: 'QUICKSTOP 24/7', x0: -44, x1: -32, z0: 41.5, d: 11, h: 4.6, wall: '#f4efe6', band: '#0f766e', stripe: '#facc15', open: '24/7' },
+  { id: 'freshco', name: 'FRESHCO SUPERMARKET', x0: -26, x1: 6, z0: 52, d: 20, h: 7.5, wall: '#e5e7eb', band: '#c2410c', stripe: '#1f2937', open: '7AM – 11PM', big: true },
+  { id: 'pharmacy', name: 'PHARMACY +', x0: 10, x1: 20, z0: 41.5, d: 10, h: 4.4, wall: '#f8fafc', band: '#15803d', stripe: '#bbf7d0', open: '8AM – 10PM' },
+  { id: 'bakery', name: 'BAKERY · CAFÉ', x0: 22, x1: 32, z0: 41.5, d: 10, h: 4.4, wall: '#f5e6d3', band: '#7c2d12', stripe: '#fcd34d', open: '6AM – 9PM' },
+];
+// the supermarket's car park, in front of it: [x0, x1, z0, z1], and the bays' parked cars
+export const CARPARK = { x0: -26, x1: 6, z0: 41, z1: 50.5 };
+export const CARPARK_CARS = [[-22.5, 44], [-17.5, 44], [-7.5, 44], [-2.5, 47.5], [2.5, 44], [-12.5, 47.5]];
+
 function build() {
   const r = rnd(4242);
   const xs = spans(LOT.x0, LOT.x1);
@@ -44,7 +56,12 @@ function build() {
       blocks.push({ x0, x1, z0, z1 });
       // the block right in front of the office is an open plaza: the cameras stand there
       const front = z0 === LOT.z1 + STREET && x1 > LOT.x0 && x0 < LOT.x1;
-      if (front) { parks.push({ x0: x0 + SIDEWALK, x1: x1 - SIDEWALK, z0: z0 + SIDEWALK, z1: z1 - SIDEWALK, plaza: true }); continue; }
+      if (front) {
+        // the shops stand along the street; green at the left end (where the street camera stands) and behind them
+        parks.push({ x0: x0 + SIDEWALK, x1: -47, z0: z0 + SIDEWALK, z1: z1 - SIDEWALK, plaza: true });
+        parks.push({ x0: 9, x1: x1 - SIDEWALK, z0: 56, z1: z1 - SIDEWALK, plaza: true });
+        continue;
+      }
       // in front of the office (the side the cameras look from) only low shops, so nothing hides it
       const lowOnly = cz > 0 && Math.abs(cx) < 110 && z0 < 110;
       // now and then a small park, mostly near the middle
@@ -94,6 +111,8 @@ for (const b of CITY.buildings) {
   const T = TYPES[b.type];
   mark(b.x - T.w / 2 - 0.3, b.x + T.w / 2 + 0.3, b.z - T.d / 2 - 0.3, b.z + T.d / 2 + 0.3, 'b');
 }
+for (const s of STORES) mark(s.x0 - 0.3, s.x1 + 0.3, s.z0 - 0.3, s.z0 + s.d + 0.3, 's');
+for (const [x, z] of CARPARK_CARS) mark(x - 1.1, x + 1.1, z - 2.2, z + 2.2, 'c');
 
 /**
  * Can a person stand here, outside the office building? Inside the city and not inside a building. `extra` lists

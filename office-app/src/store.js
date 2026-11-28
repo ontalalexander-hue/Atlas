@@ -54,6 +54,9 @@ function agentsFor(team, L, inLounge) {
 const stamp = () => new Date().toLocaleTimeString(LOCALE, { hour12: false });
 const calmTimers = {};
 const sickTimers = {};
+const martTimers = {};
+const deckTimers = {};
+const DECK_LINES = ['🌇 What a view', '☀️ Nice breeze up here', '🏙️ I can see the whole street', '🚗 Look at the traffic', '😌 Two minutes of quiet'];
 // visitors: one per conversation waiting on Atlas, keyed by a short id of our own
 const visitorIds = new Map();
 let visitorSeq = 0;
@@ -151,8 +154,63 @@ export const useOffice = create((set, get) => ({
   setTimeOffset: (timeOffsetH) => set({ timeOffsetH }),
   toggleMute: () => set({ muted: !get().muted }),
   select: (id) => set({ selected: get().selected === id ? null : id }),
-  setBoss: (boss) => set({ boss, bossOutside: false, screenOpen: false, nearScreen: null, selected: null }),
+  setBoss: (boss) => {
+    // leaving boss mode up on the deck or in a chair: back on your feet, in the lobby
+    const p = positions.boss;
+    const L = get().layout;
+    if (!boss && p) { if (p.deck && L.lift) Object.assign(p, { x: L.lift.front[0], z: L.lift.front[1], deck: false }); p.sit = null; }
+    set({ boss, bossOutside: false, bossOnDeck: false, bossSeat: null, nearSeat: null, screenOpen: false, nearScreen: null, selected: null, reception: null });
+  },
+  nearSeat: null,       // boss mode: a free seat within reach
   bossOutside: false,   // boss mode, standing out in the city rather than in the office building
+  bossInMart: false,    // boss mode, inside Atlas Mart
+  // the room whose computer is open (its kind), or null
+  computer: null,
+  setComputer: (computer) => set({ computer }),
+  bossOnDeck: false,    // boss mode, up on the roof's view deck
+  bossSeat: null,       // the seat the boss is sitting on (a seat id), or null
+  // the front desk: which receptionist the boss is talking to, and what each one last said
+  reception: null,
+  setReception: (reception) => set({ reception }),
+  receptionSay: {},     // { [name]: { text, until } }
+  deskSay: (who, text, ms = 4000) => set((s) => ({ receptionSay: { ...s.receptionSay, [who]: { text, until: Date.now() + ms } } })),
+  // the projectors: what each shows ({ kind, title, n }, from projector.js), and which one's controls are open
+  projector: {},
+  setProjector: (id, v) => set((s) => ({ projector: { ...s.projector, [id]: v ?? undefined } })),
+  projectorOpen: null,
+  setProjectorOpen: (projectorOpen) => set({ projectorOpen }),
+  // a meeting in the conference room: everyone who is free sits round the table
+  meeting: null,
+  callMeeting: () => {
+    const L = get().layout;
+    const seats = L.meeting?.seats ?? [];
+    const extra = [[27, 13], [27, 16], [17, 17], [20, 17], [23, 17], [26, 17], [28, 14]];
+    const ids = ['manager', ...Object.keys(get().agents).filter((id) => id !== 'manager')];
+    let i = 0;
+    for (const id of ids) {
+      const a = get().agents[id];
+      if (!a || a.down) continue;
+      // someone in the middle of a job finishes it first
+      if (id !== 'manager' && a.task) { get().say(id, tr("Finishing a job, I'll catch up"), 3500); continue; }
+      const seat = seats[i];
+      const at = seat ?? extra[(i - seats.length) % extra.length];
+      const rot = seat ? (i < seats.length / 2 ? 0 : Math.PI) : -Math.PI / 2;
+      get().goTo(id, at, { state: 'idle', rot, sit: !!seat });
+      if (i < 3) get().say(id, tr(['On my way 📋', 'Coming!', 'Meeting time 👥'][i]), 2500);
+      i++;
+    }
+    set({ meeting: { since: Date.now() } });
+  },
+  endMeeting: () => {
+    set({ meeting: null });
+    for (const a of Object.values(get().agents)) {
+      if (a.down || (a.task && a.id !== 'manager')) continue;
+      get().goToDesk(a.id, { state: a.id === 'manager' && a.task ? 'thinking' : 'idle' });
+    }
+  },
+  // GET /api/office/schedule: { at, zone, jobs: [{ name, room, where, on }], runs: [{ job, at, done }] }
+  schedule: null,
+  setSchedule: (schedule) => set({ schedule }),
   setBossName: (bossName) => { try { localStorage.setItem('agent-office-boss', bossName); } catch {} set({ bossName }); },
   setNearScreen: (nearScreen) => set({ nearScreen, ...(nearScreen ? {} : { screenOpen: false }) }),
   setScreenOpen: (screenOpen) => set({ screenOpen }),
@@ -206,11 +264,17 @@ export const useOffice = create((set, get) => ({
     if (!a || !pos) return;
     if (!force && a.down) return;
     if (!force && get().isPanicking(id)) { get().patch(id, { resume: { cell, after } }); return; }
-    // Outside (on a snack run): back along the walk and in through the front door first.
     const L = get().layout;
+    // Up on the deck: the lift brings them down to the lobby first.
+    if (pos.deck && L.lift) { pos.deck = false; pos.x = L.lift.front[0]; pos.z = L.lift.front[1]; }
+    // Outside (on a snack run): back along the walk and in through the front door first.
     const out = pos.x < 0.5 || pos.z > L.H - 1.5;
     let path = findPath(L, out ? L.outside.door : [pos.x, pos.z], cell);
-    if (out) {
+    if (a.martSpot && L.mart) {
+      // in the mart: out through its door first, then the walk back
+      const spot = L.mart.spots.find((s) => s.id === a.martSpot);
+      path = [...[...(spot?.viaCells ?? [])].reverse(), L.mart.middle, L.mart.inside, L.mart.outside, ...[...L.outside.walk].reverse(), L.outside.door, ...path];
+    } else if (out) {
       // back along the walk from the nearest point on it
       const walk = L.outside.walk;
       const far = (w) => Math.hypot(w[0] - pos.x, w[1] - pos.z);
@@ -218,7 +282,7 @@ export const useOffice = create((set, get) => ({
       walk.forEach((w, i) => { if (far(w) < far(walk[near])) near = i; });
       path = [...walk.slice(0, near + 1).reverse(), L.outside.door, ...path];
     }
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false, seated: false, bed: null });
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false, seated: false, bed: null, martSpot: null, deckSeat: null });
   },
   goToDesk: (id, after = { state: 'working' }) => {
     const a = get().agents[id];
@@ -232,18 +296,70 @@ export const useOffice = create((set, get) => ({
     get().goTo(id, spots[a.index % spots.length], after);
   },
   // A helper with nothing to do walks out to the store, stands there a while, and comes back.
+  // A helper with nothing to do goes to Atlas Mart: a shelf, the fridges, the counter, the arcade, or a seat at a
+  // snack table (next to a colleague already there when there is one), and comes back after a while.
   storeRun: (id) => {
     const a = get().agents[id];
     const pos = positions[id];
     const L = get().layout;
-    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || get().isPanicking(id)) return;
-    const path = [...findPath(L, [pos.x, pos.z], L.outside.door), ...L.outside.walk, L.outside.storeSpot];
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'idle' }, away: true });
-    get().say(id, tr('Snack run 🥤'), 3000);
+    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || a.deckSeat || get().isPanicking(id) || !L.mart) return;
+    const taken = new Set(Object.values(get().agents).filter((x) => x.martSpot).map((x) => x.martSpot));
+    const free = L.mart.spots.filter((s) => !taken.has(s.id));
+    if (!free.length) return;
+    const tablesInUse = new Set(L.mart.spots.filter((s) => taken.has(s.id) && s.table != null).map((s) => s.table));
+    const company = free.filter((s) => s.table != null && tablesInUse.has(s.table));
+    const spot = company.length ? company[0] : free[Math.floor(Math.random() * free.length)];
+    const path = [...findPath(L, [pos.x, pos.z], L.outside.door), ...L.outside.walk, L.mart.outside, L.mart.inside, L.mart.middle, ...spot.viaCells, spot.cell];
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'idle', rot: spot.rot, sit: !!spot.sit }, away: true, seated: false, martSpot: spot.id });
+    get().say(id, tr('Snack break 🍙'), 3000);
+    clearTimeout(martTimers[id]);
+    martTimers[id] = setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.martSpot === spot.id && b.state !== 'walking') get().say(id, spot.line ? tr(spot.line) : tr('😋 So good'), 4000);
+    }, 12_000);
+    clearTimeout(martTimers[`${id}#out`]);
+    martTimers[`${id}#out`] = setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.martSpot === spot.id && b.away && b.state === 'idle') { get().say(id, tr('Back to the office'), 2500); get().goToDesk(id, { state: 'idle' }); }
+    }, 55_000 + Math.random() * 30_000);
+  },
+  // A helper with nothing to do takes the lift up to the view deck, sits on a bench (or at a table) and looks at the
+  // city for a minute or two, then comes back down.
+  deckRun: (id) => {
+    const a = get().agents[id];
+    const pos = positions[id];
+    const L = get().layout;
+    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || a.deckSeat || get().isPanicking(id) || !L.lift || !L.deck) return;
+    const taken = new Set(Object.values(get().agents).filter((x) => x.deckSeat).map((x) => x.deckSeat));
+    if (get().bossSeat) taken.add(get().bossSeat);
+    const free = L.deck.seatCells.filter((s) => !taken.has(s.id));
+    if (!free.length) return;
+    const views = free.filter((s) => s.view);
+    const pool = views.length && Math.random() < 0.75 ? views : free;
+    const spot = pool[Math.floor(Math.random() * pool.length)];
+    const path = findPath(L, [pos.x, pos.z], L.lift.front);
+    get().patch(id, {
+      path, pathId: a.pathId + 1, state: 'walking', away: true, seated: false, deckSeat: spot.id,
+      after: { state: 'idle', rot: L.lift.rot, hold: 1200, next: () => get().upToDeck(id, spot) },
+    });
+    get().say(id, tr('Up to the view deck 🌇'), 3000);
+    clearTimeout(deckTimers[id]);
+    deckTimers[id] = setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.deckSeat === spot.id && b.away && b.state === 'idle') { get().say(id, tr('Back to work'), 2500); get().goToDesk(id, { state: 'idle' }); }
+    }, 60_000 + Math.random() * 45_000);
+  },
+  // out of the lift at the top, and over to the seat
+  upToDeck: (id, spot) => {
+    const pos = positions[id];
+    const a = get().agents[id];
+    if (!pos || !a || a.deckSeat !== spot.id) return;
+    Object.assign(pos, { x: spot.cell[0], z: spot.cell[1], rot: spot.rot, deck: true });
+    get().patch(id, { state: 'idle', seated: true, path: [] });
     setTimeout(() => {
       const b = get().agents[id];
-      if (b?.away && b.state === 'idle') { get().say(id, tr('Back to the floor'), 2500); get().goToDesk(id, { state: 'idle' }); }
-    }, 24_000);
+      if (b?.deckSeat === spot.id && positions[id]?.deck) get().say(id, tr(DECK_LINES[Math.floor(Math.random() * DECK_LINES.length)]), 4000);
+    }, 6000);
   },
   arrived: (id) => {
     const a = get().agents[id];

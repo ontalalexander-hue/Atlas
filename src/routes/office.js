@@ -13,6 +13,11 @@
  *   GET /api/office/plan    the owner's room plan (setting office.plan, else ATLAS_OFFICE_PLAN, else a generic one)
  *   PUT /api/office/plan    save it: { plan } (an object or JSON text); answers with what was kept and any problems
  *   GET /api/office/world   the plan plus the live numbers its rooms show (lib/office-world.js)
+ *   GET /api/office/rooms/:kind/chat     a room computer's conversation: its own (web:office-<kind>), or the Discord
+ *                                        channel's it is linked to; the last 40 messages
+ *   PUT /api/office/rooms/:kind/link     { discord: channelId | null }: link the room's computer to a channel, or unlink
+ *   POST /api/office/rooms/:kind/mirror  { text, reply }: post an exchange typed at a linked computer to its channel
+ *   GET /api/office/discord-channels     the Discord channels Atlas has a conversation in, and whether Discord is up
  */
 import { Router } from "express";
 import { onEvent, activeTurnList } from "../lib/live-bus.js";
@@ -22,11 +27,14 @@ import { initPlanLimits, planWindows } from "../lib/plan-limits.js";
 import { usageIndex } from "../lib/token-usage.js";
 import { localDay } from "../lib/local-time.js";
 import { SettingsStore } from "../db/settings.js";
+import { ConversationStore } from "../db/conversations.js";
 import { createOfficeStatus, channelBoard, heartbeatBoard, cronBoard, memoryBoard } from "../lib/office-status.js";
 import { getHeartbeatStatus } from "../lib/heartbeat.js";
 import { getCronStatus } from "../lib/cron.js";
 import config from "../config/env.js";
-import { createOfficeWorld, normalizePlan } from "../lib/office-world.js";
+import { createOfficeWorld, normalizePlan, PLAN_SETTING } from "../lib/office-world.js";
+import { departmentTeam } from "../lib/departments.js";
+import { scheduleBoard } from "../lib/office-schedule.js";
 import { offsiteStatus } from "../lib/offsite-backup.js";
 
 /** The off-site backup as the memory board shows it: set up or not, when the last good copy was made, whether the last try failed. */
@@ -94,7 +102,7 @@ officeRouter.use((req, _res, next) => {
 });
 
 officeRouter.get("/team", (_req, res) => {
-  res.json({ team: officeTeam(getAgents()), project: PROJECT });
+  res.json({ team: wholeTeam(), project: PROJECT });
 });
 
 officeRouter.get("/usage", (req, res) => {
@@ -125,7 +133,6 @@ officeRouter.get("/status", (req, res) => {
 });
 
 // ── The room plan and the world it shows ─────────────────────────────────────────────────────────────────────────
-const PLAN_SETTING = "office.plan";
 const PLAN_MAX_CHARS = 20_000;
 const world = createOfficeWorld();
 
@@ -135,6 +142,21 @@ function currentPlan() {
   const from = raw ? "settings" : process.env.ATLAS_OFFICE_PLAN ? "environment" : "default";
   return { ...normalizePlan(raw ?? process.env.ATLAS_OFFICE_PLAN ?? null), from };
 }
+
+/** The helpers, then the departments' agents. */
+function wholeTeam() {
+  let depts = [];
+  try { depts = departmentTeam(currentPlan().plan); } catch { /* the helpers alone */ }
+  return officeTeam([...getAgents(), ...depts]);
+}
+
+// The schedule board: the plan's jobs (run elsewhere, shown only) and Atlas's own, around now.
+officeRouter.get("/schedule", (_req, res) => {
+  const { plan } = currentPlan();
+  let atlas = [];
+  try { atlas = getCronStatus()?.jobs ?? []; } catch { /* the plan's jobs alone */ }
+  res.json(scheduleBoard(plan.schedule, atlas, { zone: config.TIMEZONE || "UTC" }));
+});
 
 officeRouter.get("/plan", (_req, res) => {
   const { plan, problems, from } = currentPlan();
@@ -157,7 +179,99 @@ officeRouter.get("/world", async (req, res) => {
   const { plan } = currentPlan();
   let sources = {};
   try { sources = await world.snapshot({ force: req.query.fresh === "1" }); } catch (err) { console.warn(`[office] world: ${err?.message || err}`); }
-  res.json({ at: Date.now(), plan, ...sources });
+  // a linked computer shows its channel's name
+  const titles = discordTitles(req);
+  const rooms = plan.rooms.map((r) => (r.discord ? { ...r, discordTitle: titles.get(r.discord) || null } : r));
+  res.json({ at: Date.now(), plan: { ...plan, rooms }, ...sources });
+});
+
+// ── The room computers ────────────────────────────────────────────────────────────────────────────────────────
+const KIND_RE = /^[a-z]{2,20}$/;
+const chatKey = (room) => (room.discord ? `discord:${room.discord}` : `web:office-${room.kind}`);
+
+/** Discord channel id → the title of Atlas's conversation in it ("#general"). */
+function discordTitles(req) {
+  const out = new Map();
+  try {
+    const convs = new ConversationStore(req.app.get("db"));
+    for (const { key, value } of settingsStore?.getByPrefix("channel_conv.discord:") ?? []) {
+      const id = key.slice("channel_conv.discord:".length);
+      if (!/^\d{5,25}$/.test(id)) continue;   // threads ("<parent>:thread:<id>") are left out
+      const conv = convs.get(value);
+      out.set(id, conv?.title || `#${id}`);
+    }
+  } catch { /* no titles: ids are shown */ }
+  return out;
+}
+
+function roomFor(req, res) {
+  const kind = String(req.params.kind || "");
+  if (!KIND_RE.test(kind)) { res.status(400).json({ error: "No such room." }); return null; }
+  const room = currentPlan().plan.rooms.find((r) => r.kind === kind);
+  if (!room) { res.status(404).json({ error: "No such room." }); return null; }
+  return room;
+}
+
+officeRouter.get("/rooms/:kind/chat", (req, res) => {
+  const room = roomFor(req, res);
+  if (!room) return;
+  const key = chatKey(room);
+  let messages = [];
+  try {
+    const convId = settingsStore?.get(`channel_conv.${key}`);
+    if (convId) {
+      const convs = new ConversationStore(req.app.get("db"));
+      messages = convs.getRecentMessages(convId, 40)
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role, text: String(m.content || "").replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").replace(/<tool_response>[\s\S]*?<\/tool_response>/g, "").trim().slice(0, 6000), at: m.created_at || null }))
+        .filter((m) => m.text);
+    }
+  } catch (err) { console.warn(`[office] room chat: ${err?.message || err}`); }
+  const linked = room.discord ? { id: room.discord, title: discordTitles(req).get(room.discord) || null } : null;
+  res.json({ key, linked, messages });
+});
+
+officeRouter.put("/rooms/:kind/link", (req, res) => {
+  const room = roomFor(req, res);
+  if (!room) return;
+  const id = req.body?.discord == null || req.body.discord === "" ? null : String(req.body.discord);
+  if (id && !/^\d{5,25}$/.test(id)) return res.status(400).json({ error: "That is not a Discord channel id." });
+  if (!settingsStore) return res.status(503).json({ error: "Settings are not ready yet." });
+  const { plan } = currentPlan();
+  const rooms = plan.rooms.map((r) => {
+    if (r.kind !== room.kind) return r;
+    const { discord: _old, ...rest } = r;
+    return id ? { ...rest, discord: id } : rest;
+  });
+  const next = normalizePlan({ ...plan, rooms }).plan;
+  try { settingsStore.set(PLAN_SETTING, JSON.stringify(next)); } catch (err) { return res.status(500).json({ error: `Could not save: ${err.message}` }); }
+  res.json({ ok: true, discord: id });
+});
+
+officeRouter.post("/rooms/:kind/mirror", async (req, res) => {
+  const room = roomFor(req, res);
+  if (!room) return;
+  if (!room.discord) return res.status(400).json({ error: "This room is not linked to Discord." });
+  const text = String(req.body?.text ?? "").trim().slice(0, 1800);
+  const reply = String(req.body?.reply ?? "").trim().slice(0, 12_000);
+  if (!text) return res.status(400).json({ error: "Nothing to post." });
+  const cm = req.app.get("channelManager");
+  try {
+    // who typed it: the name the owner goes by in the office (plain text only, no Discord markup)
+    const who = String(req.body?.who ?? "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 30) || "The owner";
+    await cm.sendMessage("discord", room.discord, `💻 **${who}** · office computer (${room.name}): ${text}`);
+    if (reply) await cm.sendMessage("discord", room.discord, reply);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(502).json({ error: String(err?.message || err).slice(0, 200) });
+  }
+});
+
+officeRouter.get("/discord-channels", (req, res) => {
+  let running = false;
+  try { running = req.app.get("channelManager")?.getStatus?.()?.discord?.status === "running"; } catch { /* shown as not running */ }
+  const list = [...discordTitles(req)].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+  res.json({ running, list });
 });
 
 officeRouter.get("/events", (req, res) => {
@@ -169,7 +283,7 @@ officeRouter.get("/events", (req, res) => {
   });
   const send = (ev) => { try { res.write(`data: ${JSON.stringify(ev)}\n\n`); } catch { /* the page went away */ } };
 
-  send({ hook: "Snapshot", project: PROJECT, team: officeTeam(getAgents()), services: [], logs: [] });
+  send({ hook: "Snapshot", project: PROJECT, team: wholeTeam(), services: [], logs: [] });
   // A turn already under way when the page opens: Atlas is at its desk, not idle.
   if (activeTurnList().length) send({ hook: "UserPromptSubmit", prompt: "" });
 

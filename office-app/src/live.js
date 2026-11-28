@@ -1,6 +1,6 @@
 // Live rejim: Claude Code hook'lari, Docker, terminal va log fayllardan kelgan hodisalarni
 // agent harakatiga aylantiradi.
-import { useOffice } from './store.js';
+import { useOffice, positions } from './store.js';
 import { fromLegacy, isLevel, severityOf } from './severity.js';
 import { tr } from './i18n.js';
 import { personName } from './crew.js';
@@ -321,11 +321,252 @@ export function handleEvent(e) {
   }
 }
 
+// ---------- the room computers ----------
+async function getJson(url) {
+  const res = await fetch(url, { credentials: 'same-origin' });
+  if (res.status === 401) { location.href = '/'; return null; }
+  const j = await res.json().catch(() => ({}));
+  return res.ok ? j : { error: j.error || tr('Atlas answered {n}.', { n: res.status }) };
+}
+async function sendJson(method, url, body) {
+  const csrf = await csrfToken();
+  const res = await fetch(url, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) }, body: JSON.stringify(body) });
+  const j = await res.json().catch(() => ({}));
+  return res.ok ? j : { error: j.error || tr('Atlas answered {n}.', { n: res.status }) };
+}
+/** A room's chat: { key, linked, messages: [{ role, text }] } or { error }. */
+export function loadRoomChat(kind) {
+  return getJson(`${SERVER}/rooms/${encodeURIComponent(kind)}/chat`).then((j) => j || { error: 'signed out' });
+}
+export function loadDiscordChannels() {
+  return getJson(`${SERVER}/discord-channels`).then((j) => j || { error: 'signed out' });
+}
+export async function linkRoom(kind, discord) {
+  const r = await sendJson('PUT', `${SERVER}/rooms/${encodeURIComponent(kind)}/link`, { discord });
+  if (!r.error) refreshWorld();
+  return r;
+}
+
+/**
+ * Send a message to one of Atlas's conversations and read the answer as it streams in.
+ * @returns {Promise<{ reply: string, error?: string }>}
+ */
+export async function streamChat(channelKey, message, onText = () => {}, tag = 'office') {
+  let reply = '';
+  try {
+    const csrf = await csrfToken();
+    const res = await fetch('/api/chat/send', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+      body: JSON.stringify({ channelKey, message, clientMsgId: `${tag}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }),
+    });
+    if (res.status === 401) { location.href = '/'; return { reply, error: 'signed out' }; }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); return { reply, error: j.error || tr('Atlas did not take it ({n}).', { n: res.status }) }; }
+    if (!(res.headers.get('content-type') || '').includes('text/event-stream')) {
+      const j = await res.json().catch(() => ({}));
+      reply = j.response || '';
+      onText(reply);
+      return { reply };
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let err = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const ev = (block.match(/^event: (.*)$/m) || [])[1];
+        const data = (block.match(/^data: (.*)$/m) || [])[1];
+        if (!ev || !data) continue;
+        let d; try { d = JSON.parse(data); } catch { continue; }
+        if (ev === 'text' && d.content) { reply += d.content; onText(reply); }
+        else if (ev === 'error') err = d.message || tr('Something went wrong.');
+      }
+    }
+    return err && !reply ? { reply, error: err } : { reply };
+  } catch {
+    return { reply, error: tr('Could not reach Atlas. Check your connection.') };
+  }
+}
+
+/**
+ * Send what was typed at a room's computer. The first message of a room's own chat tells Atlas which department it
+ * is answering for; every message says where it was typed. A room linked to Discord gets the exchange posted there.
+ */
+export async function sendRoomMessage(kind, chat, room, text, onText) {
+  const name = room?.name || kind;
+  const who = S().bossName || 'the owner';
+  // the room's own department agent, when it has one
+  const dept = S().agents[`dept-${kind}`];
+  const handTo = dept ? ` This room's own agent is your "dept-${kind}" helper (${dept.title || dept.name}): hand it this department's work and report what it found.` : '';
+  let message;
+  if (chat.linked) message = `[From ${who} at the office computer in ${name}.${handTo}] ${text}`;
+  else if (!chat.messages.length) {
+    const lines = [`[Office computer: ${name}. You are answering as this room's department assistant.`];
+    if (room?.subtitle) lines.push(`About it: ${room.subtitle}.`);
+    if (room?.notes?.length) lines.push(`Notes: ${room.notes.join('; ')}.`);
+    if (kind === 'separate') lines.push('This department is kept separate from the others: do not bring in anything about the other departments or businesses.');
+    if (handTo) lines.push(handTo.trim());
+    message = `${lines.join(' ')}]\n\n${text}`;
+  } else message = `[Office computer: ${name}] ${text}`;
+  const { reply, error } = await streamChat(chat.key, message, onText, `office-${kind}`);
+  if (error && !reply) return { error };
+  if (chat.linked && reply) {
+    const r = await sendJson('POST', `${SERVER}/rooms/${encodeURIComponent(kind)}/mirror`, { text, reply, who });
+    if (r.error) return { error: tr('Answered here, but not posted to Discord: {e}', { e: r.error }) };
+  }
+  return { ok: true };
+}
+
+/**
+ * The front desk: a receptionist takes what the boss says to Atlas (its own office chat), or to a department's
+ * agent through Atlas, and reads the answer back.
+ */
+export async function relayFromDesk(receptionist, to, text, onText) {
+  const s = S();
+  const who = s.bossName || 'the owner';
+  const dept = to && to !== 'manager' ? s.agents[to] : null;
+  const message = dept
+    ? `[Front desk: ${receptionist}, the receptionist, passes on an instruction from ${who} for ${dept.title || dept.name}] Hand this to your "${to}" helper and tell me what it reports: ${text}`
+    : `[Front desk: ${receptionist}, the receptionist, passes on an instruction from ${who}] ${text}`;
+  s.say('manager', tr('📨 A message from the front desk'), 3500);
+  const r = await streamChat('web:office', message, onText, 'office-desk');
+  refreshUsage(2500);
+  return r;
+}
+
+// ---------- a meeting in the conference room ----------
+/** What the boss presents goes to Atlas, which answers as a round table: a line for each one at the table. */
+export async function presentToMeeting(text, onText) {
+  const s = S();
+  const who = s.bossName || 'the owner';
+  const at = Object.values(s.agents).filter((a) => a.id !== 'manager' && !a.task && !a.down).map((a) => a.title || a.name);
+  const showing = s.projector?.meeting?.title;
+  const brief = [
+    `[Meeting in the office conference room. ${who} is presenting to the team${showing ? ` (on the projector: ${showing})` : ''}.`,
+    `At the table: Atlas (chairing)${at.length ? `, ${at.join(', ')}` : ''}.`,
+    'Answer as a round table: one short paragraph for each one at the table who has something useful to add from their own department or role, each on its own line starting with their name and a colon (for example "Researcher: ..."), and finish with "Atlas:" and the next steps.',
+    'Speak only for those listed. Nothing is sent, spent or changed outside Atlas because of this meeting: put actions down as proposals for',
+    `${who} to approve.]`,
+  ].join(' ');
+  const r = await streamChat('web:office-meeting', `${brief}\n\n${text}`, onText, 'office-meeting');
+  refreshUsage(2500);
+  return r;
+}
+
+/**
+ * Split a round-table answer into who said what, and let each one at the table say theirs in turn (a speech
+ * bubble, a few seconds apart). Lines that name nobody at the table stay with Atlas.
+ * @returns {{ who: string, text: string }[]}
+ */
+export function playMeetingReplies(reply) {
+  const s = S();
+  const byName = new Map();
+  for (const a of Object.values(s.agents)) {
+    for (const n of [a.title, a.name, a.id]) if (n) byName.set(String(n).toLowerCase(), a.id);
+  }
+  byName.set('atlas', 'manager');
+  const out = [];
+  for (const raw of String(reply || '').split('\n')) {
+    const line = raw.replace(/^[\s>*\-•]+/, '').trim();
+    if (!line) continue;
+    const m = /^\**([^:*]{2,40}?)\**\s*:\s*\**\s*(.+)$/.exec(line);
+    const id = m ? byName.get(m[1].trim().toLowerCase()) : null;
+    if (id) out.push({ id, who: m[1].trim(), text: m[2].replace(/\*\*/g, '').trim() });
+    else if (out.length) out[out.length - 1].text += ` ${line.replace(/\*\*/g, '')}`;
+    else out.push({ id: 'manager', who: 'Atlas', text: line.replace(/\*\*/g, '') });
+  }
+  out.forEach((o, i) => {
+    setTimeout(() => {
+      const a = S().agents[o.id];
+      if (!a) return;
+      S().say(o.id, o.text.length > 160 ? `${o.text.slice(0, 157)}…` : o.text, 7000);
+      if (positions[o.id]) positions[o.id].waveUntil = Date.now() + 1200;
+    }, i * 4000);
+  });
+  return out.map(({ who, text }) => ({ who, text }));
+}
+
+// ---------- the schedule board: GET /api/office/schedule ----------
+export function refreshSchedule(delay = 0) {
+  setTimeout(() => {
+    fetch(`${SERVER}/schedule`, { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j && Array.isArray(j.runs)) S().setSchedule({ ...j, gotAt: Date.now() }); })
+      .catch(() => {});
+  }, delay);
+}
+
+// When a job's time comes, the room it belongs to acts it out: its department's agent (or the helper sitting in
+// it) goes to the room's computer for a while. A job that runs on the owner's computer says so: the office only
+// shows it, Atlas does not run it.
+let lastScheduleCheck = Date.now();
+const acted = new Set();
+function scheduleTick() {
+  const sch = S().schedule;
+  const now = Date.now();
+  const from = lastScheduleCheck;
+  lastScheduleCheck = now;
+  if (!sch) return;
+  for (const run of sch.runs) {
+    if (run.at <= from || run.at > now) continue;
+    const key = `${run.job}@${run.at}`;
+    if (acted.has(key)) continue;
+    acted.add(key);
+    const job = sch.jobs[run.job];
+    if (!job || job.where === 'atlas') continue;   // Atlas's own jobs show up as real work on their own
+    actOutJob(job);
+  }
+  if (acted.size > 500) acted.clear();
+}
+function actOutJob(job) {
+  const s = S();
+  const L = s.layout;
+  const room = job.room;
+  const agents = Object.values(s.agents);
+  const actor = (room && s.agents[`dept-${room}`]) || (room && agents.find((a) => a.id !== 'manager' && L.desks[a.deskId]?.room === room)) || s.agents.manager;
+  if (!actor || actor.down || actor.task) return;
+  const pc = L.computers?.find((c) => c.kind === room) ?? L.computers?.find((c) => c.kind === 'ceo');
+  s.log(actor.id, tr('⏰ {name} (runs on your computer)', { name: job.name }));
+  s.say(actor.id, tr('⏰ {name} · your PC runs it', { name: job.name }), 6000);
+  if (!pc) return;
+  s.goTo(actor.id, pc.front, { state: 'working', rot: Math.PI });
+  setTimeout(() => {
+    const b = S().agents[actor.id];
+    if (b && !b.task && b.state === 'working') S().goToDesk(actor.id, { state: 'idle' });
+  }, 45_000);
+}
+
+// friends at the mart's snack tables talk to each other
+const TABLE_LINES = ['This siopao is so good 😋', 'Atlas has us busy today!', 'Any jobs for you yet?', "Let's race at the arcade 🎮", "Coffee's on me ☕", 'Did you see the city at night?', 'Five more minutes, then back to work', 'Who finished the most tasks today?'];
+function martChatter() {
+  const L = S().layout;
+  if (!L.mart || document.hidden) return;
+  const bySpot = Object.fromEntries(L.mart.spots.map((s) => [s.id, s]));
+  const here = Object.values(S().agents).filter((a) => a.martSpot && a.away && a.state === 'idle');
+  const tables = {};
+  for (const a of here) { const t = bySpot[a.martSpot]?.table; if (t != null) (tables[t] ??= []).push(a); }
+  for (const group of Object.values(tables)) {
+    if (group.length < 2) continue;
+    const speaker = group[Math.floor(Math.random() * group.length)];
+    S().say(speaker.id, tr(TABLE_LINES[Math.floor(Math.random() * TABLE_LINES.length)]), 4000);
+  }
+  // someone at the arcade: a cheer now and then
+  const gamer = here.find((a) => a.martSpot === 'arcade');
+  if (gamer && Math.random() < 0.4) S().say(gamer.id, tr(['🎮 New high score!', '🕹️ One more round', '😤 So close!'][Math.floor(Math.random() * 3)]), 3000);
+}
+
 let es = null;
 let usagePoll = null;
 let statusPoll = null;
 let worldPoll = null;
 let snackTimer = null;
+let schedulePoll = null;
+let scheduleTimer = null;
 export async function startLive() {
   stopLive();
   refreshUsage();
@@ -334,12 +575,24 @@ export async function startLive() {
   statusPoll = setInterval(() => { if (!document.hidden) refreshStatus(); }, 20_000);
   refreshWorld();
   worldPoll = setInterval(() => { if (!document.hidden) refreshWorld(); }, 60_000);
+  refreshSchedule();
+  schedulePoll = setInterval(() => { if (!document.hidden) refreshSchedule(); }, 5 * 60_000);
+  lastScheduleCheck = Date.now();
+  scheduleTimer = setInterval(scheduleTick, 15_000);
   // now and then, someone with nothing to do pops out to the store
   snackTimer = setInterval(() => {
-    if (document.hidden || Math.random() > 0.6) return;
+    if (document.hidden) return;
+    martChatter();
+    if (Math.random() > 0.35 || S().meeting) return;
     const idle = Object.values(S().agents).filter((a) => a.id !== 'manager' && a.state === 'idle' && !a.away && !a.down);
-    if (idle.length) S().storeRun(idle[Math.floor(Math.random() * idle.length)].id);
-  }, 40_000);
+    if (!idle.length) return;
+    const who = idle[Math.floor(Math.random() * idle.length)].id;
+    // a snack at the mart, or a look at the city from the view deck
+    const atMart = Object.values(S().agents).filter((a) => a.martSpot).length;
+    const onDeck = Object.values(S().agents).filter((a) => a.deckSeat).length;
+    if (Math.random() < 0.4 && onDeck < 4) S().deckRun(who);
+    else if (atMart < 4) S().storeRun(who);
+  }, 12_000);
   S().setConn('connecting');
   const base = await resolveServer();
   if (S().mode !== 'live') return;
@@ -355,6 +608,7 @@ export async function startLive() {
 export function stopLive() {
   if (es) { es.close(); es = null; }
   clearInterval(usagePoll); clearInterval(statusPoll); clearInterval(worldPoll); clearInterval(snackTimer);
+  clearInterval(schedulePoll); clearInterval(scheduleTimer);
   running = [];
   S().setConn('off');
 }
