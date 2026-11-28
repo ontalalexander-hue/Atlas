@@ -6,6 +6,7 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html, RoundedBox } from '@react-three/drei';
+import { useSightRef } from './sight.js';
 import { useOffice } from './store.js';
 import Person, { lookFor } from './Person.jsx';
 import { MART } from './mart.js';
@@ -88,11 +89,13 @@ function Fridges({ b, lamps }) {
 
 function Cashier({ at }) {
   const pose = useRef({ mode: 'idle', moving: false });
+  // (from inside the office the store is out of sight)
+  const sight = useSightRef(() => { const L = useOffice.getState().layout; return { x: at[0] + L.W / 2 - 0.5, z: at[1] + L.H / 2 - 0.5 }; });
   return (
     <group position={[at[0], 0, at[1]]} rotation-y={Math.PI / 2}>
       <Person color="#0f9d8a" look={lookFor('mart-cashier')} pose={pose} />
       <Html position={[0, 2.05, 0]} center distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-        <div className="tag-wrap"><div className="tag"><span className="dot" style={{ background: '#0f9d8a' }} />Nico<span className="tag-role">{tr('Cashier · AI')}</span></div></div>
+        <div className="tag-wrap" ref={sight}><div className="tag"><span className="dot" style={{ background: '#0f9d8a' }} />Nico<span className="tag-role">{tr('Cashier · AI')}</span></div></div>
       </Html>
     </group>
   );

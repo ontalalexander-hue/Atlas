@@ -162,6 +162,9 @@ export const useOffice = create((set, get) => ({
     set({ boss, bossOutside: false, bossOnDeck: false, bossSeat: null, nearSeat: null, screenOpen: false, nearScreen: null, selected: null, reception: null });
   },
   nearSeat: null,       // boss mode: a free seat within reach
+  // how much the picture costs: 'fast' (no shadows or effects), 'balanced' (the default), 'best' (soft shadows, all)
+  quality: (() => { try { return localStorage.getItem('atlas-office-quality') || 'balanced'; } catch { return 'balanced'; } })(),
+  setQuality: (quality) => { try { localStorage.setItem('atlas-office-quality', quality); } catch {} set({ quality }); },
   // boss mode seen through your own eyes (V) rather than from behind
   firstPerson: (() => { try { return localStorage.getItem('atlas-office-fp') === '1'; } catch { return false; } })(),
   setFirstPerson: (firstPerson) => { try { localStorage.setItem('atlas-office-fp', firstPerson ? '1' : '0'); } catch {} set({ firstPerson }); },

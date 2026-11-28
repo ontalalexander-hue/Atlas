@@ -92,21 +92,30 @@ export function buildLayout(team, plan = null) {
     if (!wallType.has(k)) { walls.push([x, z]); block(x, z); }
     if (wallType.get(k) !== 'outer') wallType.set(k, type);
   };
-  const hwall = (z, x0, x1, type, gaps = []) => { for (let x = x0; x <= x1; x++) if (!gaps.includes(x)) wall(x, z, type); };
-  const vwall = (x, z0, z1, type, gaps = []) => { for (let z = z0; z <= z1; z++) if (!gaps.includes(z)) wall(x, z, type); };
+  const doors = [];
+  const doorway = (dir, at, gaps, type) => {
+    const g = [...gaps].sort((a, b) => a - b);
+    for (let i = 0; i < g.length;) {
+      let j = i;
+      while (j + 1 < g.length && g[j + 1] === g[j] + 1) j++;
+      doors.push({ dir, at, a: g[i], b: g[j], type });
+      i = j + 1;
+    }
+  };
+  const hwall = (z, x0, x1, type, gaps = []) => { for (let x = x0; x <= x1; x++) if (!gaps.includes(x)) wall(x, z, type); if (gaps.length) doorway('h', z, gaps, type); };
+  const vwall = (x, z0, z1, type, gaps = []) => { for (let z = z0; z <= z1; z++) if (!gaps.includes(z)) wall(x, z, type); if (gaps.length) doorway('v', x, gaps, type); };
   const toWorld = ([x, z]) => [x - W / 2 + 0.5, z - H / 2 + 0.5];
 
   // ---- walls ----
   hwall(0, 0, W - 1, 'outer'); hwall(H - 1, 0, W - 1, 'outer', DOOR);
-  // the separate wing has its own private door on the outside (east) wall, and none onto the office floor
-  vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer', [5, 6]);
+  vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer');
   // top row: CEO office | growth HQ | sales room, glass fronts on the two income rooms
   // (their front wall is at z 8, so the hallway in front of them, z 9 to 10, is two cells wide)
   hwall(8, 1, 11, 'solid', [6, 7]); vwall(12, 1, 8, 'solid');
   hwall(8, 13, 32, 'glass', [22, 23]); vwall(33, 1, 8, 'solid');
   hwall(8, 34, 48, 'glass', [40, 41]);
-  // the separate wing: solid all round, no door onto the office floor
-  vwall(49, 1, 20, 'solid'); hwall(14, 50, 58, 'solid');
+  // the separate wing: solid all round, its one door at the end of the hallway in front of the sales room
+  vwall(49, 1, 20, 'solid', [9, 10]); hwall(14, 50, 58, 'solid');
   // sick bay under it, its door onto the bottom corridor
   hwall(20, 50, 58, 'solid', [53, 54]);
   // middle row: market hall | conference room | server room
@@ -359,7 +368,7 @@ export function buildLayout(team, plan = null) {
 
   return {
     W, H, cols: 1, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
-    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception, computers, lift, deck, seats, projectors,
+    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception, computers, lift, deck, seats, projectors, doors,
     mart: martInGrid(toWorld([-10, 14.5]), W, H),
     // where visitors from the channels stand, in front of the reception desk
     frontDesk: { spots: [[28, 27], [26, 27], [30, 27], [27, 28], [29, 28], [25, 28], [31, 28]] },

@@ -52,7 +52,6 @@ export function RoomComputer({ kind }) {
       <mesh position={[0, 0.79, 0.18]}><boxGeometry args={[0.5, 0.02, 0.16]} /><meshStandardMaterial color="#e4e6ea" /></mesh>
       {/* a chair: sit down to use it (boss mode), or for the agent working here */}
       <group position={[0, 0, 0.85]}><OfficeChair /></group>
-      <pointLight position={[0, 1.4, 0.5]} intensity={0.6 + lamps * 1.5} distance={2.5} color="#7fd4c8" />
     </group>
   );
 }

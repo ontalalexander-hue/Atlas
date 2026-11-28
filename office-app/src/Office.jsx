@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html, RoundedBox } from '@react-three/drei';
-import { useOffice } from './store.js';
+import { useOffice, positions } from './store.js';
+import { useSightRef } from './sight.js';
+import Doors from './Doors.jsx';
 import { SEV, visibleSev } from './severity.js';
 import Decor from './Details.jsx';
 import Windows from './Windows.jsx';
@@ -85,20 +87,31 @@ function useTerminal(agent, enabled, sevFill) {
 // Walls are low (so the cameras above see into every room), and go all the way up to the ceiling while you walk
 // about inside in boss mode.
 export const useFullWalls = () => useOffice((s) => s.boss && !s.bossOutside);
+/** A room's name on its floor, hidden while you walk about inside and a solid wall stands between you and it. */
+function RoomLabel({ L, r, cx, boss, theme, today }) {
+  const lz = L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25);
+  const sight = useSightRef(() => ({ x: (r.x[0] + r.x[1]) / 2, z: r.z[1] - 0.3 }));
+  return (
+    <Html position={[cx, 0.05, lz]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+      <div ref={sight} className={`room-label ${theme} ${today ? 'today' : ''}`}>{today ? `★ ${tr('Today')} · ` : ''}{r.name}</div>
+    </Html>
+  );
+}
+
 function Walls({ L }) {
   const full = useFullWalls();
   return L.wallSegments.map((s, i) => {
     const len = s.b - s.a + 1;
     const [x, z] = s.dir === 'h' ? L.toWorld([center(s.a, s.b), s.at]) : L.toWorld([s.at, center(s.a, s.b)]);
     const solid = s.type === 'solid';
-    const h = full ? ROOF_TOP - 0.3 : s.outer || solid ? 1.3 : 1.5;
+    const h = full ? ROOF_TOP - 0.34 : s.outer || solid ? 1.3 : 1.5;
     const t = s.outer ? 0.28 : solid ? 0.14 : 0.08;
     const size = s.dir === 'h' ? [len, t] : [t, len];
     if (s.outer || solid) {
       return (
         <group key={i} position={[x, 0, z]}>
           <mesh position-y={h / 2} castShadow receiveShadow><boxGeometry args={[size[0], h, size[1]]} /><meshStandardMaterial color={C.wall} roughness={0.92} /></mesh>
-          <mesh position-y={h + 0.015}><boxGeometry args={[size[0] + 0.01, 0.03, size[1] + 0.01]} /><meshStandardMaterial color={C.cap} roughness={0.7} /></mesh>
+          {!full && <mesh position-y={h + 0.015}><boxGeometry args={[size[0] + 0.01, 0.03, size[1] + 0.01]} /><meshStandardMaterial color={C.cap} roughness={0.7} /></mesh>}
           <mesh position-y={0.06}><boxGeometry args={[size[0] + 0.02, 0.12, size[1] + 0.02]} /><meshStandardMaterial color="#e2dbd0" roughness={0.8} /></mesh>
         </group>
       );
@@ -182,9 +195,7 @@ function Floors({ L }) {
               </RoundedBox>
             )}
             {r.name && (!roofClosed || (boss && !bossOutside)) && (
-              <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25)]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-                <div className={`room-label ${theme} ${r.kind === todayKind ? 'today' : ''}`}>{r.kind === todayKind ? `★ ${tr('Today')} · ` : ''}{r.name}</div>
-              </Html>
+              <RoomLabel L={L} r={r} cx={cx} boss={boss} theme={theme} today={r.kind === todayKind} />
             )}
           </group>
         );
@@ -406,17 +417,39 @@ function Instanced({ L, cells, geometry, material, y = 0, scale = [1, 1, 1] }) {
   return <instancedMesh ref={ref} args={[geometry, material, cells.length]} castShadow receiveShadow />;
 }
 
+// The ceiling lights: a few real lights that move to the rooms nearest where you are looking (or standing, in boss
+// mode). Every light makes every surface slower to draw, and adding or removing one makes the whole scene rebuild,
+// so there is always the same small number of them, dimmed to nothing when they are not needed.
+const POOL = 5;
 function RoomLights({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 20) / 20);
   const roofClosed = useOffice((s) => s.roofClosed);
   const boss = useOffice((s) => s.boss);
+  const controls = useThree((s) => s.controls);
   // under the roof the sun does not reach: walking about inside, the lights are on whatever the hour
   const level = roofClosed ? (boss ? Math.max(lamps, 0.7) : 0) : lamps;
-  if (level < 0.05) return null;
-  return L.lights.map((l, i) => {
-    const [cx, cz] = L.toWorld(l.at);
-    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * level} distance={l.d ?? 10} decay={1.6} color="#ffd9a8" />;
+  const refs = useRef([]);
+  const tick = useRef(0);
+  useFrame(() => {
+    if (tick.current++ % 20) return;
+    let fx, fz;
+    const b = boss && positions.boss;
+    if (b && !b.deck) [fx, fz] = L.toWorld([b.x, b.z]);
+    else if (controls) { fx = controls.target.x; fz = controls.target.z; } else { fx = 0; fz = 0; }
+    const near = L.lights.map((l) => { const [x, z] = L.toWorld(l.at); return { l, x, z, d: Math.hypot(x - fx, z - fz) }; }).sort((a, c) => a.d - c.d);
+    refs.current.forEach((light, i) => {
+      if (!light) return;
+      const n = near[i];
+      if (!n || level < 0.05) { light.intensity = 0; return; }
+      light.position.set(n.x, 3.4, n.z);
+      // the overhead views see the whole floor: the few lights there are spread a little wider and brighter
+      light.intensity = n.l.k * level * (b ? 1 : 1.6);
+      light.distance = (n.l.d ?? 10) * (b ? 1 : 1.8);
+    });
   });
+  return Array.from({ length: POOL }).map((_, i) => (
+    <pointLight key={i} ref={(el) => { refs.current[i] = el; }} position={[0, 3.4, 0]} intensity={0} distance={10} decay={1.6} color="#ffd9a8" />
+  ));
 }
 
 export default function Office() {
@@ -430,6 +463,7 @@ export default function Office() {
       <Floors L={L} />
       <TodayRoom L={L} />
       <Walls L={L} />
+      <Doors L={L} />
       {Object.entries(L.desks).map(([id, d]) => <Desk key={`${id}`} L={L} id={id} {...d} />)}
       <Meeting L={L} />
       {L.tables.map((t, i) => <TableSet key={i} L={L} set={t} color={i % 2 ? '#3f8f7a' : '#3b6fb5'} />)}

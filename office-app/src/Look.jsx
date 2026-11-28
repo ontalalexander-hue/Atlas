@@ -62,9 +62,10 @@ export function Effects() {
   const night = useOffice((s) => s.sky.lamps > 0.5);
   const boss = useOffice((s) => s.boss);
   const cinema = useOffice((s) => s.cinema);
+  const best = useOffice((s) => s.quality === 'best');
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
-      {FX.includes('ao') && <N8AO aoRadius={1.4} distanceFalloff={0.6} intensity={night ? 2.4 : 3.2} quality="high" halfRes={false} />}
+      {FX.includes('ao') && <N8AO aoRadius={1.4} distanceFalloff={0.6} intensity={night ? 2.4 : 3.2} quality={best ? 'high' : 'medium'} halfRes={!best} />}
       {FX.includes('bloom') && <Bloom mipmapBlur intensity={night ? 0.85 : 0.45} luminanceThreshold={0.82} luminanceSmoothing={0.25} radius={0.7} />}
       {FX.includes('tilt') && <TiltShift2 blur={boss || cinema ? 0.0 : 0.05} taper={0.7} />}
       {FX.includes('grade') && <HueSaturation saturation={0.12} />}

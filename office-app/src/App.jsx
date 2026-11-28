@@ -190,6 +190,22 @@ function SunRow() {
   );
 }
 
+function QualityRow() {
+  const quality = useOffice((s) => s.quality);
+  const setQuality = useOffice((s) => s.setQuality);
+  const TIP = { fast: tr('Smoothest: no shadows or effects'), balanced: tr('Shadows and light effects, lighter on the computer'), best: tr('Soft shadows and every effect: needs a strong computer') };
+  return (
+    <div className="roof-row">
+      <span>{tr('Graphics')}</span>
+      <div className="seg seg3">
+        {[['fast', tr('Fast')], ['balanced', tr('Balanced')], ['best', tr('Best')]].map(([k, l]) => (
+          <button key={k} className={quality === k ? 'on' : ''} onClick={() => setQuality(k)} title={TIP[k]}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RoofRow() {
   const roofMode = useOffice((s) => s.roofMode);
   const setRoofMode = useOffice((s) => s.setRoofMode);
@@ -424,6 +440,7 @@ function Panel() {
         <ErrorSettings />
         <SunRow />
         <RoofRow />
+        <QualityRow />
         <ViewRow />
         <RoomPlan />
         <ScheduleCard />
@@ -512,12 +529,13 @@ function AlertBanner() {
 
 function Lights({ small }) {
   const sky = useOffice((s) => s.sky);
+  const quality = useOffice((s) => s.quality);
   const W = useOffice((s) => s.layout.W);
   const half = W / 2 + 16;
   const [dx, dy, dz] = sky.sunDir;
   return (
     <>
-      {!small && <SoftShadows size={14} samples={12} focus={0.6} />}
+      {!small && quality === 'best' && <SoftShadows size={14} samples={12} focus={0.6} />}
       <fog attach="fog" args={[sky.horizon, 170 + W, 430]} />
       <ambientLight intensity={sky.ambient * 0.6} color={sky.ambientColor} />
       <hemisphereLight args={[sky.hemiTop, sky.hemiBottom, sky.hemiI]} />
@@ -525,8 +543,8 @@ function Lights({ small }) {
         position={[dx * (half + 10), dy * (half + 10), dz * (half + 10)]}
         intensity={sky.sunI}
         color={sky.sunColor}
-        castShadow
-        shadow-mapSize={small ? [2048, 2048] : [4096, 4096]}
+        castShadow={quality !== 'fast'}
+        shadow-mapSize={quality === 'best' && !small ? [4096, 4096] : [2048, 2048]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.02}
         shadow-camera-left={-half}
@@ -575,12 +593,13 @@ export default function App() {
     return () => { stopSim(); stopLive(); };
   }, [mode, replay]);
 
+  const quality = useOffice((s) => s.quality);
   return (
     <div className={`app ${sky.lamps > 0.5 ? 'night' : 'day'}`}>
       <div className="stage" style={{ background: `linear-gradient(180deg, ${sky.top} 0%, ${sky.horizon} 70%)` }}>
         <Canvas
           shadows
-          dpr={small ? [1, 1.5] : [1, 2]}
+          dpr={quality === 'fast' ? 1 : small || quality === 'balanced' ? [1, 1.5] : [1, 2]}
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
           camera={{ position: cam, fov: small ? 44 : 34, near: 0.5, far: 500 }}
           onPointerMissed={() => { const s = useOffice.getState(); if (s.selected) s.select(s.selected); }}
@@ -598,7 +617,7 @@ export default function App() {
           <FollowCamera small={small} />
           <BossController />
           <CinemaCamera />
-          {!small && <Effects />}
+          {!small && quality !== 'fast' && <Effects />}
         </Canvas>
         <AlertBanner />
         <BossHud />
