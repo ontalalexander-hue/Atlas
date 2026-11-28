@@ -18,7 +18,7 @@ import { TOP as ROOF_TOP } from './Roof.jsx';
 import RoomPlan, { ScheduleCard } from './Plan.jsx';
 import Reception, { ReceptionPanel } from './Reception.jsx';
 import { ComputerPanel } from './Computer.jsx';
-import { ProjectorPanel } from './Projector.jsx';
+import { ProjectorPanel, LinkPlayer, ProjectorAsk } from './Projector.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
 function useSmall() {
@@ -625,6 +625,8 @@ export default function App() {
         <ComputerPanel />
         <ReceptionPanel />
         <ProjectorPanel />
+        <LinkPlayer />
+        <ProjectorAsk />
       </div>
       <Panel />
     </div>

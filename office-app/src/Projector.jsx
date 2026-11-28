@@ -5,8 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
-import { projectorMedia, shareScreen, showFile, stopProjector, togglePause } from './projector.js';
-import { presentToMeeting, playMeetingReplies } from './live.js';
+import { projectorMedia, shareScreen, showFile, stopProjector, togglePause, openLink, restoreLink } from './projector.js';
+import { presentToMeeting, playMeetingReplies, previewLink } from './live.js';
 import { tr } from './i18n.js';
 
 const NAMES = { meeting: 'Conference room', library: 'Learning library' };
@@ -27,13 +27,53 @@ function idleTexture(id) {
   return t;
 }
 
+/** A link on the screen: a YouTube video's thumbnail and title, or a page's title and site. */
+function linkTexture(link) {
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 576;
+  const g = c.getContext('2d');
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const draw = (img) => {
+    g.fillStyle = '#0d1520'; g.fillRect(0, 0, 1024, 576);
+    if (img) {
+      const s = Math.max(1024 / img.width, 576 / img.height);
+      g.drawImage(img, (1024 - img.width * s) / 2, (576 - img.height * s) / 2, img.width * s, img.height * s);
+      const grad = g.createLinearGradient(0, 300, 0, 576);
+      grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+      g.fillStyle = grad; g.fillRect(0, 300, 1024, 276);
+    } else {
+      g.fillStyle = '#9ecbff'; g.font = '800 120px Inter, system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(link.kind === 'youtube' ? '▶' : '🌐', 512, 220);
+    }
+    g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#ffffff'; g.font = '800 44px Inter, system-ui, sans-serif';
+    let title = String(link.title || '');
+    while (title.length > 4 && g.measureText(title).width > 960) title = `${title.slice(0, -2)}…`.replace(/……$/, '…');
+    g.fillText(title, 32, 500);
+    g.fillStyle = '#9ecbff'; g.font = '600 28px Inter, system-ui, sans-serif';
+    let host = ''; try { host = new URL(link.url).hostname.replace(/^www\./, ''); } catch { /* none */ }
+    g.fillText(link.kind === 'youtube' ? '▶ YouTube · plays in the player box' : `🔗 ${host}`, 32, 548);
+    t.needsUpdate = true;
+  };
+  draw(null);
+  if (link.kind === 'youtube' && link.id) {
+    const img = new Image();
+    img.onload = () => draw(img);
+    img.src = `/api/office/yt-thumb/${encodeURIComponent(link.id)}`;
+  }
+  return t;
+}
+
 /** The screen on the wall, and the projector hanging in front of it. `w` is the screen's width (16:9). */
 export function ProjectorScreen({ id, w = 3.4 }) {
   const info = useOffice((s) => s.projector[id]);
   const idle = useMemo(() => idleTexture(id), [id]);
+  // a link shown before the page was reloaded comes back on the screen
+  useEffect(() => { restoreLink(id); }, [id]);
   const tex = useMemo(() => {
     const m = projectorMedia(id);
     if (!m) return null;
+    if (m.kind === 'link') return linkTexture(m.link);
     const t = m.video ? new THREE.VideoTexture(m.video) : new THREE.Texture(m.image);
     t.colorSpace = THREE.SRGBColorSpace;
     if (m.image) t.needsUpdate = true;
@@ -68,6 +108,9 @@ export function ProjectorPanel() {
   const [busy, setBusy] = useState(false);
   const [lines, setLines] = useState([]);
   const [live, setLive] = useState('');
+  const [link, setLink] = useState('');
+  const [opening, setOpening] = useState(false);
+  const player = useOffice((s) => s.player);
   const file = useRef(null);
   const box = useRef(null);
   useEffect(() => { if (box.current) box.current.scrollTop = box.current.scrollHeight; }, [lines, live]);
@@ -76,6 +119,15 @@ export function ProjectorPanel() {
   const S = useOffice.getState;
   const close = () => S().setProjectorOpen(null);
   const run = async (fn) => { setError(''); try { await fn(); } catch (e) { setError(e?.name === 'NotAllowedError' ? tr('Sharing was cancelled.') : String(e?.message || e)); } };
+  const openTyped = async () => {
+    const url = link.trim();
+    if (!url || opening) return;
+    setOpening(true); setError('');
+    const p = await previewLink(url);
+    setOpening(false);
+    if (!p.ok) { setError(p.error || tr('Could not open that link.')); return; }
+    try { openLink(id, p); setLink(''); } catch (e) { setError(String(e?.message || e)); }
+  };
   const present = async () => {
     const said = text.trim();
     if (!said || busy) return;
@@ -102,8 +154,14 @@ export function ProjectorPanel() {
         {info?.kind === 'video' && <button onClick={() => togglePause(id)}>⏯ {tr('Pause / play')}</button>}
         {info && <button onClick={() => stopProjector(id)}>⏹ {tr('Stop')}</button>}
         <input ref={file} type="file" accept="video/*,image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; run(() => showFile(id, f)); }} />
+        {info?.kind === 'link' && player !== id && <button onClick={() => useOffice.getState().setPlayer(id)}>▶ {tr('Show player')}</button>}
       </div>
-      <p className="proj-note">{tr('What you show stays in this browser: it is not uploaded. To watch an online video, open it in another tab and share that tab.')}</p>
+      <div className="proj-link">
+        <input value={link} onChange={(e) => setLink(e.target.value)} placeholder={tr('Paste a link: YouTube or any https:// page')}
+          onKeyDown={(e) => { if (e.key === 'Enter') openTyped(); if (e.key === 'Escape') close(); e.stopPropagation(); }} disabled={opening} />
+        <button onClick={openTyped} disabled={opening || !link.trim()}>{opening ? '…' : tr('Open link')}</button>
+      </div>
+      <p className="proj-note">{tr('Your screen and files stay in this browser: nothing is uploaded. A link plays in the player box; the screen shows its title.')}</p>
       {error && <div className="pc-err">{error}</div>}
       {id === 'meeting' && (
         <div className="proj-meeting">
@@ -126,6 +184,70 @@ export function ProjectorPanel() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const SANDBOX = {
+  youtube: 'allow-scripts allow-same-origin allow-presentation allow-popups',
+  page: 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox',
+};
+
+/**
+ * The player box for a projector's link: a YouTube video (the privacy-friendly embed, from its start time) or a page
+ * in a sandboxed frame. It stays open while you walk about; minimise it, make it bigger, or stop it.
+ */
+export function LinkPlayer() {
+  const id = useOffice((s) => s.player);
+  const info = useOffice((s) => (id ? s.projector[id] : null));
+  const [big, setBig] = useState(false);
+  if (!id || !info || info.kind !== 'link') return null;
+  const m = projectorMedia(id);
+  const l = m?.link;
+  if (!l) return null;
+  const src = l.kind === 'youtube'
+    ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(l.id)}?${new URLSearchParams({ autoplay: m.autoplay ? '1' : '0', start: String(l.start || 0), rel: '0', playsinline: '1' })}`
+    : l.url;
+  const newTab = <a href={l.url} target="_blank" rel="noopener noreferrer">{tr('Open in new tab')} ↗</a>;
+  return (
+    <div className={`link-player ${big ? 'big' : ''}`}>
+      <div className="link-player-bar">
+        <b title={l.title}>🎬 {tr(NAMES[id] || id)} · {l.title}</b>
+        <span>
+          <button onClick={() => setBig(!big)}>{big ? tr('Smaller') : tr('Bigger')}</button>
+          {newTab}
+          <button onClick={() => useOffice.getState().setPlayer(null)} title={tr('Hide the player (the screen keeps the link)')}>–</button>
+          <button onClick={() => stopProjector(id)} title={tr('Take it off the projector')}>✕</button>
+        </span>
+      </div>
+      {l.kind === 'page' && l.frameable === false ? (
+        <div className="link-player-blocked">{tr("This site doesn't let other pages show it inside them.")} {newTab}</div>
+      ) : (
+        <iframe key={src} src={src} title={l.title} sandbox={SANDBOX[l.kind] || SANDBOX.page} referrerPolicy="strict-origin-when-cross-origin"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen />
+      )}
+      {l.kind === 'page' && l.frameable !== false && <div className="link-player-foot">{tr('Blank?')} {newTab}</div>}
+    </div>
+  );
+}
+
+/** Atlas asked to put a link on a projector: it goes up only when the owner clicks Show. */
+export function ProjectorAsk() {
+  const ask = useOffice((s) => s.projectorAsk);
+  const [error, setError] = useState('');
+  useEffect(() => { setError(''); }, [ask]);
+  if (!ask) return null;
+  const S = useOffice.getState;
+  const show = () => { try { openLink(ask.id, ask.link); S().setProjectorAsk(null); } catch (e) { setError(String(e?.message || e)); } };
+  return (
+    <div className="proj-ask">
+      <div>🎬 <b>{ask.by}</b> {tr('wants to show')} <b>“{ask.link.title}”</b> {tr('on the {room} projector.', { room: tr(NAMES[ask.id] || ask.id) })}</div>
+      <div className="proj-ask-url">{ask.link.url}</div>
+      {error && <div className="pc-err">{error}</div>}
+      <div className="proj-ask-actions">
+        <button className="on" onClick={show}>{tr('Show')}</button>
+        <button onClick={() => S().setProjectorAsk(null)}>{tr('Ignore')}</button>
+      </div>
     </div>
   );
 }

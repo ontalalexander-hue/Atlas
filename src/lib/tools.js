@@ -1340,6 +1340,12 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         }
       }
 
+      case "office_projector": {
+        // A link on one of the office's projectors (lib/office-links.js): the owner clicks Show before it appears.
+        const { requestProjector } = await import("./office-links.js");
+        return await requestProjector({ projector: toolInput?.projector, url: toolInput?.url, by: "Atlas" });
+      }
+
       case "discord_admin": {
         // Channels and webhooks in a Discord server, done by Atlas's own logged-in bot (lib/discord-admin.js), so the
         // agent never needs the bot token in a command. Never deletes anything.

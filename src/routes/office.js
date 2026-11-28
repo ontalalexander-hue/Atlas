@@ -37,6 +37,7 @@ import { departmentTeam } from "../lib/departments.js";
 import { scheduleBoard } from "../lib/office-schedule.js";
 import { offsiteStatus } from "../lib/offsite-backup.js";
 import { createPlanUsage } from "../lib/plan-usage.js";
+import { previewLink, requestProjector, projectorRequests } from "../lib/office-links.js";
 
 // the plan's usage as claude.ai shows it (lib/plan-usage.js), read at most every two minutes
 const planUsage = createPlanUsage();
@@ -313,6 +314,10 @@ officeRouter.get("/events", (req, res) => {
   // A turn already under way when the page opens: Atlas is at its desk, not idle.
   if (activeTurnList().length) send({ hook: "UserPromptSubmit", prompt: "" });
 
+  // Atlas asking to put a link on a projector (lib/office-links.js): the page asks the owner first
+  const onProjector = (r) => send({ hook: "Projector", id: r.id, by: r.by, link: r.link, at: r.at });
+  projectorRequests.on("request", onProjector);
+
   const translator = createOfficeTranslator();
   const off = onEvent((evt) => {
     let out = [];
@@ -321,5 +326,35 @@ officeRouter.get("/events", (req, res) => {
   });
   const ping = setInterval(() => { try { res.write(": ping\n\n"); } catch { /* closed */ } }, PING_MS);
   ping.unref?.();
-  req.on("close", () => { clearInterval(ping); off(); });
+  req.on("close", () => { clearInterval(ping); off(); projectorRequests.off("request", onProjector); });
+});
+
+// ── The projectors' links ───────────────────────────────────────────────────────────────────────────────────────
+//   GET  /api/office/link?url=...        what a projector shows about a link: a YouTube video's id, start and title,
+//                                        or a page's title and whether it can be shown inside the office
+//   GET  /api/office/yt-thumb/:id        a YouTube video's thumbnail, passed through so the office can draw it
+//   POST /api/office/projector {id, url} ask the open office pages to show a link (the owner clicks Show first)
+officeRouter.get("/link", async (req, res) => {
+  const r = await previewLink(req.query.url).catch(() => ({ ok: false, error: "Could not read that link." }));
+  res.status(r.ok ? 200 : 400).json(r);
+});
+
+officeRouter.get("/yt-thumb/:id", async (req, res) => {
+  const id = String(req.params.id || "");
+  if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).end();
+  try {
+    const r = await fetch(`https://i.ytimg.com/vi/${id}/hqdefault.jpg`, { signal: AbortSignal.timeout(6000) });
+    const type = r.headers.get("content-type") || "";
+    if (!r.ok || !type.startsWith("image/")) return res.status(404).end();
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (buf.length > 2 * 1024 * 1024) return res.status(404).end();
+    res.set("Content-Type", type).set("Cache-Control", "private, max-age=86400").send(buf);
+  } catch {
+    res.status(404).end();
+  }
+});
+
+officeRouter.post("/projector", async (req, res) => {
+  const text = await requestProjector({ projector: req.body?.id, url: req.body?.url, by: "Atlas" });
+  res.json({ ok: !/^office_projector:/.test(text), message: text });
 });
