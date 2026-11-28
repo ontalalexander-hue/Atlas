@@ -50,6 +50,14 @@ const DEFAULT_NAMES = {
 };
 const DEFAULT_HELPERS = { finance: 'market', coder: 'server', researcher: 'library', writer: 'studio', quick: 'sales' };
 
+const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+/** Today's theme from the plan: { label, room } (either may be missing), or null. */
+export function todayTheme(plan, date = new Date()) {
+  const v = plan?.days?.[WEEKDAYS[date.getDay()]];
+  if (!v) return null;
+  return typeof v === 'string' ? { label: v } : v;
+}
+
 /** The owner's plan as the floor uses it: one entry per kind. */
 export function planRooms(plan) {
   const out = {};
@@ -262,11 +270,11 @@ export function buildLayout(team, plan = null) {
     block(...s.desk);
   }
   for (const kind of ['growth', 'sales', 'separate']) {
-    for (const label of P[kind]?.agents ?? []) {
+    for (const a of P[kind]?.agents ?? []) {
       const s = (stations[kind] ?? []).find((x) => !used.has(x.desk.join()));
       if (!s) break;
       used.add(s.desk.join());
-      add('agentDesk', [s.desk], { label, paused: !!P[kind].paused });
+      add('agentDesk', [s.desk], { label: typeof a === 'string' ? a : a.name, app: typeof a === 'object' ? a.app ?? null : null, paused: !!P[kind].paused });
     }
   }
 

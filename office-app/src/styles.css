@@ -141,6 +141,9 @@ body { background: var(--bg); }
 .plan-actions { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
 .plan-actions button:not(.link) { background: #1f7ae0; color: #fff; border: 0; border-radius: 8px; padding: 6px 14px; font-weight: 600; cursor: pointer; }
 .plan-msg { font-size: 0.8rem; margin-top: 6px; opacity: 0.9; } .plan-msg.bad { color: #f87171; }
+.room-label.today { background: #fbbf24 !important; color: #1b1f27 !important; font-weight: 700; }
+.agents-head { font-size: 0.8rem; font-weight: 700; opacity: 0.9; margin: 4px 2px 2px; display: grid; gap: 2px; }
+.agents-head span { font-weight: 400; opacity: 0.6; font-size: 0.72rem; }
 .tag.visitor { background: rgba(255, 255, 255, 0.92); color: #1b1f27; }
 .sun-alt { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .sun-info { display: flex; justify-content: space-between; gap: 8px; font-size: 0.76rem; color: #cfd5e0; flex-wrap: wrap; }

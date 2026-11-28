@@ -7,6 +7,7 @@ import { Html } from '@react-three/drei';
 import { useOffice, positions } from './store.js';
 import Person, { lookFor } from './Person.jsx';
 import { overviewPose } from './Look.jsx';
+import { todayTheme } from './layout.js';
 
 // ---------- Auto view: the camera follows the work ----------
 const HOLD_MS = 4000;      // stay on one person at least this long, so the camera does not jump between steps
@@ -55,9 +56,18 @@ export function FollowCamera({ small }) {
       if (small) goalPos.set(wx + 2.5, 14, wz + 13);
       else goalPos.set(wx + 5, 10.5, wz + 11.5);
     } else {
-      const o = overviewPose(L);
-      goalLook.copy(o.target);
-      goalPos.copy(o.pos);
+      const kind = todayTheme(s.plan)?.room;
+      const r = kind ? L.rooms.find((x) => x.kind === kind) : null;
+      if (r) {
+        const [rx, rz] = L.toWorld([(r.x[0] + r.x[1]) / 2, (r.z[0] + r.z[1]) / 2]);
+        const span = Math.max(r.x[1] - r.x[0], r.z[1] - r.z[0]);
+        goalLook.set(rx, 0.5, rz);
+        goalPos.set(rx + span * 0.35, small ? 12 + span * 0.9 : 9 + span * 0.7, rz + (small ? 12 : 9) + span * 0.75);
+      } else {
+        const o = overviewPose(L);
+        goalLook.copy(o.target);
+        goalPos.copy(o.pos);
+      }
     }
     const k = 1 - Math.exp(-Math.min(dtRaw, 0.1) * 1.5);
     S.look.lerp(goalLook, k);

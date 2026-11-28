@@ -6,7 +6,7 @@ import Person, { lookFor } from './Person.jsx';
 import { SEV, visibleSev, rank, maxSev } from './severity.js';
 
 const SPEED = 2.6; // katak/sekund
-import { STATE_LABEL } from './i18n.js';
+import { STATE_LABEL, tr } from './i18n.js';
 
 export default function Agent({ id }) {
   const a = useOffice((s) => s.agents[id]);
@@ -135,7 +135,7 @@ export default function Agent({ id }) {
             {vis && !bad && <span className="tag-flag">{vis === 'minor' ? '⚠' : '❗'}</span>}
             <span className="dot" style={{ background: a.color }} />
             {a.name}
-            {a.title && <span className="tag-role">{a.title}</span>}
+            {a.title && <span className="tag-role">{id === 'manager' ? a.title : `${tr('Atlas team')} · ${a.title}`}</span>}
             <span className="tag-state">· {STATE_LABEL(a.state)}</span>
             {a.errors > 0 && <span className="tag-err">{a.errors}</span>}
           </div>
