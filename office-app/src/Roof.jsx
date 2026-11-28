@@ -157,6 +157,7 @@ export default function Roof({ L }) {
   const setRoofClosed = useOffice((s) => s.setRoofClosed);
   const roofClosed = useOffice((s) => s.roofClosed);
   const boss = useOffice((s) => s.boss);
+  const bossOutside = useOffice((s) => s.bossOutside);
   const wantOpen = mode === 'off' || (mode === 'auto' && (busy || picked));
   const ref = useRef();
   const st = useRef({ y: wantOpen ? LIFT : 0, open: wantOpen });
@@ -198,7 +199,7 @@ export default function Roof({ L }) {
       ))}
       {/* a band of dark glass between the walls and the slab, lit from inside at night; left out while the boss walks
           about inside, so the camera behind them always sees in */}
-      {!boss && par.map(([x, z, w, d], i) => (
+      {(!boss || bossOutside) && par.map(([x, z, w, d], i) => (
         <mesh key={`g${i}`} position={[x * (1 - 0.3 / (Math.abs(x) || 1)), (WALL + TOP - 0.3) / 2, z * (1 - 0.3 / (Math.abs(z) || 1))]}>
           <boxGeometry args={[Math.max(0.12, w - 0.9), TOP - 0.3 - WALL, Math.max(0.12, d - 0.3)]} />
           <meshStandardMaterial color="#24364d" roughness={0.08} metalness={0.5} emissive="#ffd9a0" emissiveIntensity={lamps * 0.55} />

@@ -91,16 +91,18 @@ export function buildLayout(team, plan = null) {
   hwall(0, 0, W - 1, 'outer'); hwall(H - 1, 0, W - 1, 'outer', DOOR);
   vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer');
   // top row: CEO office | growth HQ | sales room, glass fronts on the two income rooms
-  hwall(9, 1, 11, 'solid', [6, 7]); vwall(12, 1, 9, 'solid');
-  hwall(9, 13, 32, 'glass', [22, 23]); vwall(33, 1, 9, 'solid');
-  hwall(9, 34, 48, 'glass', [40, 41]);
+  // (their front wall is at z 8, so the hallway in front of them, z 9 to 10, is two cells wide)
+  hwall(8, 1, 11, 'solid', [6, 7]); vwall(12, 1, 8, 'solid');
+  hwall(8, 13, 32, 'glass', [22, 23]); vwall(33, 1, 8, 'solid');
+  hwall(8, 34, 48, 'glass', [40, 41]);
   // the separate wing: solid all round, no door onto the office floor
   vwall(49, 1, 20, 'solid'); hwall(14, 50, 58, 'solid');
   // sick bay under it, its door onto the bottom corridor
   hwall(20, 50, 58, 'solid', [53, 54]);
   // middle row: market hall | conference room | server room
   hwall(11, 1, 10, 'solid'); vwall(11, 11, 20, 'solid', [15, 16]); hwall(20, 1, 10, 'solid');
-  hwall(11, 14, 30, 'glass', [15, 16]); hwall(19, 14, 30, 'glass', [28, 29]); vwall(14, 11, 19, 'solid'); vwall(30, 11, 19, 'solid');
+  // (the conference room's right wall is at x 29, so the hallway beside it, x 30 to 31, is two cells wide)
+  hwall(11, 14, 29, 'glass', [15, 16]); hwall(19, 14, 29, 'glass', [27, 28]); vwall(14, 11, 19, 'solid'); vwall(29, 11, 19, 'solid');
   hwall(11, 32, 48, 'solid', [39, 40]); vwall(32, 11, 20, 'solid'); hwall(20, 32, 48, 'solid'); // its right wall is the separate wing's
   // bottom row: church | personal | lobby (open) | library | studio
   hwall(23, 1, 10, 'solid', [9, 10]); vwall(11, 23, 32, 'solid');
@@ -132,16 +134,16 @@ export function buildLayout(team, plan = null) {
   const board = (kind, x, z, w) => decor.push({ type: 'roomBoard', at: [x, z], kind, w });
 
   // ---- top row ----
-  room('ceo', [1, 11], [1, 8]);
+  room('ceo', [1, 11], [1, 7]);
   desks.manager = { desk: [6, 4], seat: [6, 5], room: 'ceo' };
   block(6, 4);
   board('ceo', 6, 0, 3.4);
   add('bookshelf', [[1, 1], [2, 1]]); add('bookshelf', [[10, 1], [11, 1]]);
   add('armchairs', [[10, 6], [10, 7]]); add('cafeTable', [[8, 7]]);
-  add('globe', [[1, 7]]); add('floorLamp', [[11, 8]]); plant(1, 8);
+  add('globe', [[1, 7]]); add('floorLamp', [[11, 7]]); plant(2, 7);
   windows.push(['top', 3.5], ['top', 8.5], ['left', 4]);
 
-  room('growth', [13, 32], [1, 8], { bright: true });
+  room('growth', [13, 32], [1, 7], { bright: true });
   board('growth', 22.5, 0, 4.4);
   for (const x of [16, 19, 26, 29]) station('growth', x, 6);
   for (const x of [16, 29]) station('growth', x, 3);
@@ -149,7 +151,7 @@ export function buildLayout(team, plan = null) {
   plant(13, 1); plant(32, 1); plant(22, 6); plant(23, 6);
   windows.push(['top', 15.5], ['top', 18.5], ['top', 27], ['top', 30.5]);
 
-  room('sales', [34, 48], [1, 8], { bright: true });
+  room('sales', [34, 48], [1, 7], { bright: true });
   board('sales', 41.5, 0, 3.6);
   for (const x of [37, 44]) station('sales', x, 6);
   for (const x of [37, 46]) station('sales', x, 3);
@@ -172,16 +174,16 @@ export function buildLayout(team, plan = null) {
   plant(1, 12); plant(10, 12);
   windows.push(['left', 14], ['left', 17.5]);
 
-  room('meeting', [15, 29], [12, 18]);
+  room('meeting', [15, 28], [12, 18]);
   rooms[rooms.length - 1].name = tr('Conference room');
   const meeting = {
-    table: { x: [17, 27], z: [14, 15] },
-    seats: [17, 19, 21, 23, 25, 27].map((x) => [x, 13]).concat([17, 19, 21, 23, 25, 27].map((x) => [x, 16])),
-    screen: { x: 22, z: 11, off: 0.2 },
-    view: [22, 17.5],
+    table: { x: [16, 26], z: [14, 15] },
+    seats: [16, 18, 20, 22, 24, 26].map((x) => [x, 13]).concat([16, 18, 20, 22, 24, 26].map((x) => [x, 16])),
+    screen: { x: 21, z: 11, off: 0.2 },
+    view: [21, 17.5],
   };
-  for (let x = 17; x <= 27; x++) for (const z of [14, 15]) block(x, z);
-  plant(15, 12); plant(29, 12); plant(15, 18);
+  for (let x = 16; x <= 26; x++) for (const z of [14, 15]) block(x, z);
+  plant(15, 12); plant(28, 12); plant(15, 18);
 
   room('server', [33, 48], [12, 19]);
   decor.push({ type: 'opsWall', at: [36.3, 11] });
@@ -222,6 +224,9 @@ export function buildLayout(team, plan = null) {
   rooms[rooms.length - 1].name = tr('Reception');
   floors.push({ x: [25, 32], z: [28, 31], color: RUG.lobby });
   add('frontDesk', [[25, 25], [26, 25], [27, 25], [28, 25], [29, 25], [30, 25], [31, 25]]);
+  // the two AI receptionists' chairs, behind the desk (Reception.jsx): nobody walks through them
+  const reception = { seats: [[26.9, 24.1], [29.1, 24.1]] };
+  block(27, 24); block(29, 24);
   add('usageBoard', [[22, 24], [23, 24], [24, 24]]);
   const lounge = {
     couch: { x: [33, 37], z: 32 },
@@ -312,7 +317,7 @@ export function buildLayout(team, plan = null) {
 
   return {
     W, H, cols: 1, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
-    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P,
+    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception,
     // where visitors from the channels stand, in front of the reception desk
     frontDesk: { spots: [[28, 27], [26, 27], [30, 27], [27, 28], [29, 28], [25, 28], [31, 28]] },
     bossStart: [doorX, H - 4], bossRot: Math.PI, key: `${W}|${rooms.map((r) => `${r.id}:${r.name}`).join('|')}|${Object.keys(desks).join(',')}`,

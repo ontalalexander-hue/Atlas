@@ -54,8 +54,8 @@ function Town({ lamps }) {
     const r = rnd(21);
     const m = new THREE.Matrix4();
     for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 + r() * 0.05, d = 150 + r() * 60;
-      const h = 6 + r() * r() * 34, w = 6 + r() * 8;
+      const a = (i / N) * Math.PI * 2 + r() * 0.05, d = 255 + r() * 80;
+      const h = 18 + r() * r() * 80, w = 10 + r() * 14;
       m.compose(new THREE.Vector3(Math.cos(a) * d, h / 2 - 0.6, Math.sin(a) * d), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r() * 3, 0)), new THREE.Vector3(w, h, w));
       ref.current.setMatrixAt(i, m);
     }

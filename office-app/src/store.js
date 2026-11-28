@@ -151,7 +151,8 @@ export const useOffice = create((set, get) => ({
   setTimeOffset: (timeOffsetH) => set({ timeOffsetH }),
   toggleMute: () => set({ muted: !get().muted }),
   select: (id) => set({ selected: get().selected === id ? null : id }),
-  setBoss: (boss) => set({ boss, screenOpen: false, nearScreen: null, selected: null }),
+  setBoss: (boss) => set({ boss, bossOutside: false, screenOpen: false, nearScreen: null, selected: null }),
+  bossOutside: false,   // boss mode, standing out in the city rather than in the office building
   setBossName: (bossName) => { try { localStorage.setItem('agent-office-boss', bossName); } catch {} set({ bossName }); },
   setNearScreen: (nearScreen) => set({ nearScreen, ...(nearScreen ? {} : { screenOpen: false }) }),
   setScreenOpen: (screenOpen) => set({ screenOpen }),

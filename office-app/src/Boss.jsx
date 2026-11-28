@@ -8,6 +8,7 @@ import { useOffice, positions } from './store.js';
 import Person from './Person.jsx';
 import { overviewPose } from './Look.jsx';
 import { TOP as ROOF_TOP } from './Roof.jsx';
+import { cityWalkable } from './city.js';
 
 const BOSS_CEILING = ROOF_TOP - 0.7;
 import { tr, STATE_LABEL } from './i18n.js';
@@ -21,9 +22,31 @@ const greeted = {};
 const keys = {};
 const typing = (e) => /input|textarea|select/i.test(e.target?.tagName ?? '');
 
+/** Inside the office building's own grid, or out in the city (grid units). */
+const insideBuilding = (L, x, z) => x > -0.5 && x < L.W - 0.5 && z > -0.5 && z < L.H - 0.5;
+
+/** The office's wall cells as one set (grid z * W + x), worked out once per floor plan. */
+const wallCache = new WeakMap();
+function wallCells(L) {
+  if (!wallCache.has(L)) wallCache.set(L, new Set(L.walls.map(([x, z]) => z * L.W + x)));
+  return wallCache.get(L);
+}
+
+function storeBox(L) {
+  const [sx, sz] = L.toWorld(L.outside.store);
+  return [[sx - 2.8, sx + 4.4, sz - 3.5, sz + 3.5]];   // the shop and its awning
+}
+
 function canStand(L, x, z) {
+  const extra = storeBox(L);
   for (const [dx, dz] of [[-R, -R], [R, -R], [-R, R], [R, R]]) {
-    if (!L.isFree(Math.round(x + dx), Math.round(z + dz))) return false;
+    const cx = x + dx, cz = z + dz;
+    if (insideBuilding(L, cx, cz)) {
+      if (!L.isFree(Math.round(cx), Math.round(cz))) return false;
+    } else {
+      const [wx, wz] = L.toWorld([cx, cz]);
+      if (!cityWalkable(wx, wz, extra)) return false;
+    }
   }
   return true;
 }
@@ -55,6 +78,15 @@ export function BossController() {
   const pose = useRef({ mode: 'idle', moving: false });
   const lastNear = useRef(null);
   const tmp = useRef(new THREE.Vector3());
+  const tmp2 = useRef(new THREE.Vector3());
+  // how far behind you the camera stays (horizontally), as you last set it by dragging or zooming
+  const prefDist = useRef(6);
+  useEffect(() => {
+    if (!controls) return undefined;
+    const onEnd = () => { prefDist.current = Math.max(2.5, Math.hypot(camera.position.x - controls.target.x, camera.position.z - controls.target.z)); };
+    controls.addEventListener('end', onEnd);
+    return () => controls.removeEventListener('end', onEnd);
+  }, [controls, camera]);
 
   // klaviatura
   useEffect(() => {
@@ -87,7 +119,7 @@ export function BossController() {
       const [wx, wz] = L.toWorld([p.x, p.z]);
       controls.target.set(wx, 1.2, wz);
       camera.position.set(wx - Math.sin(p.rot) * 6, Math.min(4.6, BOSS_CEILING), wz - Math.cos(p.rot) * 6);
-      controls.minDistance = 2.5; controls.maxDistance = 16; controls.maxPolarAngle = 1.45;
+      controls.minDistance = 2.5; controls.maxDistance = 22; controls.maxPolarAngle = 1.45;
     } else {
       const f = Math.max(1, L.W / 34);
       const o = overviewPose(L);
@@ -138,8 +170,48 @@ export function BossController() {
     const dx = (wx - controls.target.x) * k, dz = (wz - controls.target.z) * k, dy = (1.2 - controls.target.y) * k;
     controls.target.x += dx; controls.target.y += dy; controls.target.z += dz;
     camera.position.x += dx; camera.position.y += dy; camera.position.z += dz;
-    // with the roof on, the camera stays under the ceiling
-    if (st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
+    // the camera keeps the distance you chose, but never on the far side of a wall. When a wall is close behind
+    // the camera's line, it swings round behind you (along the hallway) if that way is clearer, and only comes in
+    // close when no way is; it eases back out once the way is clear.
+    {
+      const off = tmp2.current.copy(camera.position).sub(controls.target);
+      const horiz = Math.hypot(off.x, off.z);
+      if (horiz > 0.3) {
+        const want = Math.max(horiz, prefDist.current);
+        const freeAlong = (ux, uz) => {
+          for (let d = 0.6; d < want; d += 0.2) {
+            const gx = p.x + ux * d, gz = p.z + uz * d;
+            if (insideBuilding(L, gx, gz) && wallCells(L).has(Math.round(gz) * L.W + Math.round(gx))) return Math.max(1.2, d - 0.45);
+          }
+          return want;
+        };
+        let ux = off.x / horiz, uz = off.z / horiz;
+        let free = freeAlong(ux, uz);
+        if (free < prefDist.current - 0.5) {
+          // behind you is the way you are not facing
+          const bx = -Math.sin(p.rot), bz = -Math.cos(p.rot);
+          if (freeAlong(bx, bz) > free + 0.8) {
+            const a0 = Math.atan2(ux, uz), a1 = Math.atan2(bx, bz);
+            let da = a1 - a0;
+            da = Math.atan2(Math.sin(da), Math.cos(da));
+            const a = a0 + da * Math.min(1, dt * 3);
+            ux = Math.sin(a); uz = Math.cos(a);
+            free = freeAlong(ux, uz);
+          }
+        }
+        const goal = Math.min(prefDist.current, free);
+        const next = goal < horiz ? goal : horiz + (goal - horiz) * Math.min(1, dt * 2.5);
+        camera.position.x = controls.target.x + ux * next;
+        camera.position.z = controls.target.z + uz * next;
+        // close in, the camera comes down to shoulder height rather than look straight down
+        if (next < prefDist.current - 0.5) camera.position.y = Math.min(camera.position.y, controls.target.y + 0.8 + next * 0.45);
+      }
+    }
+
+    // outside or in: the roof's glass band shows from the street, and inside the camera stays under the ceiling
+    const outside = !insideBuilding(L, p.x, p.z);
+    if (outside !== !!st.bossOutside) useOffice.setState({ bossOutside: outside });
+    if (!outside && st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
 
     // yaqin monitor
     let best = null, bestD = 1.9;
