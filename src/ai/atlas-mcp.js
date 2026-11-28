@@ -308,6 +308,20 @@ export function createAtlasMcp(ctx, opts = {}) {
         }
       ),
 
+      // A link on one of the office's projectors. The office pages open right now ask the owner first.
+      tool(
+        "atlas_office_projector",
+        "Put a link on a projector in the Atlas Office (the 3D office page): a YouTube video (it plays from its start time, e.g. &t=182s) or a web page. Use it when the owner asks to play or show something on the projector, the meeting screen or the library screen. The owner sees \"Atlas wants to show …\" in the office and it appears only after they click Show; if nobody has the office open, nothing is shown and you say so. https links only.",
+        {
+          url: z.string().describe("The https link to show, e.g. https://www.youtube.com/watch?v=...&t=182s"),
+          projector: z.enum(["meeting", "library"]).optional().describe("meeting (the conference room, the default) or library"),
+        },
+        async (args) => {
+          const result = await executeTool("office_projector", args, ctx);
+          return { content: [{ type: "text", text: result }] };
+        }
+      ),
+
       // Setting a Railway variable otherwise means a command with the value in it (`railway variables --set`, or
       // GraphQL with the token), a secret in a command line and a transcript. Atlas does it with a token from the
       // vault (lib/railway-admin.js). No delete actions.

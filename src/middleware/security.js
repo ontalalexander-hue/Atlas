@@ -35,7 +35,10 @@ function verifyCsrfToken(token) {
 /**
  * Middleware: Sets security headers on all responses.
  */
-export function securityHeaders(_req, res, next) {
+export function securityHeaders(req, res, next) {
+  // The office page (public/office) shows a projector's link inside it: a YouTube video, or a page that allows it,
+  // always in a sandboxed frame. Only that page may frame other https sites.
+  const office = /^\/office(\/|$)/.test(req.path || "");
   res.set("X-Content-Type-Options", "nosniff");
   res.set("X-Frame-Options", "SAMEORIGIN"); // Allow canvas iframes from same origin
   res.set("X-XSS-Protection", "0");
@@ -49,7 +52,7 @@ export function securityHeaders(_req, res, next) {
     "media-src 'self' blob:",
     "connect-src 'self' ws: wss: https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com",
     "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-    "frame-src 'self'",
+    office ? "frame-src 'self' https:" : "frame-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

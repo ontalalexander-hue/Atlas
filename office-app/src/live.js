@@ -317,7 +317,23 @@ export function handleEvent(e) {
       refreshStatus(1500);
       break;
     }
+    // Atlas asks to put a link on a projector: the owner says Show or Ignore first
+    case 'Projector': {
+      if (e.link?.ok && /^https:\/\//.test(e.link.url || '') && ['meeting', 'library'].includes(e.id)) s.setProjectorAsk({ id: e.id, by: e.by || 'Atlas', link: e.link });
+      break;
+    }
     default: break;
+  }
+}
+
+/** What a projector can show about a link (GET /api/office/link): { ok, kind, url, title, ... } or { ok: false, error }. */
+export async function previewLink(url) {
+  try {
+    const res = await fetch(`${SERVER}/link?url=${encodeURIComponent(url)}`, { credentials: 'same-origin' });
+    if (res.status === 401) { location.href = '/'; return { ok: false, error: 'signed out' }; }
+    return await res.json();
+  } catch {
+    return { ok: false, error: tr('Could not reach Atlas. Check your connection.') };
   }
 }
 

@@ -45,6 +45,7 @@ const ATLAS = {
   atlas_datetime: ["Checking the time…", "Time checked", "Checking the time failed"],
   atlas_calculator: ["Calculating…", "Calculated", "Calculation failed"],
   atlas_discord_admin: ["Working on Discord…", "Discord done", "Discord failed"],
+  atlas_office_projector: ["Asking for the projector…", "Projector asked", "Projector failed"],
   atlas_railway: ["Working on Railway…", "Railway done", "Railway failed"],
   // The vault: never a key's name, let alone its value.
   atlas_get_key: ["Checking the vault…", "Vault checked", "Vault check failed"],

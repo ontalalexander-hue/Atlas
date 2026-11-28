@@ -47,6 +47,7 @@ const KNOWN = {
   delete_key: ["Delete a saved key", "Vault keys"],
   schedule_task: ["Schedule a task", "Scheduling"],
   discord_admin: ["Manage a Discord server", "Admin"],
+  office_projector: ["Show a link on an office projector", "Office"],
   railway: ["Manage Railway services", "Admin"],
   configure_email_channel: ["Set up the email channel", "Admin"],
   pdf_read: ["Read a PDF", "Documents and visuals"],

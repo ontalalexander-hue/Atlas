@@ -185,6 +185,11 @@ export const useOffice = create((set, get) => ({
   setProjector: (id, v) => set((s) => ({ projector: { ...s.projector, [id]: v ?? undefined } })),
   projectorOpen: null,
   setProjectorOpen: (projectorOpen) => set({ projectorOpen }),
+  // the player box for a projector's link (which projector's), and a link Atlas asked to show: { id, by, link }
+  player: null,
+  setPlayer: (player) => set({ player }),
+  projectorAsk: null,
+  setProjectorAsk: (projectorAsk) => set({ projectorAsk }),
   // a meeting in the conference room: everyone who is free sits round the table
   meeting: null,
   callMeeting: () => {

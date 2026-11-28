@@ -7,7 +7,7 @@ import { useOffice } from './store.js';
 import { SEV, SEV_LOWER, LEVELS, rank, visibleSev, atLeast, maxSev } from './severity.js';
 import { tr, LOCALE, STATE_LABEL, SERVICE_LABEL } from './i18n.js';
 import { startSim, stopSim } from './sim.js';
-import { startLive, stopLive, handleEvent, resolveServer, sendOrder } from './live.js';
+import { startLive, stopLive, resolveServer, sendOrder } from './live.js';
 import { startSun } from './sun.js';
 import { BossController, BossHud } from './Boss.jsx';
 import { replayUrl, startReplay, stopReplay } from './replay.js';
@@ -18,7 +18,7 @@ import { TOP as ROOF_TOP } from './Roof.jsx';
 import RoomPlan, { ScheduleCard } from './Plan.jsx';
 import Reception, { ReceptionPanel } from './Reception.jsx';
 import { ComputerPanel } from './Computer.jsx';
-import { ProjectorPanel } from './Projector.jsx';
+import { ProjectorPanel, LinkPlayer, ProjectorAsk } from './Projector.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
 function useSmall() {
@@ -133,28 +133,6 @@ const CONN = {
 };
 const KIND_ICON = { docker: '🐳', terminal: '⌨', file: '📄' };
 const hm = (d) => (d ? new Date(d).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' }) : '—');
-
-// Live rejimni Claude'siz sinash uchun namunaviy hodisalar
-const DEMO = [
-  { hook: 'SessionStart' },
-  { hook: 'UserPromptSubmit', prompt: tr('Add a login page and an API'), source: 'telegram', session_id: 'demo' },
-  { hook: 'PreToolUse', tool: 'Agent', tool_use_id: 'demo1', input: { subagent_type: 'coder', description: tr('Write the login API') } },
-  { hook: 'PreToolUse', tool: 'Read', agent_type: 'coder', input: { file_path: 'src/server/routes.ts' } },
-  { hook: 'PreToolUse', tool: 'Agent', tool_use_id: 'demo2', input: { subagent_type: 'writer', description: tr('Login form') } },
-  { hook: 'PreToolUse', tool: 'Edit', agent_type: 'coder', input: { file_path: 'src/server/auth.ts' } },
-  { hook: 'PreToolUse', tool: 'Write', agent_type: 'writer', input: { file_path: 'src/pages/Login.tsx' } },
-  { hook: 'PostToolUseFailure', tool: 'Bash', agent_type: 'coder', input: { command: 'npm test' }, error: 'Exit code 1\nError: Cannot find module \'express\'' },
-  { hook: 'PostToolUseFailure', tool: 'Agent', tool_use_id: 'demo2', agent_type: 'manager', severity: 'moderate', error: tr('The writer ran into an error') },
-  { hook: 'PostToolUse', tool: 'Agent', tool_use_id: 'demo1' },
-  { hook: 'Stop', session_id: 'demo' },
-];
-
-async function runDemo() {
-  for (const ev of DEMO) {
-    handleEvent(ev);
-    await new Promise((r) => setTimeout(r, ev.hook === 'Service' && ev.state === 'down' ? 7000 : 1800));
-  }
-}
 
 function SunRow() {
   const { themeMode, setThemeMode, timeOffsetH, setTimeOffset, sunInfo, sky } = useOffice();
@@ -433,7 +411,6 @@ function Panel() {
           <div className="conn">
             <span className="dot" style={{ background: connColor }} />
             {connText}
-            <button className="link" onClick={runDemo}>{tr('Test events')}</button>
           </div>
         )}
         <BossRow />
@@ -625,6 +602,8 @@ export default function App() {
         <ComputerPanel />
         <ReceptionPanel />
         <ProjectorPanel />
+        <LinkPlayer />
+        <ProjectorAsk />
       </div>
       <Panel />
     </div>
