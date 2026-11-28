@@ -520,6 +520,17 @@ const fmtReset = (ms) => {
   return sameDay ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : d.toLocaleDateString([], { weekday: 'short', hour: 'numeric' });
 };
 
+// The plan's usage, laid out like claude.ai's Settings → Usage: the current session, this week and any per-model
+// weekly window, each a bar with the share used and when it resets. Below, what the office did today.
+const resetText = (ms) => {
+  if (!ms) return '';
+  const left = ms - Date.now();
+  if (left > 0 && left < 3600_000) return `Resets in ${Math.max(1, Math.round(left / 60_000))} min`;
+  // (to the nearest minute: a reset at 12:59:59 reads 1:00, as claude.ai shows it)
+  const d = new Date(Math.round(ms / 60_000) * 60_000);
+  const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString() ? `Resets ${t}` : `Resets ${d.toLocaleDateString([], { weekday: 'short' })} ${t}`;
+};
 function UsageBoard() {
   const usage = useOffice((s) => s.usage);
   const working = useOffice((s) => Object.values(s.agents).filter((a) => a.state === 'working' || a.state === 'thinking').length);
@@ -527,40 +538,51 @@ function UsageBoard() {
   const tex = useMemo(() => { const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }, [canvas]);
   useEffect(() => {
     const g = canvas.getContext('2d');
+    const F = (w, px) => `${w} ${px}px Inter, system-ui, sans-serif`;
     g.fillStyle = '#0b1220'; g.fillRect(0, 0, 1024, 512);
     g.fillStyle = '#1f7ae0'; g.fillRect(0, 0, 1024, 84);
-    g.fillStyle = '#fff'; g.font = '800 46px Inter, system-ui, sans-serif'; g.textBaseline = 'middle'; g.textAlign = 'left';
-    g.fillText('CLAUDE USAGE', 32, 44);
-    g.font = '600 30px Inter, system-ui, sans-serif'; g.textAlign = 'right';
+    g.fillStyle = '#fff'; g.font = F(800, 44); g.textBaseline = 'middle'; g.textAlign = 'left';
+    g.fillText('YOUR USAGE', 32, 44);
+    g.font = F(600, 28); g.textAlign = 'right';
     g.fillText(working ? `${working} working now` : 'floor is quiet', 992, 44);
 
-    const row = (y, title, w, used) => {
-      g.textAlign = 'left'; g.fillStyle = '#9fb3cc'; g.font = '700 30px Inter, system-ui, sans-serif';
-      g.fillText(title, 32, y);
-      const left = w?.leftPct;
-      if (typeof left === 'number') {
-        const color = left > 40 ? '#4cc38a' : left > 15 ? '#f0a548' : '#ff5a5f';
-        g.fillStyle = '#1b2638'; g.fillRect(32, y + 28, 640, 44);
-        g.fillStyle = color; g.fillRect(32, y + 28, Math.max(6, 640 * (left / 100)), 44);
-        g.fillStyle = '#fff'; g.font = '800 54px Inter, system-ui, sans-serif'; g.textAlign = 'right';
-        g.fillText(`${Math.round(left)}%`, 870, y + 50);
-        g.fillStyle = '#9fb3cc'; g.font = '600 26px Inter, system-ui, sans-serif';
-        g.fillText('left', 940, y + 54);
-        g.textAlign = 'left'; g.fillStyle = '#7f92ab'; g.font = '500 24px Inter, system-ui, sans-serif';
-        g.fillText(`${w.resetsAt ? `resets ${fmtReset(w.resetsAt)}` : ''}${used ? `   ·   ${fmtTokens(used.tokens)} tokens` : ''}`, 32, y + 98);
-      } else {
-        g.fillStyle = '#fff'; g.font = '800 50px Inter, system-ui, sans-serif';
-        g.fillText(used ? `${fmtTokens(used.tokens)} tokens used` : '—', 32, y + 54);
-        g.fillStyle = '#7f92ab'; g.font = '500 24px Inter, system-ui, sans-serif';
-        g.fillText('share of the plan not reported yet', 32, y + 98);
-      }
+    const plan = usage?.plan;
+    const data = plan?.data;
+    // one row: the name and when it resets on the left, a bar, and the share used on the right
+    const row = (y, h, title, w) => {
+      g.textAlign = 'left'; g.fillStyle = '#eef3fa'; g.font = F(700, 30); g.fillText(title, 32, y);
+      g.fillStyle = '#8ea3bd'; g.font = F(500, 22); g.fillText(resetText(w.resetsAt), 32, y + 32);
+      const pct = Math.max(0, Math.min(100, w.usedPct));
+      const color = pct >= 90 ? '#ff5a5f' : pct >= 75 ? '#f0a548' : '#3b82f6';
+      g.fillStyle = '#1b2638'; g.fillRect(360, y - 6, 470, 14);
+      g.fillStyle = color; g.fillRect(360, y - 6, Math.max(4, 470 * (pct / 100)), 14);
+      g.textAlign = 'right'; g.fillStyle = '#eef3fa'; g.font = F(700, 30);
+      g.fillText(`${Math.round(pct)}% used`, 992, y);
+      g.textAlign = 'left';
     };
-    row(128, '5-HOUR WINDOW', usage?.limits?.fiveHour, usage?.used?.fiveHour);
-    row(268, 'THIS WEEK', usage?.limits?.sevenDay, usage?.used?.sevenDay);
+    if (data) {
+      const rows = [data.session && ['Current session', data.session], data.week && ['This week', data.week], ...(data.models || []).map((m) => [m.label, m]) ].filter(Boolean).slice(0, 4);
+      const gap = rows.length > 3 ? 78 : 96;
+      rows.forEach(([title, w], i) => row(124 + i * gap, gap, title, w));
+      // this week, by app (Claude Code, Cowork, chats)
+      if (data.byApp?.length && rows.length < 4) {
+        g.fillStyle = '#8ea3bd'; g.font = F(500, 22); g.textAlign = 'left';
+        g.fillText(`This week by app:  ${data.byApp.map((a) => `${a.label} ${Math.round(a.pct)}%`).join('  ·  ')}`, 32, 124 + rows.length * gap - 18);
+      }
+      if (plan.status === 'stale') { g.fillStyle = '#f0a548'; g.font = F(500, 20); g.textAlign = 'right'; g.fillText('last reading · could not refresh', 992, 404); g.textAlign = 'left'; }
+    } else {
+      // no reading from the plan: what Atlas itself used, and why the share is missing
+      g.textAlign = 'left'; g.fillStyle = '#eef3fa'; g.font = F(800, 46);
+      g.fillText(`${fmtTokens(usage?.used?.fiveHour?.tokens || 0)} tokens · last 5 hours`, 32, 150);
+      g.fillText(`${fmtTokens(usage?.used?.sevenDay?.tokens || 0)} tokens · this week`, 32, 230);
+      g.fillStyle = '#8ea3bd'; g.font = F(500, 24);
+      const why = !plan ? 'Reading the plan usage…' : plan.status === 'not_signed_in' ? 'Plan usage shows when Atlas runs on a Claude plan sign-in.' : `Plan usage not available: ${plan.error || 'no answer'}`;
+      g.fillText(why.length > 80 ? `${why.slice(0, 79)}…` : why, 32, 310);
+    }
 
     const done = Object.values(usage?.done || {}).reduce((a, b) => a + b, 0);
     g.fillStyle = '#121c2e'; g.fillRect(0, 424, 1024, 88);
-    g.textAlign = 'left'; g.fillStyle = '#dbe7f7'; g.font = '700 32px Inter, system-ui, sans-serif';
+    g.textAlign = 'left'; g.fillStyle = '#dbe7f7'; g.font = F(700, 30);
     g.fillText(`TODAY   ${done} task${done === 1 ? '' : 's'} done   ·   ${fmtTokens(usage?.used?.today?.tokens || 0)} tokens`, 32, 468);
     tex.needsUpdate = true;
   }, [usage, working, canvas, tex]);
@@ -583,13 +605,6 @@ function Entrance({ L }) {
         <mesh key={dx} position={[dx, 1.2, 0]} castShadow><boxGeometry args={[0.12, 2.4, 0.36]} /><meshStandardMaterial color="#2b2f36" /></mesh>
       ))}
       <mesh position={[0, 2.38, 0]}><boxGeometry args={[2.22, 0.12, 0.36]} /><meshStandardMaterial color="#2b2f36" /></mesh>
-      {/* the glass doors, standing open */}
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[s * 0.98, 1.15, -0.45]} rotation-y={-s * 0.45}>
-          <boxGeometry args={[0.04, 2.2, 0.9]} />
-          <meshStandardMaterial color="#cfe6f5" transparent opacity={0.35} depthWrite={false} />
-        </mesh>
-      ))}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, -1.0]}><planeGeometry args={[1.8, 1.1]} /><meshStandardMaterial color="#3a4252" roughness={1} /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.014, -1.0]}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={mat} transparent /></mesh>
       <mesh rotation-x={-Math.PI / 2} position={[0, -0.004, 1.1]} receiveShadow><planeGeometry args={[2.4, 2]} /><meshStandardMaterial color="#9aa0a8" /></mesh>

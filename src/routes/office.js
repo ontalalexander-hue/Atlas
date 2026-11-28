@@ -36,6 +36,10 @@ import { createOfficeWorld, normalizePlan, PLAN_SETTING } from "../lib/office-wo
 import { departmentTeam } from "../lib/departments.js";
 import { scheduleBoard } from "../lib/office-schedule.js";
 import { offsiteStatus } from "../lib/offsite-backup.js";
+import { createPlanUsage } from "../lib/plan-usage.js";
+
+// the plan's usage as claude.ai shows it (lib/plan-usage.js), read at most every two minutes
+const planUsage = createPlanUsage();
 
 /** The off-site backup as the memory board shows it: set up or not, when the last good copy was made, whether the last try failed. */
 function offsiteBoard(s) {
@@ -105,8 +109,10 @@ officeRouter.get("/team", (_req, res) => {
   res.json({ team: wholeTeam(), project: PROJECT });
 });
 
-officeRouter.get("/usage", (req, res) => {
+officeRouter.get("/usage", async (req, res) => {
   const limits = planWindows();
+  let plan = null;
+  try { plan = await planUsage.get(); } catch { plan = { status: "error", error: "Could not read the plan's usage." }; }
   let used = null;
   try {
     const index = usageIndex(req.app.get("db"));
@@ -115,7 +121,7 @@ officeRouter.get("/usage", (req, res) => {
     const pick = (w) => (w ? { tokens: w.total || 0, calls: w.calls || 0 } : null);
     used = { today: pick(o.today), fiveHour: pick(o.windows?.fiveHour), sevenDay: pick(o.windows?.sevenDay) };
   } catch { /* the board shows the rest */ }
-  res.json({ at: Date.now(), limits, used, done: doneToday() });
+  res.json({ at: Date.now(), limits, used, done: doneToday(), plan });
 });
 
 officeRouter.get("/status", (req, res) => {
