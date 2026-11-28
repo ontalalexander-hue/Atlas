@@ -134,6 +134,11 @@ function setting(name, { env = process.env, getKey = vaultGet } = {}) {
   return String(v || env[name] || "").trim() || null;
 }
 
+/** Which setup a run used: the repository and a short hash of the token, never the token. */
+export function configId(cfg) {
+  return cfg ? `${cfg.repo}#${crypto.createHash("sha256").update(cfg.token).digest("hex").slice(0, 12)}` : null;
+}
+
 export function backupConfig(deps) {
   const repo = setting("GITHUB_BACKUP_REPO", deps);
   const token = setting("GITHUB_BACKUP_TOKEN", deps);
@@ -180,7 +185,14 @@ export async function runOffsiteBackup({ db, workspaceDir = config.WORKSPACE_DIR
   const call = gh(cfg.token, fetchImpl);
 
   // the repository must exist and be private, and have a first commit for a release to point at
-  const repo = await call("GET", `/repos/${cfg.repo}`);
+  let repo;
+  try {
+    repo = await call("GET", `/repos/${cfg.repo}`);
+  } catch (err) {
+    if (err.status === 404) throw new Error(`GitHub cannot see ${cfg.repo} with this token. Give the token access to that repository (Repository access: Only select repositories), with Contents: Read and write.`);
+    if (err.status === 401) throw new Error("GitHub refused the token (expired or wrong). Make a new one and save it as GITHUB_BACKUP_TOKEN.");
+    throw err;
+  }
   if (!repo?.private) throw new Error(`${cfg.repo} is not a private repository, so nothing was uploaded. Make it private first.`);
   try {
     await call("GET", `/repos/${cfg.repo}/commits?per_page=1`);
@@ -253,6 +265,8 @@ export function offsiteStatus(db) {
   }
 }
 
+function safeConfigId() { try { return configId(backupConfig()); } catch { return null; } }
+
 /** Run one backup and record how it went. Never throws. */
 export async function backupNow(db, opts = {}) {
   if (_running) return { ok: false, error: "A backup is already running." };
@@ -262,12 +276,12 @@ export async function backupNow(db, opts = {}) {
   const prev = offsiteStatus(db);
   try {
     const r = await runOffsiteBackup({ db, ...opts });
-    const status = { ok: true, lastRunAt: startedAt, lastOkAt: Date.now(), tag: r.tag, files: r.files, skipped: r.skipped, sizes: r.sizes, error: null };
+    const status = { ok: true, cfgId: safeConfigId(), lastRunAt: startedAt, lastOkAt: Date.now(), tag: r.tag, files: r.files, skipped: r.skipped, sizes: r.sizes, error: null };
     settings.set(STATUS_SETTING, JSON.stringify(status));
     console.log(`[backup] off-site backup ${r.tag}: ${r.files} workspace files, database ${Math.round((r.sizes.database || 0) / 1024)} KB${r.removed ? `, ${r.removed} old one(s) removed` : ""}`);
     return status;
   } catch (err) {
-    const status = { ok: false, lastRunAt: startedAt, lastOkAt: prev.lastOkAt ?? null, tag: prev.tag ?? null, error: String(err?.message || err).slice(0, 300) };
+    const status = { ok: false, cfgId: safeConfigId(), lastRunAt: startedAt, lastOkAt: prev.lastOkAt ?? null, tag: prev.tag ?? null, error: String(err?.message || err).slice(0, 300) };
     try { settings.set(STATUS_SETTING, JSON.stringify(status)); } catch { /* the log line still says it */ }
     console.warn(`[backup] off-site backup failed: ${status.error}`);
     return status;
@@ -286,9 +300,10 @@ export function startOffsiteBackup({ db }) {
     const lastTry = s.lastRunAt || 0;
     const lastOk = s.lastOkAt || 0;
     const now = Date.now();
-    // a good copy in the last 23 hours: nothing to do; a failed try: wait 2 hours before the next
+    // a good copy in the last 23 hours: nothing to do; a failed try: wait 2 hours before the next, unless the
+    // repository or the token changed since (the owner fixed it: try again now)
     if (now - lastOk < 23 * 3_600_000) return;
-    if (!s.ok && now - lastTry < 2 * 3_600_000) return;
+    if (!s.ok && now - lastTry < 2 * 3_600_000 && s.cfgId === configId(cfg)) return;
     backupNow(db).catch(() => {});
   };
   _timer = setInterval(tick, 30 * 60_000);
