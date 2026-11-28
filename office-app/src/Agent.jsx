@@ -128,7 +128,7 @@ export default function Agent({ id }) {
         </mesh>
       )}
       <Person color={a.color} look={lookFor(id)} pose={pose} tie={id === 'manager'} />
-      {!(roofClosed && !a.away) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+      {!(roofClosed && !a.away && !boss) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
         <div className="tag-wrap">
           {showBubble && <div className={`bubble ${a.bubbleKind}`}>{a.bubble}</div>}
           <div className={`tag ${tagClass}`}>

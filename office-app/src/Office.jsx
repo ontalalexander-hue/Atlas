@@ -175,7 +175,7 @@ function Floors({ L }) {
                 <meshStandardMaterial color={r.rug} roughness={1} />
               </RoundedBox>
             )}
-            {r.name && !roofClosed && (
+            {r.name && (!roofClosed || boss) && (
               <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25)]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
                 <div className={`room-label ${theme} ${r.kind === todayKind ? 'today' : ''}`}>{r.kind === todayKind ? `★ ${tr('Today')} · ` : ''}{r.name}</div>
               </Html>
@@ -403,10 +403,13 @@ function Instanced({ L, cells, geometry, material, y = 0, scale = [1, 1, 1] }) {
 function RoomLights({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 20) / 20);
   const roofClosed = useOffice((s) => s.roofClosed);
-  if (lamps < 0.05 || roofClosed) return null;
+  const boss = useOffice((s) => s.boss);
+  // under the roof the sun does not reach: walking about inside, the lights are on whatever the hour
+  const level = roofClosed ? (boss ? Math.max(lamps, 0.7) : 0) : lamps;
+  if (level < 0.05) return null;
   return L.lights.map((l, i) => {
     const [cx, cz] = L.toWorld(l.at);
-    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * lamps} distance={l.d ?? 10} decay={1.6} color="#ffd9a8" />;
+    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * level} distance={l.d ?? 10} decay={1.6} color="#ffd9a8" />;
   });
 }
 

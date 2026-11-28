@@ -7,7 +7,9 @@ import { Html, RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
 import { tr } from './i18n.js';
 
-const TOP = 2.5; // the roof's walking surface
+// The roof's walking surface: high enough that boss mode, walking about inside with the roof on, has room for its
+// camera (BOSS_CEILING in Boss.jsx stays under it).
+export const TOP = 5.0;
 const WALL = 1.3; // where the outer walls stop: a band of windows fills the gap up to the slab
 const LIFT = 15;
 
@@ -154,6 +156,7 @@ export default function Roof({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 10) / 10);
   const setRoofClosed = useOffice((s) => s.setRoofClosed);
   const roofClosed = useOffice((s) => s.roofClosed);
+  const boss = useOffice((s) => s.boss);
   const wantOpen = mode === 'off' || (mode === 'auto' && (busy || picked));
   const ref = useRef();
   const st = useRef({ y: wantOpen ? LIFT : 0, open: wantOpen });
@@ -193,8 +196,9 @@ export default function Roof({ L }) {
           <mesh position-y={0.49}><boxGeometry args={[w + 0.06, 0.05, d + 0.06]} /><meshStandardMaterial color="#3a3f48" roughness={0.7} /></mesh>
         </group>
       ))}
-      {/* a band of dark glass between the walls and the slab, lit from inside at night */}
-      {par.map(([x, z, w, d], i) => (
+      {/* a band of dark glass between the walls and the slab, lit from inside at night; left out while the boss walks
+          about inside, so the camera behind them always sees in */}
+      {!boss && par.map(([x, z, w, d], i) => (
         <mesh key={`g${i}`} position={[x * (1 - 0.3 / (Math.abs(x) || 1)), (WALL + TOP - 0.3) / 2, z * (1 - 0.3 / (Math.abs(z) || 1))]}>
           <boxGeometry args={[Math.max(0.12, w - 0.9), TOP - 0.3 - WALL, Math.max(0.12, d - 0.3)]} />
           <meshStandardMaterial color="#24364d" roughness={0.08} metalness={0.5} emissive="#ffd9a0" emissiveIntensity={lamps * 0.55} />
@@ -213,7 +217,7 @@ export default function Roof({ L }) {
       </group>
 
       <Deck x0={x0} x1={x1} z0={z0} z1={z1} lamps={lamps} />
-      {roofClosed && (
+      {roofClosed && !boss && (
         <Html position={[(x0 + x1) / 2, TOP + 0.1, z1 - 0.2]} center distanceFactor={16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
           <div className={`room-label ${lamps > 0.5 ? 'night' : 'day'}`}>{tr('View deck')}</div>
         </Html>
