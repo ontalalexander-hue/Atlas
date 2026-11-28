@@ -127,6 +127,9 @@ body { background: var(--bg); }
 .sun-top { display: flex; align-items: center; gap: 10px; }
 .seg3 { grid-template-columns: 1fr 1fr 1fr; flex: 1; }
 .seg3 button { padding: 5px 6px; font-size: 0.8rem; }
+.seg4 { grid-template-columns: repeat(4, 1fr); flex: 1; }
+.seg4 button { padding: 5px 4px; font-size: 0.78rem; }
+.tag.visitor { background: rgba(255, 255, 255, 0.92); color: #1b1f27; }
 .sun-alt { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
 .sun-info { display: flex; justify-content: space-between; gap: 8px; font-size: 0.76rem; color: #cfd5e0; flex-wrap: wrap; }
 .sun-info em { color: var(--muted); font-style: normal; }

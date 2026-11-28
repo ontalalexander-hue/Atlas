@@ -67,6 +67,7 @@ export default function Agent({ id }) {
       }
       if (st.i >= a.path.length) {
         if (a.after?.face === 'desk') pos.rot = Math.PI;
+        else if (a.after?.rot != null) pos.rot = a.after.rot;
         arrived(id);
       }
     }
@@ -82,6 +83,8 @@ export default function Agent({ id }) {
     }
     let mode = a.state === 'walking' ? 'idle' : a.state;
     if (a.state === 'thinking' && id === 'manager') mode = 'working';
+    if (a.state === 'idle' && a.seated) mode = 'sit';
+    if (a.state === 'resting') mode = 'down';
     if (pos.waveUntil && pos.waveUntil > Date.now() && !panic && !down && !moving) mode = 'wave';
     pose.current.mode = mode;
     pose.current.moving = moving;

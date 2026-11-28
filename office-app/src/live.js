@@ -30,6 +30,22 @@ let running = []; // ishga tushgan sub-agentlar (agent_type kelmasa zaxira)
 // a background sub-agent always sends agent_type; the fallback is only for foreground ones
 const actorOf = (e) => { const fg = running.filter((r) => !r.async); return norm(e.agent_type) || (fg.length ? fg[fg.length - 1].agent : 'manager'); };
 
+// ---------- the other boards: channels, inbox, errors, memory ----------
+let statusTimer = null;
+export function refreshStatus(delay = 0) {
+  clearTimeout(statusTimer);
+  statusTimer = setTimeout(() => {
+    fetch(`${SERVER}/status`, { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j) S().setStatus(j); })
+      .catch(() => {});
+  }, delay);
+}
+
+// where a turn came from: someone writing in (a visitor walks in), or Atlas's own schedule
+const PEOPLE = new Set(['web', 'telegram', 'whatsapp', 'discord', 'slack', 'email', 'api', 'acp']);
+const OWN = { cron: '📅 ', heartbeat: '💓 ', boot: '🔆 ' };
+
 // ---------- the board's numbers ----------
 let usageTimer = null;
 export function refreshUsage(delay = 0) {
@@ -106,9 +122,12 @@ function startSub(agent, task) {
   const s = S();
   s.ensureAgent(agent);
   const a = S().agents[agent];
+  S().setSpotlight(agent);
   if (a.state === 'working' || (a.state === 'walking' && a.after?.state === 'working')) return;
   S().patch(agent, { task });
-  S().goToDesk(agent, { state: 'working' });
+  // a short meeting at the conference table first, then to the desk
+  if (S().isPanicking(agent) || a.down) S().goToDesk(agent, { state: 'working' });
+  else S().handover(agent);
   S().log(agent, tr('Took a task: {task}', { task }));
 }
 
@@ -118,7 +137,8 @@ function finishSub(agent) {
   s.log(agent, tr('✓ Task done'));
   s.say(agent, tr('Done!'), 2500, 'ok');
   s.patch(agent, { task: '' });
-  setTimeout(() => S().goToLounge(agent), 1200);
+  // back at the desk, sitting, until the next job
+  setTimeout(() => { const b = S().agents[agent]; if (b && !b.task && b.state !== 'resting') S().goToDesk(agent, { state: 'idle' }); }, 1200);
   refreshUsage(2500);
 }
 
@@ -171,9 +191,11 @@ export function handleEvent(e) {
     case 'UserPromptSubmit': {
       // a background sub-agent reporting back arrives as a prompt; it is not a new request
       if (/^\s*<(task-notification|agent-message)\b/.test(e.prompt || '')) break;
-      const p = short(e.prompt, 80) || tr('New request');
+      const p = (OWN[e.source] || '') + (short(e.prompt, 80) || tr('New request'));
+      if (PEOPLE.has(e.source)) s.visitorArrive(e.session_id, e.source);
       s.goToDesk('manager', { state: 'thinking' });
       s.patch('manager', { task: p });
+      s.setSpotlight('manager');
       s.say('manager', p, 5000);
       s.log('manager', tr('Request: {p}', { p }));
       break;
@@ -194,6 +216,7 @@ export function handleEvent(e) {
       }
       const who = actorOf(e);
       s.ensureAgent(who);
+      s.setSpotlight(who);
       const what = describe(tool, input);
       const a = S().agents[who];
       if (a.state === 'idle' && !a.down) S().goToDesk(who, { state: 'working' });
@@ -229,7 +252,11 @@ export function handleEvent(e) {
       if (SPAWN_TOOLS.has(tool)) {
         const idx = running.findIndex((r) => r.id && r.id === e.tool_use_id);
         const r = idx >= 0 ? running.splice(idx, 1)[0] : null;
-        if (r) S().alert(r.agent, 'major', tr('Sub-agent ended with an error'), tool);
+        if (r) {
+          S().patch(r.agent, { task: '' });
+          S().setState(r.agent, 'idle');
+          S().alert(r.agent, 'major', tr('Sub-agent ended with an error'), tool);
+        }
       }
       break;
     }
@@ -245,12 +272,19 @@ export function handleEvent(e) {
       s.setState('manager', 'idle');
       s.patch('manager', { task: '' });
       s.say('manager', tr('Answer ready ✓'), 3000, 'ok');
+      s.visitorLeave(e.session_id, true);
       refreshUsage(2500);
+      refreshStatus(1500);
       s.log('manager', tr('Answer ready'));
       break;
     }
     case 'StopFailure': {
+      s.patch('manager', { task: '' });
+      s.setState('manager', 'idle');
+      s.visitorLeave(e.session_id, false);
+      s.setSpotlight('manager');
       s.alert('manager', isLevel(e.severity) ? e.severity : 'major', tr('Answer failed: {err}', { err: short(firstLine(e.error), 70) || tr('API error') }), 'Claude');
+      refreshStatus(1500);
       break;
     }
     default: break;
@@ -259,11 +293,14 @@ export function handleEvent(e) {
 
 let es = null;
 let usagePoll = null;
+let statusPoll = null;
 let snackTimer = null;
 export async function startLive() {
   stopLive();
   refreshUsage();
   usagePoll = setInterval(() => refreshUsage(), 60_000);
+  refreshStatus();
+  statusPoll = setInterval(() => { if (!document.hidden) refreshStatus(); }, 20_000);
   // now and then, someone with nothing to do pops out to the store
   snackTimer = setInterval(() => {
     if (document.hidden || Math.random() > 0.6) return;
@@ -284,7 +321,7 @@ export async function startLive() {
 }
 export function stopLive() {
   if (es) { es.close(); es = null; }
-  clearInterval(usagePoll); clearInterval(snackTimer);
+  clearInterval(usagePoll); clearInterval(statusPoll); clearInterval(snackTimer);
   running = [];
   S().setConn('off');
 }

@@ -99,6 +99,6 @@ export function tr(text, vars) {
   return s;
 }
 
-export const STATE_LABEL = (state) => tr({ panic: 'ERROR!', down: 'offline' }[state] ?? state);
+export const STATE_LABEL = (state) => tr({ panic: 'ERROR!', down: 'offline', resting: 'in sick bay' }[state] ?? state);
 const SV = { up: 'running', down: 'crashed', unhealthy: 'unhealthy', restarting: 'restarting', stopped: 'stopped', removed: 'removed' };
 export const SERVICE_LABEL = (state) => (SV[state] ? tr(SV[state]) : state);

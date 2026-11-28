@@ -8,6 +8,8 @@
  *   GET /api/office/team    { team, project }
  *   GET /api/office/events  server-sent events, one hook-shaped event per line (lib/office-events.js)
  *   GET /api/office/usage   the board: the Claude plan's limits when known, tokens used, and tasks finished today
+ *   GET /api/office/status  the other boards: messages in from each channel, recent errors, channels, heartbeat,
+ *                           scheduled jobs and memory (lib/office-status.js)
  */
 import { Router } from "express";
 import { onEvent, activeTurnList } from "../lib/live-bus.js";
@@ -17,6 +19,10 @@ import { initPlanLimits, planWindows } from "../lib/plan-limits.js";
 import { usageIndex } from "../lib/token-usage.js";
 import { localDay } from "../lib/local-time.js";
 import { SettingsStore } from "../db/settings.js";
+import { createOfficeStatus, channelBoard, heartbeatBoard, cronBoard, memoryBoard } from "../lib/office-status.js";
+import { getHeartbeatStatus } from "../lib/heartbeat.js";
+import { getCronStatus } from "../lib/cron.js";
+import config from "../config/env.js";
 
 export const officeRouter = Router();
 
@@ -46,11 +52,15 @@ export function doneToday() {
 }
 
 const tallier = createOfficeTranslator();
+const status = createOfficeStatus({ day: () => today() });
 onEvent((evt) => {
+  try { status.noteBusEvent(evt); } catch { /* the board misses one */ }
   try {
     for (const ev of tallier.translate(evt)) {
       if (ev.hook === "Stop") countDone("manager");
       else if (ev.hook === "PostToolUse" && ev.subagent) countDone(ev.subagent);
+      else if (ev.hook === "StopFailure") status.noteError("manager", ev.error);
+      else if (ev.hook === "PostToolUseFailure") status.noteError(ev.agent_type, ev.error);
     }
   } catch { /* a count missed is not worth a crash */ }
 });
@@ -87,6 +97,20 @@ officeRouter.get("/usage", (req, res) => {
     used = { today: pick(o.today), fiveHour: pick(o.windows?.fiveHour), sevenDay: pick(o.windows?.sevenDay) };
   } catch { /* the board shows the rest */ }
   res.json({ at: Date.now(), limits, used, done: doneToday() });
+});
+
+officeRouter.get("/status", (req, res) => {
+  const safe = (fn) => { try { return fn(); } catch { return null; } };
+  const channels = safe(() => channelBoard(req.app.get("channelManager")?.getStatus?.())) || [];
+  res.json({
+    at: Date.now(),
+    working: activeTurnList().length,
+    channels,
+    heartbeat: safe(() => heartbeatBoard(getHeartbeatStatus())),
+    cron: safe(() => cronBoard(getCronStatus())),
+    memory: safe(() => memoryBoard({ workspaceDir: config.WORKSPACE_DIR, dbPath: config.DB_PATH })),
+    ...status.snapshot(),
+  });
 });
 
 officeRouter.get("/events", (req, res) => {
