@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { backupKey, encryptStreamToFile, decryptFile, readRecords, workspaceFiles, runOffsiteBackup, backupConfig, KEEP } from "../src/lib/offsite-backup.js";
+import { backupKey, encryptStreamToFile, decryptFile, readRecords, workspaceFiles, runOffsiteBackup, backupConfig, configId, KEEP } from "../src/lib/offsite-backup.js";
 
 const SECRET = "test-encryption-key-0123456789abcdef";
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), "offsite-test-"));
@@ -110,6 +110,17 @@ test("off-site backup: the token never appears in an error", async () => {
   const fetchImpl = async () => new Response(JSON.stringify({ message: `Bad credentials for ${token}` }), { status: 401 });
   await assert.rejects(
     runOffsiteBackup({ db: fakeDb("x"), workspaceDir: tmp(), deps: { env: { GITHUB_BACKUP_REPO: "me/backups", GITHUB_BACKUP_TOKEN: token }, getKey: () => null }, fetchImpl, secret: SECRET }),
-    (err) => !err.message.includes(token) && /401/.test(err.message),
+    (err) => !err.message.includes(token) && /refused the token/.test(err.message),
   );
+});
+
+test("off-site backup: a token that cannot see the repository says so in plain words", async () => {
+  const fetchImpl = async () => new Response(JSON.stringify({ message: "Not Found" }), { status: 404 });
+  await assert.rejects(runOffsiteBackup({ db: fakeDb("x"), workspaceDir: tmp(), deps, fetchImpl, secret: SECRET }), /cannot see me\/backups with this token/);
+});
+
+test("off-site backup: the setup id changes with the token or the repository, and never holds the token", () => {
+  const a = configId({ repo: "me/b", token: "one" }), b = configId({ repo: "me/b", token: "two" }), c = configId({ repo: "me/c", token: "one" });
+  assert.notEqual(a, b); assert.notEqual(a, c);
+  assert.ok(!a.includes("one"));
 });
