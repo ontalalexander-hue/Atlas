@@ -931,6 +931,212 @@ function TriageBoard() {
   return <BoardPanel tex={tex} w={2.9} h={1.97} y={1.22} />;
 }
 
+// ---------- Room boards: what each room of the owner's plan shows (GET /api/office/world) ----------
+const GROUP = { growth: '#6d28d9', sales: '#7c3aed', separate: '#4338ca', market: '#7e22ce', server: '#334155' };
+const peso = (n) => {
+  if (n == null || !Number.isFinite(n)) return '—';
+  const a = Math.abs(n), sign = n < 0 ? '-' : '';
+  return `${sign}₱${a >= 1e6 ? `${(a / 1e6).toFixed(1)}M` : a >= 1e4 ? `${Math.round(a / 1e3)}K` : a >= 1e3 ? `${(a / 1e3).toFixed(1)}K` : Math.round(a)}`;
+};
+// names match loosely: case, spaces, dashes and apostrophes ignored ("Tito's Bakery" = "titos-bakery")
+const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+/** The businesses a room asks for: '*' is all of them; otherwise by name or slug. */
+function businessesFor(room, padayon) {
+  const all = padayon?.businesses ?? [];
+  const want = room?.padayon ?? [];
+  if (!want.length) return [];
+  if (want.includes('*')) return all;
+  return want.map((w) => all.find((b) => slug(b.name) === slug(w) || b.name.toLowerCase() === String(w).toLowerCase())).filter(Boolean);
+}
+const isPaused = (room, name) => (room?.pausedBusinesses ?? []).some((p) => slug(p) === slug(name));
+const appsFor = (room, railway) => {
+  const all = railway?.projects ?? [];
+  const want = room?.railway ?? [];
+  if (!want.length) return [];
+  if (want.includes('*')) return all;
+  return want.map((w) => all.find((p) => slug(p.name) === slug(w))).filter(Boolean);
+};
+const APP_COLOR = { UP: GOOD, DOWN: BAD, DEPLOYING: '#60a5fa', SLEEPING: DIM, EMPTY: DIM, UNKNOWN: WARN };
+const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const SOURCE_NAME = { padayon: 'Padayon', lifeos: 'Life OS', railway: 'Railway' };
+function sourceNote(src, name) {
+  if (!src || src.status === 'not_set_up') return `${SOURCE_NAME[name]} ${tr('not connected yet')}`;
+  if (src.status === 'error') return `${tr("Can't reach")} ${SOURCE_NAME[name]}`;
+  return null;
+}
+
+function RoomBoard({ kind, w = 3.2 }) {
+  const room = useOffice((s) => s.layout.plan?.[kind]);
+  const world = useOffice((s) => s.world);
+  const W = 1200, H = 720;
+  const tex = useBoard(W, H, (g) => {
+    const color = GROUP[kind] ?? '#0f766e';
+    header(g, W, H, '', color);
+    g.font = F(800, 56); g.fillStyle = color; g.fillRect(0, 0, W, 96); g.fillStyle = '#fff'; g.fillText(fit(g, (room?.name || '').toUpperCase(), room?.paused ? W - 300 : W - 64), 32, 50);
+    if (room?.paused) { g.font = F(800, 40); right(g, tr('PAUSED'), W - 32, 50); }
+    let y = 150;
+    const line = (text, { c = INK, size = 40, wgt = 700 } = {}) => { if (y > H - 30) return; g.fillStyle = c; g.font = F(wgt, size); g.fillText(fit(g, text, W - 64), 32, y); y += size + 26; };
+    const sub = (text) => line(text, { c: DIM, size: 34, wgt: 600 });
+    if (room?.subtitle) sub(room.subtitle);
+    if (!world) { line(tr('Waiting for Atlas…'), { c: DIM }); return; }
+    const P = world.padayon?.data, L = world.lifeos?.data, R = world.railway?.data;
+
+    if (kind === 'ceo') {
+      const theme = world.plan?.days?.[DAYS[new Date().getDay()]];
+      line(`${tr('Today')}: ${theme || new Date().toLocaleDateString([], { weekday: 'long' })}`, { size: 50, wgt: 800 });
+      const note = sourceNote(world.padayon, 'padayon');
+      if (note) sub(note);
+      (P?.tasks ?? []).slice(0, 4).forEach((t) => {
+        const c = /HIGH|URGENT/.test(t.priority) ? WARN : INK;
+        line(`• ${t.title}${t.business ? ` (${t.business})` : ''}`, { c, size: 36, wgt: 600 });
+      });
+      if (P && !P.tasks?.length) sub(tr('No open tasks'));
+    } else if (kind === 'personal') {
+      const note = sourceNote(world.lifeos, 'lifeos');
+      if (note) { sub(note); return; }
+      const pd = L?.payday;
+      line(pd?.next ? `${tr('Next payday')}: ${pd.daysUntil === 0 ? tr('today') : pd.daysUntil === 1 ? tr('tomorrow') : pd.daysUntil != null ? `${pd.daysUntil} ${tr('days')}` : pd.next}` : tr('No payday set'), { size: 46, wgt: 800 });
+      if (L?.overdue?.length) line(`${L.overdue.length} ${tr('overdue')}: ${L.overdue.slice(0, 3).map((b) => b.name).join(', ')}`, { c: BAD, size: 36 });
+      if (L?.dueSoon?.length) line(`${tr('Due soon')}: ${L.dueSoon.slice(0, 3).map((b) => `${b.name} ${b.due.slice(5)}`).join(' · ')}`, { size: 34, wgt: 600 });
+      for (const goal of (L?.goals ?? []).slice(0, 3)) {
+        if (y > H - 50) break;
+        g.fillStyle = INK; g.font = F(700, 34); g.fillText(fit(g, goal.name, 520), 32, y);
+        g.fillStyle = '#1c2840'; g.fillRect(580, y - 16, 480, 30);
+        g.fillStyle = GOOD; g.fillRect(580, y - 16, Math.max(4, Math.min(1, goal.percent / 100) * 480), 30);
+        g.fillStyle = INK; g.font = F(800, 32); right(g, `${Math.round(goal.percent)}%`, W - 32, y);
+        y += 62;
+      }
+    } else if (kind === 'market') {
+      const note = sourceNote(world.padayon, 'padayon');
+      if (note) { sub(note); return; }
+      const list = businessesFor(room, P);
+      if (!list.length) { sub(tr('No businesses picked for this room')); return; }
+      g.fillStyle = DIM; g.font = F(700, 28);
+      g.fillText(tr('THIS MONTH'), 32, y - 10); right(g, `${tr('sales')}   ${tr('profit')}`, W - 32, y - 10);
+      y += 30;
+      for (const b of list.slice(0, 5)) {
+        if (y > H - 40) break;
+        const paused = isPaused(room, b.name);
+        const st = b.health?.status;
+        dot(g, 46, y, paused ? DIM : st === 'FIX' ? BAD : st === 'NEW' ? WARN : GOOD, 12);
+        g.fillStyle = paused ? DIM : INK; g.font = F(700, 36);
+        g.fillText(fit(g, `${b.name}${paused ? ` · ${tr('paused')}` : ''}`, 640), 72, y);
+        g.font = F(800, 36); g.fillStyle = paused ? DIM : INK;
+        g.textAlign = 'right'; g.fillText(peso(b.revenue), W - 250, y);
+        g.fillStyle = b.profit == null ? DIM : b.profit < 0 ? BAD : GOOD; g.fillText(b.profit == null ? '—' : peso(b.profit), W - 32, y); g.textAlign = 'left';
+        y += 70;
+      }
+    } else if (kind === 'server') {
+      const note = sourceNote(world.railway, 'railway');
+      if (note) { sub(note); sub(tr('Add a Railway token to see your apps')); return; }
+      const apps = appsFor(room?.railway?.length ? room : { railway: ['*'] }, R);
+      const n = (s) => apps.filter((a) => a.status === s).length;
+      line(`${n('UP')} ${tr('up')} · ${n('DOWN')} ${tr('down')}${n('DEPLOYING') ? ` · ${n('DEPLOYING')} ${tr('deploying')}` : ''}`, { size: 48, wgt: 800, c: n('DOWN') ? BAD : GOOD });
+      const order = { DOWN: 0, DEPLOYING: 1, UNKNOWN: 2, UP: 3, SLEEPING: 4, EMPTY: 5 };
+      const shown = [...apps].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9)).slice(0, 8);
+      shown.forEach((a, i) => {
+        const col = i % 2, row = Math.floor(i / 2);
+        const x = 32 + col * 580, yy = y + row * 60;
+        if (yy > H - 30) return;
+        dot(g, x + 12, yy, APP_COLOR[a.status] ?? DIM, 11);
+        g.fillStyle = INK; g.font = F(600, 32); g.fillText(fit(g, a.name, 520), x + 36, yy);
+      });
+    } else {
+      // growth, sales, separate, church, library, studio: their business, their apps, their notes
+      const biz = businessesFor(room, P);
+      if (room?.padayon?.length && sourceNote(world.padayon, 'padayon')) sub(sourceNote(world.padayon, 'padayon'));
+      for (const b of biz.slice(0, 1)) {
+        line(`${tr('This month')}: ${peso(b.revenue)} ${tr('sales')} · ${b.profit == null ? '' : `${peso(b.profit)} ${tr('profit')}`}`, { size: 44, wgt: 800 });
+        if (b.goal) line(`${tr('Goal')}: ${peso(b.goal.target)} · ${Math.round(b.goal.progress)}%`, { size: 36, c: b.goal.progress >= 100 ? GOOD : WARN });
+        else if (b.health?.top) sub(b.health.top);
+      }
+      if (room?.hours) line(`${tr('Hours')}: ${room.hours}`, { size: 36, wgt: 700, c: WARN });
+      const apps = appsFor(room, R);
+      if (room?.railway?.length && sourceNote(world.railway, 'railway')) sub(sourceNote(world.railway, 'railway'));
+      if (apps.length) {
+        let x = 32;
+        g.font = F(700, 30);
+        for (const a of apps.slice(0, 6)) {
+          const label = a.name;
+          const wdt = g.measureText(label).width + 54;
+          if (x + wdt > W - 20) { x = 32; y += 56; }
+          if (y > H - 30) break;
+          dot(g, x + 14, y, APP_COLOR[a.status] ?? DIM, 11);
+          g.fillStyle = INK; g.fillText(label, x + 34, y);
+          x += wdt + 16;
+        }
+        y += 66;
+      }
+      for (const n of room?.notes ?? []) line(`• ${n}`, { size: 34, wgt: 600, c: '#c9d4e5' });
+      if (!biz.length && !apps.length && !room?.notes?.length && !room?.hours) sub(tr('Add notes for this room in the room plan'));
+    }
+  }, [room, world]);
+  return <BoardPanel tex={tex} w={w} h={w * 0.6} y={1.3} />;
+}
+
+// A desk for an agent of the owner's that is not one of Atlas's helpers: a name plate, screens on (or off when paused).
+function AgentDesk({ label, paused }) {
+  const plate = useMemo(() => textTexture(label || '', { w: 512, h: 128, color: '#1b1f27', font: '800 80px Inter, system-ui, sans-serif' }), [label]);
+  return (
+    <group>
+      <RoundedBox args={[1.7, 0.05, 0.85]} radius={0.02} position-y={0.75} castShadow receiveShadow><meshStandardMaterial color="#f4f1ec" roughness={0.35} /></RoundedBox>
+      {[-0.78, 0.78].map((x) => <mesh key={x} position={[x, 0.37, 0]} castShadow><boxGeometry args={[0.05, 0.74, 0.72]} /><meshStandardMaterial color={METAL} roughness={0.5} /></mesh>)}
+      {[-0.34, 0.34].map((x) => (
+        <group key={x} position={[x, 0, -0.22]}>
+          <RoundedBox args={[0.66, 0.4, 0.03]} radius={0.012} position-y={1.12} castShadow><meshStandardMaterial color={METAL} roughness={0.4} /></RoundedBox>
+          <mesh position={[0, 1.13, 0.017]}><planeGeometry args={[0.62, 0.35]} /><meshStandardMaterial color={paused ? '#1a1f28' : '#2b4c7e'} emissive={paused ? '#000' : '#3b6fd6'} emissiveIntensity={paused ? 0 : 0.5} /></mesh>
+        </group>
+      ))}
+      <group position={[0, 0.86, 0.3]} rotation-x={-0.5}>
+        <mesh><boxGeometry args={[0.7, 0.18, 0.04]} /><meshStandardMaterial color="#e8d9b5" /></mesh>
+        <mesh position-z={0.021}><planeGeometry args={[0.66, 0.16]} /><meshBasicMaterial map={plate} transparent toneMapped={false} /></mesh>
+      </group>
+      <group position={[0, 0, 0.75]}>
+        <RoundedBox args={[0.56, 0.09, 0.52]} radius={0.04} position-y={0.48} castShadow><meshStandardMaterial color="#2f343d" roughness={0.8} /></RoundedBox>
+        <RoundedBox args={[0.52, 0.62, 0.07]} radius={0.04} position={[0, 0.86, 0.27]} castShadow><meshStandardMaterial color="#2f343d" roughness={0.8} /></RoundedBox>
+        <mesh position-y={0.25}><cylinderGeometry args={[0.035, 0.035, 0.42, 10]} /><meshStandardMaterial color="#9aa0a8" metalness={0.8} roughness={0.3} /></mesh>
+      </group>
+    </group>
+  );
+}
+
+// The market hall's stalls: one per business the room shows, its name on the awning; greyed out when paused.
+const STALL_COLORS = ['#e8684a', '#2f9e64', '#3b82c4', '#e0a03a'];
+function MarketStall({ name, paused, color, x }) {
+  const sign = useMemo(() => textTexture(name || '', { w: 512, h: 128, color: '#ffffff', font: '800 64px Inter, system-ui, sans-serif' }), [name]);
+  const c = paused ? '#9aa0a8' : color;
+  return (
+    <group position-x={x}>
+      <RoundedBox args={[2.0, 0.95, 0.6]} radius={0.04} position-y={0.48} castShadow receiveShadow><meshStandardMaterial color="#f4efe6" roughness={0.6} /></RoundedBox>
+      <RoundedBox args={[2.1, 0.05, 0.7]} radius={0.02} position-y={0.98}><meshStandardMaterial color={OAK} roughness={0.45} /></RoundedBox>
+      {[-0.95, 0.95].map((px) => <mesh key={px} position={[px, 1.45, 0.25]}><boxGeometry args={[0.05, 0.95, 0.05]} /><meshStandardMaterial color={METAL} /></mesh>)}
+      {Array.from({ length: 5 }).map((_, i) => (
+        <mesh key={i} position={[-0.8 + i * 0.4, 1.95, 0.05]} rotation-x={0.35} castShadow><boxGeometry args={[0.4, 0.04, 0.8]} /><meshStandardMaterial color={i % 2 ? '#ffffff' : c} roughness={0.8} /></mesh>
+      ))}
+      <mesh position={[0, 1.62, 0.29]}><planeGeometry args={[1.8, 0.4]} /><meshBasicMaterial color={c} toneMapped={false} /></mesh>
+      <mesh position={[0, 1.62, 0.295]}><planeGeometry args={[1.76, 0.36]} /><meshBasicMaterial map={sign} transparent toneMapped={false} /></mesh>
+      {paused && <mesh position={[0, 0.55, 0.305]} rotation-z={-0.15}><planeGeometry args={[1.3, 0.24]} /><meshBasicMaterial color="#1b1f27" /></mesh>}
+      {paused && <PausedTag />}
+    </group>
+  );
+}
+function PausedTag() {
+  const t = useMemo(() => textTexture(tr('PAUSED'), { w: 512, h: 96, color: '#fbbf24', font: '800 70px Inter, system-ui, sans-serif' }), []);
+  return <mesh position={[0, 0.55, 0.31]} rotation-z={-0.15}><planeGeometry args={[1.26, 0.22]} /><meshBasicMaterial map={t} transparent toneMapped={false} /></mesh>;
+}
+function Stalls({ kind }) {
+  const room = useOffice((s) => s.layout.plan?.[kind]);
+  const padayon = useOffice((s) => s.world?.padayon?.data);
+  const list = businessesFor(room, padayon).slice(0, 4);
+  const items = list.length ? list.map((b) => ({ name: b.name, paused: isPaused(room, b.name) })) : [{ name: '' }, { name: '' }, { name: '' }];
+  const gap = 2.25;
+  return (
+    <group>
+      {items.map((it, i) => <MarketStall key={`${it.name}-${i}`} name={it.name} paused={it.paused} color={STALL_COLORS[i % STALL_COLORS.length]} x={(i - (items.length - 1) / 2) * gap} />)}
+    </group>
+  );
+}
+
 const COMPONENTS = {
   bookshelf: Bookshelf, serverRack: ServerRack, monitorWall: MonitorWall, ups: Ups, stickyBoard: StickyBoard,
   standBoard: StandBoard, armchairs: Armchair, globe: Globe, floorLamp: FloorLamp, printer: Printer, coatRack: CoatRack,
@@ -939,6 +1145,7 @@ const COMPONENTS = {
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
   opsWall: OpsWall, inboxBoard: InboxBoard, memoryBoard: MemoryBoard, triageBoard: TriageBoard,
+  roomBoard: RoomBoard, agentDesk: AgentDesk, stalls: Stalls,
   frontDesk: FrontDesk, floorLogo: FloorLogo, bed: Bed, medCross: MedCross,
   toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };

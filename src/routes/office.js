@@ -10,6 +10,9 @@
  *   GET /api/office/usage   the board: the Claude plan's limits when known, tokens used, and tasks finished today
  *   GET /api/office/status  the other boards: messages in from each channel, recent errors, channels, heartbeat,
  *                           scheduled jobs and memory (lib/office-status.js)
+ *   GET /api/office/plan    the owner's room plan (setting office.plan, else ATLAS_OFFICE_PLAN, else a generic one)
+ *   PUT /api/office/plan    save it: { plan } (an object or JSON text); answers with what was kept and any problems
+ *   GET /api/office/world   the plan plus the live numbers its rooms show (lib/office-world.js)
  */
 import { Router } from "express";
 import { onEvent, activeTurnList } from "../lib/live-bus.js";
@@ -23,6 +26,7 @@ import { createOfficeStatus, channelBoard, heartbeatBoard, cronBoard, memoryBoar
 import { getHeartbeatStatus } from "../lib/heartbeat.js";
 import { getCronStatus } from "../lib/cron.js";
 import config from "../config/env.js";
+import { createOfficeWorld, normalizePlan } from "../lib/office-world.js";
 
 export const officeRouter = Router();
 
@@ -111,6 +115,42 @@ officeRouter.get("/status", (req, res) => {
     memory: safe(() => memoryBoard({ workspaceDir: config.WORKSPACE_DIR, dbPath: config.DB_PATH })),
     ...status.snapshot(),
   });
+});
+
+// ── The room plan and the world it shows ─────────────────────────────────────────────────────────────────────────
+const PLAN_SETTING = "office.plan";
+const PLAN_MAX_CHARS = 20_000;
+const world = createOfficeWorld();
+
+function currentPlan() {
+  let raw = null;
+  try { raw = settingsStore?.get(PLAN_SETTING) ?? null; } catch { /* fall through */ }
+  const from = raw ? "settings" : process.env.ATLAS_OFFICE_PLAN ? "environment" : "default";
+  return { ...normalizePlan(raw ?? process.env.ATLAS_OFFICE_PLAN ?? null), from };
+}
+
+officeRouter.get("/plan", (_req, res) => {
+  const { plan, problems, from } = currentPlan();
+  res.json({ plan, problems, from });
+});
+
+officeRouter.put("/plan", (req, res) => {
+  const input = req.body?.plan;
+  if (input == null) return res.status(400).json({ error: "Send { plan }." });
+  const text = typeof input === "string" ? input : JSON.stringify(input);
+  if (text.length > PLAN_MAX_CHARS) return res.status(413).json({ error: "That plan is too long." });
+  const { plan, problems } = normalizePlan(input);
+  if (problems.some((p) => p.startsWith("Not valid JSON"))) return res.status(400).json({ error: problems[0] });
+  if (!settingsStore) return res.status(503).json({ error: "Settings are not ready yet." });
+  try { settingsStore.set(PLAN_SETTING, JSON.stringify(plan)); } catch (err) { return res.status(500).json({ error: `Could not save: ${err.message}` }); }
+  res.json({ plan, problems, from: "settings" });
+});
+
+officeRouter.get("/world", async (req, res) => {
+  const { plan } = currentPlan();
+  let sources = {};
+  try { sources = await world.snapshot({ force: req.query.fresh === "1" }); } catch (err) { console.warn(`[office] world: ${err?.message || err}`); }
+  res.json({ at: Date.now(), plan, ...sources });
 });
 
 officeRouter.get("/events", (req, res) => {
