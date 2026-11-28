@@ -90,7 +90,11 @@ function seatTaken(seat, onDeck) {
   return false;
 }
 // A camera jump asked for by the lift: the next frame puts the camera behind the boss at the new place.
-const jump = { pending: false };
+// (`behind`: back from first person, the camera goes behind you again)
+const jump = { pending: false, behind: false };
+// first person: how far up or down you are looking, and when the mouse was last let go (Esc frees it first)
+const look = { pitch: 0, unlockAt: 0 };
+const EYE = 1.58, EYE_SEATED = 1.18;
 
 /** E, or a click on the prompt: stand up, take the lift, talk to the desk, use a computer, open a screen, or sit. */
 export function bossAction() {
@@ -159,6 +163,8 @@ export function BossController() {
   const bossName = useOffice((s) => s.bossName);
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls);
+  const gl = useThree((s) => s.gl);
+  const firstPerson = useOffice((s) => s.firstPerson);
   const root = useRef();
   const pose = useRef({ mode: 'idle', moving: false });
   const lastNear = useRef(null);
@@ -185,7 +191,10 @@ export function BossController() {
       if (!s.boss) return;
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
       if (k === 'e') bossAction();
-      if (k === 'escape') { if (s.screenOpen) s.setScreenOpen(false); else if (s.reception) s.setReception(null); else if (s.projectorOpen) s.setProjectorOpen(null); else s.setBoss(false); }
+      if (k === 'v') s.setFirstPerson(!s.firstPerson);
+      // the Esc that lets go of the mouse in first person does only that
+      if (k === 'escape' && (document.pointerLockElement || Date.now() - look.unlockAt < 400)) return;
+      if (k === 'escape') { if (s.screenOpen) s.setScreenOpen(false); else if (s.reception) s.setReception(null); else if (s.projectorOpen) s.setProjectorOpen(null); else if (s.computer) s.setComputer(null); else s.setBoss(false); }
     };
     const up = (e) => { keys[e.key.toLowerCase()] = false; };
     const blur = () => { for (const k in keys) keys[k] = false; };
@@ -194,6 +203,54 @@ export function BossController() {
     window.addEventListener('blur', blur);
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); };
   }, []);
+
+  // first person: the mouse looks round (click the view to capture it, Esc to let go; or drag), the camera sits at
+  // your eyes with a wider view, and the orbit controls rest
+  useEffect(() => {
+    if (!boss || !firstPerson) return undefined;
+    const canvas = gl.domElement;
+    const prev = { near: camera.near, fov: camera.fov };
+    camera.near = 0.05; camera.fov = 72; camera.updateProjectionMatrix();
+    if (controls) controls.enabled = false;
+    look.pitch = -0.05;
+    let drag = null;
+    const turn = (dx, dy) => {
+      const p = positions.boss;
+      if (!p || p.sit) { look.pitch = Math.max(-1.2, Math.min(1.1, look.pitch - dy * 0.0025)); if (p?.sit) p.rot -= dx * 0.0025; return; }
+      p.rot -= dx * 0.0025;
+      look.pitch = Math.max(-1.2, Math.min(1.1, look.pitch - dy * 0.0025));
+    };
+    const onMove = (e) => {
+      if (document.pointerLockElement === canvas) turn(e.movementX, e.movementY);
+      else if (drag) { turn(e.clientX - drag.x, e.clientY - drag.y); drag = { x: e.clientX, y: e.clientY }; }
+    };
+    const onDown = (e) => {
+      if (e.target !== canvas) return;
+      drag = { x: e.clientX, y: e.clientY };
+      try { const r = canvas.requestPointerLock?.(); if (r?.catch) r.catch(() => {}); } catch { /* dragging still works */ }
+    };
+    const onUp = () => { drag = null; };
+    const onLock = () => { if (!document.pointerLockElement) look.unlockAt = Date.now(); };
+    // a window opening (a computer, the front desk, a projector) lets go of the mouse, so you can type and click
+    const unsub = useOffice.subscribe((s) => {
+      if ((s.computer || s.reception || s.projectorOpen || s.screenOpen) && document.pointerLockElement) document.exitPointerLock();
+    });
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    document.addEventListener('pointerlockchange', onLock);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      document.removeEventListener('pointerlockchange', onLock);
+      unsub();
+      if (document.pointerLockElement === canvas) document.exitPointerLock();
+      camera.near = prev.near; camera.fov = prev.fov; camera.updateProjectionMatrix();
+      if (controls) controls.enabled = true;
+      jump.behind = true;
+    };
+  }, [boss, firstPerson, camera, controls, gl]);
 
   // rejimga kirish/chiqish: kamera joylashuvi
   useEffect(() => {
@@ -221,13 +278,18 @@ export function BossController() {
     const p = positions.boss;
     const st = useOffice.getState();
 
-    // kameraga nisbatan yo'nalish
+    // kameraga nisbatan yo'nalish (first person: the way you face; the arrow keys turn, A and D step sideways)
+    const fp = !!st.firstPerson;
+    if (fp) {
+      const turnKey = (keys.arrowleft ? 1 : 0) - (keys.arrowright ? 1 : 0);
+      if (turnKey) p.rot += turnKey * 2.2 * dt;
+    }
     const f = tmp.current.copy(controls.target).sub(camera.position);
     f.y = 0; f.normalize();
-    const fx = f.x, fz = f.z;
+    const fx = fp ? Math.sin(p.rot) : f.x, fz = fp ? Math.cos(p.rot) : f.z;
     const rx = -fz, rz = fx;
     const fwd = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0);
-    const side = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
+    const side = (keys.d || (!fp && keys.arrowright) ? 1 : 0) - (keys.a || (!fp && keys.arrowleft) ? 1 : 0);
     let mx = fx * fwd + rx * side, mz = fz * fwd + rz * side;
     const len = Math.hypot(mx, mz);
     const run = !!keys.shift;
@@ -241,9 +303,11 @@ export function BossController() {
       const nx = p.x + mx * sp, nz = p.z + mz * sp;
       if (canStand(L, nx, p.z, onDeck)) p.x = nx;
       if (canStand(L, p.x, nz, onDeck)) p.z = nz;
-      let diff = Math.atan2(mx, mz) - p.rot;
-      diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-      p.rot += diff * Math.min(1, dt * 14);
+      if (!fp) {
+        let diff = Math.atan2(mx, mz) - p.rot;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        p.rot += diff * Math.min(1, dt * 14);
+      }
       moving = true;
     }
     pose.current.moving = moving;
@@ -255,6 +319,23 @@ export function BossController() {
     const floorY = onDeck ? ROOF_TOP + roofLift.y : 0;
     root.current.position.set(wx, floorY, wz);
     root.current.rotation.y = p.rot;
+    root.current.visible = !fp;
+
+    if (fp) {
+      // through your own eyes: a little in front of the face, looking where you face
+      const ey = floorY + (p.sit ? EYE_SEATED : EYE);
+      const cp = Math.cos(look.pitch);
+      camera.position.set(wx + Math.sin(p.rot) * 0.14, ey, wz + Math.cos(p.rot) * 0.14);
+      controls.target.set(camera.position.x + Math.sin(p.rot) * cp, ey + Math.sin(look.pitch), camera.position.z + Math.cos(p.rot) * cp);
+      camera.lookAt(controls.target);
+      jump.pending = false;
+    }
+    if (jump.behind && !fp) {
+      jump.behind = false;
+      controls.target.set(wx, floorY + 1.2, wz);
+      camera.position.set(wx - Math.sin(p.rot) * 4, floorY + 2.6, wz - Math.cos(p.rot) * 4);
+    }
+    if (!fp) {
 
     // just off the lift: the camera comes along, behind and a little above on the deck, off to the side in the lobby
     if (jump.pending) {
@@ -307,17 +388,19 @@ export function BossController() {
       }
     }
 
+    }
+
     // outside or in: the roof's glass band shows from the street, and inside the camera stays under the ceiling
     // (up on the deck counts as outside: the roof is under your feet, not over your head)
     const outside = onDeck || !insideBuilding(L, p.x, p.z);
     if (outside !== !!st.bossOutside) useOffice.setState({ bossOutside: outside });
     if (onDeck !== !!st.bossOnDeck) useOffice.setState({ bossOnDeck: onDeck });
-    if (onDeck && camera.position.y < floorY + 0.8) camera.position.y = floorY + 0.8;
+    if (!fp && onDeck && camera.position.y < floorY + 0.8) camera.position.y = floorY + 0.8;
     // inside the mart its roof goes and its walls drop, and the camera stays low
     const inMart = !!L.mart && L.mart.world.contains(wx, wz);
     if (inMart !== !!st.bossInMart) useOffice.setState({ bossInMart: inMart });
-    if (inMart && camera.position.y > 3.6) camera.position.y = 3.6;
-    if (!outside && st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
+    if (!fp && inMart && camera.position.y > 3.6) camera.position.y = 3.6;
+    if (!fp && !outside && st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
 
     // yaqin monitor
     const { screen: best, seat } = inReach(L, st.agents, p);
@@ -355,9 +438,11 @@ export function BossController() {
         <meshBasicMaterial color="#f0b43a" transparent opacity={0.9} toneMapped={false} />
       </mesh>
       <Person color="#1e2533" look={BOSS_LOOK} pose={pose} headset={false} boss />
-      <Html position={[0, 2.05, 0]} center distanceFactor={6} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-        <div className="tag boss-tag">👔 {bossName} <span className="tag-state">· {tr('you')}</span></div>
-      </Html>
+      {!firstPerson && (
+        <Html position={[0, 2.05, 0]} center distanceFactor={6} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+          <div className="tag boss-tag">👔 {bossName} <span className="tag-state">· {tr('you')}</span></div>
+        </Html>
+      )}
     </group>
   );
 }
@@ -366,18 +451,23 @@ export function BossController() {
 const LV = { error: 'err', warn: 'warn', info: '' };
 
 export function BossHud() {
-  const { boss, nearScreen, screenOpen, setScreenOpen, setBoss, agents, services, feed, bossSeat, nearSeat, reception } = useOffice();
+  const { boss, nearScreen, screenOpen, setScreenOpen, setBoss, agents, services, feed, bossSeat, nearSeat, reception, firstPerson } = useOffice();
   if (!boss) return null;
   const agent = nearScreen?.kind === 'desk' ? agents[nearScreen.id] : null;
 
   return (
     <>
+      {firstPerson && <div className="fp-cross" aria-hidden="true" />}
+      {firstPerson && <div className="fp-hint">{tr('Move the mouse to look (click the view first, Esc to let go) · arrows turn')}</div>}
       <div className="boss-help">
         <b>{tr('Boss mode')}</b>
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> {tr('walk')}</span>
         <span><kbd>Shift</kbd> {tr('run')}</span>
         <span>🖱 {tr('camera')}</span>
         <span><kbd>E</kbd> {tr('use · sit · talk')}</span>
+        <button onClick={() => useOffice.getState().setFirstPerson(!firstPerson)} title={tr('Switch view (V)')}>
+          {firstPerson ? tr('👁 First person') : tr('🎥 Third person')} <kbd>V</kbd>
+        </button>
         <button onClick={() => setBoss(false)}>{tr('Exit')} <kbd>Esc</kbd></button>
       </div>
 

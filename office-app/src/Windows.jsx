@@ -10,6 +10,8 @@ const INSET = 0.15;
 
 export default function Windows({ L }) {
   const { top, horizon, lamps } = useOffice((s) => s.sky);
+  // with the walls up to the ceiling (boss mode, inside), the windows are tall ones at eye height
+  const full = useOffice((s) => s.boss && !s.bossOutside);
   const geo = useMemo(() => {
     const g = new THREE.PlaneGeometry(WW, WH, 1, 1);
     g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(12), 3));
@@ -35,7 +37,7 @@ export default function Windows({ L }) {
     else if (side === 'bottom') { const [x, z] = L.toWorld([at, L.H - 1]); pos = [x, Y, z - INSET]; rotY = Math.PI; }
     else { const [x, z] = L.toWorld([L.W - 1, at]); pos = [x - INSET, Y, z]; rotY = -Math.PI / 2; }
     return (
-      <group key={`${L.key}-${i}`} position={pos} rotation-y={rotY}>
+      <group key={`${L.key}-${i}`} position={full ? [pos[0], 1.75, pos[2]] : pos} rotation-y={rotY} scale-y={full ? 3 : 1}>
         <mesh geometry={geo} material={mat} />
         <mesh position-y={WH / 2 + 0.03} material={frameMat}><boxGeometry args={[WW + 0.1, 0.05, 0.04]} /></mesh>
         <mesh position={[0, -WH / 2 - 0.04, 0.03]} material={frameMat}><boxGeometry args={[WW + 0.16, 0.05, 0.1]} /></mesh>
