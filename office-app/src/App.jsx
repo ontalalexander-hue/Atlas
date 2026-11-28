@@ -14,6 +14,7 @@ import { replayUrl, startReplay, stopReplay } from './replay.js';
 import { SkyBackdrop, StudioLight, Effects, CinemaCamera } from './Look.jsx';
 import Sky from './Sky.jsx';
 import { FollowCamera, Visitors } from './Director.jsx';
+import { TOP as ROOF_TOP } from './Roof.jsx';
 import RoomPlan from './Plan.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
@@ -205,7 +206,7 @@ function RoofRow() {
 function poseFor(name, W, H, small) {
   const f = (W + 14) / (small ? 22 : 31);
   if (name === 'street') return { pos: [-W / 2 - 22, 3.2, H / 2 + 26], target: [-W / 2 + 8, 8, -6] };
-  if (name === 'deck') return { pos: [-W / 2 + 4, 9, H / 2 + 15], target: [-W / 2 + 11, 3, 4] };
+  if (name === 'deck') return { pos: [-W / 2 + 4, ROOF_TOP + 6.5, H / 2 + 15], target: [-W / 2 + 11, ROOF_TOP + 0.5, 4] };   // above the roof deck
   return { pos: small ? [5 * f, 26 * f, 26 * f] : [9 * f, 23 * f, 29 * f], target: [small ? -2 : 1, 0, 1.5] };
 }
 
