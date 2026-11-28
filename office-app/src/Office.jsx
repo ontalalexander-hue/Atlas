@@ -8,7 +8,7 @@ import Decor from './Details.jsx';
 import Windows from './Windows.jsx';
 import Outside from './Outside.jsx';
 import City from './City.jsx';
-import Roof from './Roof.jsx';
+import Roof, { TOP as ROOF_TOP } from './Roof.jsx';
 import { tr } from './i18n.js';
 import { todayTheme } from './layout.js';
 
@@ -82,12 +82,16 @@ function useTerminal(agent, enabled, sevFill) {
 }
 
 // ---------- Devorlar ----------
+// Walls are low (so the cameras above see into every room), and go all the way up to the ceiling while you walk
+// about inside in boss mode.
+export const useFullWalls = () => useOffice((s) => s.boss && !s.bossOutside);
 function Walls({ L }) {
+  const full = useFullWalls();
   return L.wallSegments.map((s, i) => {
     const len = s.b - s.a + 1;
     const [x, z] = s.dir === 'h' ? L.toWorld([center(s.a, s.b), s.at]) : L.toWorld([s.at, center(s.a, s.b)]);
     const solid = s.type === 'solid';
-    const h = s.outer || solid ? 1.3 : 1.5;
+    const h = full ? ROOF_TOP - 0.3 : s.outer || solid ? 1.3 : 1.5;
     const t = s.outer ? 0.28 : solid ? 0.14 : 0.08;
     const size = s.dir === 'h' ? [len, t] : [t, len];
     if (s.outer || solid) {

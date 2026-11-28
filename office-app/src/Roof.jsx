@@ -172,7 +172,9 @@ export default function Roof({ L }) {
   const boss = useOffice((s) => s.boss);
   const bossOutside = useOffice((s) => s.bossOutside);
   // with the boss up on the deck the roof stays where it is: they are standing on it
-  const wantOpen = !bossOnDeck && (mode === 'off' || (mode === 'auto' && (busy || picked)));
+  // and on Auto it stays on over the boss walking about inside (the walls go up to it then)
+  const bossInside = useOffice((s) => s.boss && !s.bossOutside);
+  const wantOpen = !bossOnDeck && (mode === 'off' || (mode === 'auto' && !bossInside && (busy || picked)));
   const ref = useRef();
   const st = useRef({ y: wantOpen ? LIFT : 0, open: wantOpen });
   const sign = useMemo(() => textTexture('ATLAS'), []);
