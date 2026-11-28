@@ -1011,14 +1011,16 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
           console.warn(`[web_fetch] Blocked: ${url}: ${fetchSafety.reason}`);
           return `BLOCKED: ${fetchSafety.reason}. URL: ${url}`;
         }
-        const res = await fetch(url, {
-          method: method || "GET",
-          headers: headers || {},
-          body: body || undefined,
-          signal: AbortSignal.timeout(30_000),
-        });
-        const text = await res.text();
-        return truncate(`Status: ${res.status}\n\n${text}`, MAX_RESULT);
+        // Every host checked on what it resolves to, every redirect followed and checked (lib/guarded-fetch.js)
+        const { guardedFetch } = await import("./guarded-fetch.js");
+        let res;
+        try {
+          res = await guardedFetch(url, { method: method || "GET", headers: headers || {}, body: body || undefined, timeoutMs: 30_000 });
+        } catch (err) {
+          if (/private or local network/.test(err.message)) console.warn(`[web_fetch] Blocked: ${url}: ${err.message}`);
+          return `web_fetch error: ${err.message}`;
+        }
+        return truncate(`Status: ${res.status}${res.truncated ? " (cut short: the page is very large)" : ""}\n\n${res.text}`, MAX_RESULT);
       }
 
       case "search_memories": {
@@ -1273,6 +1275,16 @@ export async function executeTool(toolName, toolInput, ctx = {}) {
         let stat;
         try { stat = fs.statSync(absPath); } catch { return `send_file error: file not found at ${absPath}`; }
         if (!stat.isFile()) return `send_file error: ${absPath} is a folder, not a file (zip it first to send a folder)`;
+        // What the path really is, through any link: Atlas's database, keys, sign-ins and backups never leave
+        {
+          const { isUnsendable } = await import("./safe-path.js");
+          let real = absPath;
+          try { real = fs.realpathSync(absPath); } catch { /* checked as given */ }
+          if (isUnsendable(absPath) || isUnsendable(real)) {
+            console.warn(`[send_file] refused: ${path.basename(absPath)} is one of Atlas's own secret files`);
+            return "send_file error: that file holds Atlas's own secrets (a database, key, sign-in, .env or backup) and is never sent out.";
+          }
+        }
         if (stat.size === 0) return `send_file error: file at ${absPath} is empty (0 bytes)`;
         const capMb = SEND_FILE_CAP_MB[channel];
         if (stat.size > capMb * 1024 * 1024) {

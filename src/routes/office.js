@@ -27,6 +27,13 @@ import { getHeartbeatStatus } from "../lib/heartbeat.js";
 import { getCronStatus } from "../lib/cron.js";
 import config from "../config/env.js";
 import { createOfficeWorld, normalizePlan } from "../lib/office-world.js";
+import { offsiteStatus } from "../lib/offsite-backup.js";
+
+/** The off-site backup as the memory board shows it: set up or not, when the last good copy was made, whether the last try failed. */
+function offsiteBoard(s) {
+  if (!s) return null;
+  return { configured: !!s.configured, lastOkAt: s.lastOkAt ?? null, failed: s.ok === false, error: s.ok === false && s.error ? String(s.error).slice(0, 90) : null };
+}
 
 export const officeRouter = Router();
 
@@ -105,14 +112,14 @@ officeRouter.get("/usage", (req, res) => {
 
 officeRouter.get("/status", (req, res) => {
   const safe = (fn) => { try { return fn(); } catch { return null; } };
-  const channels = safe(() => channelBoard(req.app.get("channelManager")?.getStatus?.())) || [];
+  const channels = safe(() => channelBoard(req.app.get("channelManager")?.getStatus?.(), settingsStore)) || [];
   res.json({
     at: Date.now(),
     working: activeTurnList().length,
     channels,
     heartbeat: safe(() => heartbeatBoard(getHeartbeatStatus())),
     cron: safe(() => cronBoard(getCronStatus())),
-    memory: safe(() => memoryBoard({ workspaceDir: config.WORKSPACE_DIR, dbPath: config.DB_PATH })),
+    memory: safe(() => ({ ...memoryBoard({ workspaceDir: config.WORKSPACE_DIR, dbPath: config.DB_PATH }), offsite: offsiteBoard(offsiteStatus(req.app.get("db"))) })),
     ...status.snapshot(),
   });
 });

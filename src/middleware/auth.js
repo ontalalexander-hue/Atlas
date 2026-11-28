@@ -5,6 +5,32 @@ import { LIMITS } from "../config/constants.js";
 // --- Rate limiting + lockout state ---
 const authAttempts = new Map(); // ip → { count, resetAt, failures, lockedUntil }
 
+/**
+ * The lockout above is per address, so someone with many addresses could keep guessing. This counts wrong passwords
+ * from everywhere: GLOBAL_MAX in GLOBAL_WINDOW_MS locks every login for GLOBAL_LOCK_MS. The cost: while it lasts the
+ * owner cannot sign in either (a device already signed in keeps working), which is why it only starts well above
+ * what typos produce.
+ */
+export const GLOBAL_MAX = 30;
+const GLOBAL_WINDOW_MS = 15 * 60_000;
+const GLOBAL_LOCK_MS = 15 * 60_000;
+let globalFailures = [];
+let globalLockedUntil = 0;
+function noteGlobalFailure(now) {
+  globalFailures = globalFailures.filter((t) => now - t < GLOBAL_WINDOW_MS);
+  globalFailures.push(now);
+  if (globalFailures.length >= GLOBAL_MAX) {
+    globalLockedUntil = now + GLOBAL_LOCK_MS;
+    globalFailures = [];
+    console.warn(`[auth] ${GLOBAL_MAX} wrong passwords in ${GLOBAL_WINDOW_MS / 60_000} minutes from all addresses: logins paused for ${GLOBAL_LOCK_MS / 60_000} minutes`);
+  }
+}
+function globalLockRemaining(now) {
+  return globalLockedUntil > now ? globalLockedUntil - now : 0;
+}
+/** For tests. */
+export function _resetGlobalAuthLock() { globalFailures = []; globalLockedUntil = 0; }
+
 // Clean up stale entries every 5 minutes. Housekeeping timers run outside any
 // request, so an uncaught throw here takes the whole process down — keep the
 // body wrapped.
@@ -300,6 +326,14 @@ export function rateLimitAuth(req, res, next) {
   const ip = req.ip || req.socket?.remoteAddress || "unknown";
   const now = Date.now();
 
+  // Across every address: guessing spread over many IPs is slowed down too
+  const wait = globalLockRemaining(now);
+  if (wait > 0) {
+    const retryAfter = Math.ceil(wait / 1000);
+    res.set("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: `Too many wrong passwords recently. Try again in ${retryAfter}s.` });
+  }
+
   let entry = authAttempts.get(ip);
   if (!entry) {
     entry = { count: 0, resetAt: now + 60_000, failures: 0, lockedUntil: 0 };
@@ -333,6 +367,7 @@ export function rateLimitAuth(req, res, next) {
  * Record a failed login attempt and apply progressive lockout.
  */
 export function recordFailedAttempt(ip) {
+  noteGlobalFailure(Date.now());
   let entry = authAttempts.get(ip);
   if (!entry) {
     entry = { count: 0, resetAt: Date.now() + 60_000, failures: 0, lockedUntil: 0 };

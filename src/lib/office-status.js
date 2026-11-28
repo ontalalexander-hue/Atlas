@@ -72,13 +72,33 @@ export function createOfficeStatus({ now = Date.now, day = (ms) => new Date(ms).
   return { noteBusEvent, noteError, snapshot };
 }
 
+/**
+ * Whether a channel answers anyone: no allowlist in its settings (allowlist.<id>) or in its own config. An empty
+ * allowlist means "everyone" on every channel, which a stranger who finds the bot can use.
+ */
+export function channelIsOpen(id, settings) {
+  const filled = (v) => {
+    if (v == null) return false;
+    if (Array.isArray(v)) return v.some((x) => String(x ?? "").trim());
+    if (typeof v === "string") return v.split(/[\s,]+/).some((x) => x.trim());
+    return false;
+  };
+  let saved = null, cfg = null;
+  try { saved = settings?.get?.(`allowlist.${id}`); } catch { /* unreadable: treated as empty */ }
+  try { cfg = settings?.get?.(`channel.${id}`); } catch { /* idem */ }
+  if (typeof saved === "string") { try { saved = JSON.parse(saved); } catch { /* a plain list */ } }
+  const fields = cfg && typeof cfg === "object" ? [cfg.allowedChannels, cfg.allowedChats, cfg.allowedUsers, cfg.allowlist, cfg.allowlistFromAddresses] : [];
+  return !filled(saved) && !fields.some(filled);
+}
+
 /** Channels as the ops board shows them: only the ones that are set up, with a one-word state. */
-export function channelBoard(status = {}) {
+export function channelBoard(status = {}, settings = null) {
   const out = [];
   for (const [id, s] of Object.entries(status || {})) {
     const st = String(s?.status || "");
     if (!st || st === "not_configured") continue;
-    out.push({ id, status: st, error: s?.error ? clip(s.error, 80) : null, warning: s?.warning ? clip(s.warning, 80) : null });
+    const open = id !== "web" && settings ? channelIsOpen(id, settings) : false;
+    out.push({ id, status: st, error: s?.error ? clip(s.error, 80) : null, warning: s?.warning ? clip(s.warning, 80) : open ? "open to anyone: add an allowlist" : null, open });
   }
   return out.sort((a, b) => a.id.localeCompare(b.id));
 }

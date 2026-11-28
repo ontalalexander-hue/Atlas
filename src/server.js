@@ -380,6 +380,8 @@ startAutoCheckpoint({ db });
 // few weeks on Railway.
 import { startRetention, stopRetention } from "./lib/retention.js";
 startRetention({ db });
+import { startOffsiteBackup } from "./lib/offsite-backup.js";
+startOffsiteBackup({ db });   // daily encrypted copy to a private GitHub repository, once GITHUB_BACKUP_REPO/TOKEN are set
 
 // --- Cron scheduler ---
 import { initCron, startCronScheduler, stopCronScheduler } from "./lib/cron.js";
