@@ -201,7 +201,7 @@ function RoofRow() {
 
 // Where the camera stands for each view. `small` is a phone, held upright.
 function poseFor(name, W, H, small) {
-  const f = (W + 14) / (small ? 21 : 30);
+  const f = (W + 14) / (small ? 22 : 31);
   if (name === 'street') return { pos: [-W / 2 - 22, 3.2, H / 2 + 26], target: [-W / 2 + 8, 8, -6] };
   if (name === 'deck') return { pos: [-W / 2 + 4, 9, H / 2 + 15], target: [-W / 2 + 11, 3, 4] };
   return { pos: small ? [5 * f, 26 * f, 26 * f] : [9 * f, 23 * f, 29 * f], target: [small ? -2 : 1, 0, 1.5] };

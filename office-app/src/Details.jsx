@@ -654,6 +654,64 @@ function KitchenCounter({ cells }) {
   );
 }
 
+// ---------- Front desk: a long counter with its ends swept back ----------
+function FrontDesk() {
+  const tex = useMemo(() => textTexture('ATLAS', { w: 512, h: 160, color: '#ffffff', font: '800 110px Inter, system-ui, sans-serif' }), []);
+  const lamps = useOffice((s) => s.sky.lamps);
+  const part = (key, pos, rot, w, logo) => (
+    <group key={key} position={pos} rotation-y={rot}>
+      <RoundedBox args={[w, 1.05, 0.6]} radius={0.05} position-y={0.52} castShadow receiveShadow><meshStandardMaterial color="#f4f1ec" roughness={0.5} /></RoundedBox>
+      <RoundedBox args={[w + 0.1, 0.06, 0.72]} radius={0.02} position-y={1.08} castShadow><meshStandardMaterial color={OAK} roughness={0.45} /></RoundedBox>
+      <mesh position={[0, 0.2, 0.305]}><planeGeometry args={[w - 0.1, 0.08]} /><meshStandardMaterial color="#ffd98a" emissive="#ffd98a" emissiveIntensity={0.5 + lamps * 1.4} /></mesh>
+      {logo && <mesh position={[0, 0.6, 0.305]}><planeGeometry args={[2.2, 0.56]} /><meshStandardMaterial color="#1f7ae0" emissive="#1f7ae0" emissiveIntensity={0.35 + lamps * 0.9} /></mesh>}
+      {logo && <mesh position={[0, 0.6, 0.31]}><planeGeometry args={[1.6, 0.5]} /><meshBasicMaterial map={tex} transparent toneMapped={false} /></mesh>}
+    </group>
+  );
+  return (
+    <group>
+      {part('c', [0, 0, 0], 0, 3.3, true)}
+      {part('l', [-2.5, 0, -0.45], -0.45, 2.1)}
+      {part('r', [2.5, 0, -0.45], 0.45, 2.1)}
+      {[-1.1, 1.1].map((x) => <mesh key={x} position={[x, 1.2, -0.05]} rotation-x={-0.2}><boxGeometry args={[0.5, 0.32, 0.03]} /><meshStandardMaterial color="#12161d" /></mesh>)}
+      {[-1.1, 1.1].map((x) => <group key={x} position={[x, 0, -0.9]} scale={0.9}><mesh position-y={0.48} castShadow><boxGeometry args={[0.5, 0.09, 0.5]} /><meshStandardMaterial color="#2f343d" roughness={0.8} /></mesh><mesh position={[0, 0.82, -0.24]} castShadow><boxGeometry args={[0.48, 0.6, 0.07]} /><meshStandardMaterial color="#2f343d" roughness={0.8} /></mesh><mesh position-y={0.24}><cylinderGeometry args={[0.035, 0.12, 0.44, 10]} /><meshStandardMaterial color={METAL} /></mesh></group>)}
+    </group>
+  );
+}
+
+// the name, set into the lobby floor
+function FloorLogo() {
+  const tex = useMemo(() => textTexture('ATLAS', { w: 1024, h: 256, color: '#1b1f27', font: '800 210px Inter, system-ui, sans-serif' }), []);
+  return (
+    <group>
+      <mesh rotation-x={-Math.PI / 2} position-y={0.008}><planeGeometry args={[7.2, 1.8]} /><meshBasicMaterial map={tex} transparent /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[-4.1, 0.008, 0]}><ringGeometry args={[0.5, 0.74, 40, 1, 0.6, 5]} /><meshBasicMaterial color="#1f7ae0" /></mesh>
+    </group>
+  );
+}
+
+// ---------- Medical ----------
+function Bed() {
+  return (
+    <group>
+      <RoundedBox args={[0.92, 0.3, 1.9]} radius={0.04} position-y={0.3} castShadow receiveShadow><meshStandardMaterial color="#cfd6db" roughness={0.5} metalness={0.2} /></RoundedBox>
+      <RoundedBox args={[0.86, 0.14, 1.82]} radius={0.05} position-y={0.52} castShadow><meshStandardMaterial color="#ffffff" roughness={0.9} /></RoundedBox>
+      <RoundedBox args={[0.88, 0.06, 1.05]} radius={0.03} position={[0, 0.6, 0.36]}><meshStandardMaterial color="#6fb7c9" roughness={0.95} /></RoundedBox>
+      <RoundedBox args={[0.56, 0.1, 0.34]} radius={0.05} position={[0, 0.63, -0.66]}><meshStandardMaterial color="#f4f7f9" roughness={0.9} /></RoundedBox>
+      <mesh position={[0, 0.55, -0.96]} castShadow><boxGeometry args={[0.92, 0.7, 0.05]} /><meshStandardMaterial color="#aab7c0" roughness={0.5} /></mesh>
+    </group>
+  );
+}
+
+function MedCross() {
+  return (
+    <group position={[0, 0.95, 0.07]}>
+      <RoundedBox args={[0.7, 0.7, 0.04]} radius={0.06}><meshStandardMaterial color="#ffffff" /></RoundedBox>
+      <mesh position-z={0.022}><planeGeometry args={[0.46, 0.15]} /><meshBasicMaterial color="#e02b35" /></mesh>
+      <mesh position-z={0.022}><planeGeometry args={[0.15, 0.46]} /><meshBasicMaterial color="#e02b35" /></mesh>
+    </group>
+  );
+}
+
 function CafeTable() {
   return (
     <group>
@@ -677,6 +735,7 @@ const COMPONENTS = {
   arcade: Arcade, waterCooler: WaterCooler, vending: Vending, bench: Bench, clock: Clock, sign: Sign,
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
+  frontDesk: FrontDesk, floorLogo: FloorLogo, bed: Bed, medCross: MedCross,
   toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };
 

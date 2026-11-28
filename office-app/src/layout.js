@@ -1,7 +1,7 @@
-// The floor plan. One fixed plan, drawn like a commercial office: meeting rooms across the back, private offices down
-// the left, an open floor of desk pods in the middle, reception at the front door, and on the right the restrooms,
-// phone booths, equipment room and the breakout kitchen. Each helper gets a pod; a finance helper gets the accounting
-// office. A bigger team adds pod columns, and the building grows to the right.
+// The floor plan: a corporate office drawn from the owner's plan. Left column: sales, accounting, the server room,
+// meeting room B and HR. Top row: two team rooms and technical / planning. In the middle the main conference room,
+// with the front desk and the customer area between it and the front door. To the right: storage, the customer
+// service office, the executive office, the operations center and the restrooms, then the medical wing.
 import { tr } from './i18n.js';
 
 // Rol nomidan xona turi
@@ -25,7 +25,7 @@ export const KIND_COLOR = {
 };
 const RUG = {
   manager: '#b9a48a', lounge: '#c99a86', meeting: '#c4b394', garden: '#a9b98f', equipment: '#9aa3ad', training: '#b7c2a0',
-  server: '#8f9bb0', accounting: '#b9b08f', lobby: '#8a7f73',
+  server: '#8f9bb0', accounting: '#b9b08f', lobby: '#8a7f73', restrooms: '#dfe7ec', clinic: '#b9d6d2',
   backend: '#8fa4b8', frontend: '#b29bbd', devops: '#8fae99', mobile: '#8fb7c9', qa: '#c9a08f',
   data: '#a39bc4', design: '#c99bb2', docs: '#b9a68a', security: '#b99393', generic: '#93b8b0',
 };
@@ -38,18 +38,14 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const SPECIAL = { devops: 'DevOps', ios: 'iOS', ml: 'ML', ai: 'AI', qa: 'QA', ui: 'UI', ux: 'UX', sre: 'SRE', api: 'API', dba: 'DBA' };
 export const prettyName = (id) => id.split(/[-_ ]/).map((w) => SPECIAL[w.toLowerCase()] ?? cap(w)).join(' ');
 
-const H = 32;
-const POD_PITCH = 8;
+const W = 59;
+const H = 34;
 
 export function buildLayout(team) {
   const roles = team.filter((r) => r.id !== 'manager').map((r) => ({ ...r, kind: r.kind || kindOf(r.id), name: r.name || prettyName(r.id) }));
   const fin = roles.find((r) => /financ|account|bookkeep|payroll/i.test(r.id));
-  const podRoles = roles.filter((r) => r !== fin);
-  const cols = Math.max(4, Math.ceil(podRoles.length / 2));
-  const S = (cols - 4) * POD_PITCH; // how far the right-hand block moves when the floor grows
-  const R = (x) => x + S;
-  const W = 44 + S;
-  const DOOR = [19, 20]; // the front door, in the front wall
+  const others = roles.filter((r) => r !== fin);
+  const DOOR = [17, 18]; // the front door, in the front wall
 
   const blocked = Array.from({ length: H }, () => new Array(W).fill(false));
   const wallType = new Map();
@@ -69,22 +65,31 @@ export function buildLayout(team) {
   // outer walls, with the front door left open
   hwall(0, 0, W - 1, 'outer'); hwall(H - 1, 0, W - 1, 'outer', DOOR);
   vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer');
-  // back band: three meeting rooms behind a glass front
-  hwall(7, 1, W - 2, 'glass', [14, 15, 24, 25, 36, 37]);
-  vwall(19, 1, 6, 'solid'); vwall(31, 1, 6, 'solid');
-  // left column: private offices behind a glass front, and the training room at the front corner
-  vwall(10, 8, 25, 'glass', [10, 11, 16, 17, 23, 24]);
-  hwall(13, 1, 9, 'solid'); hwall(20, 1, 9, 'solid'); hwall(26, 1, 14, 'solid');
-  vwall(14, 27, 30, 'glass', [28, 29]);
-  // the wall behind the reception desk
-  hwall(22, 16, 23, 'solid');
-  // right block: restrooms, equipment room, phone booths
-  vwall(R(25), 19, 27, 'solid');
-  hwall(19, R(25), R(32), 'solid', [R(30)]);
-  hwall(19, R(33), W - 2, 'glass', [R(36), R(37)]);
-  vwall(R(32), 19, 25, 'solid');
-  hwall(25, R(25), W - 2, 'solid');
-  vwall(R(28), 26, 27, 'solid'); vwall(R(31), 26, 27, 'solid');
+  // left column: sales, accounting, server room, meeting room B, HR
+  vwall(8, 1, 32, 'solid', [4, 5, 10, 11, 15, 16, 22, 23, 29, 30]);
+  for (const z of [7, 13, 18, 27]) hwall(z, 1, 7, 'glass');
+  // top row: team rooms A and B, technical / planning
+  hwall(7, 11, 36, 'glass', [15, 16, 21, 22, 31, 32]);
+  vwall(11, 1, 6, 'solid'); vwall(19, 1, 6, 'solid'); vwall(28, 1, 6, 'solid');
+  // the main conference room, an island in the middle
+  hwall(9, 11, 25, 'solid'); hwall(18, 11, 25, 'glass', [14, 15, 21, 22]);
+  vwall(11, 10, 17, 'solid'); vwall(25, 10, 17, 'solid');
+  // storage and the customer service office
+  vwall(28, 9, 26, 'solid', [12, 13, 20, 21]);
+  vwall(36, 1, 26, 'solid', [19, 20]);
+  hwall(9, 29, 35, 'solid'); hwall(17, 29, 35, 'glass'); hwall(26, 29, 35, 'glass');
+  // executive office
+  hwall(13, 37, 49, 'glass', [38, 39]); vwall(49, 1, 12, 'solid');
+  // operations center
+  hwall(15, 39, 48, 'solid', [46, 47]); hwall(26, 39, 48, 'glass', [41, 42]);
+  vwall(39, 16, 25, 'solid'); vwall(48, 16, 25, 'solid');
+  // restrooms
+  hwall(28, 28, 49, 'solid', [38, 39]);
+  vwall(28, 29, 32, 'solid'); vwall(49, 29, 32, 'solid');
+  vwall(35, 29, 32, 'solid', [31]); vwall(43, 29, 32, 'solid', [31]);
+  // medical wing
+  vwall(51, 1, 32, 'solid', [4, 5, 8, 13, 14, 19, 20, 24, 25, 29, 30]);
+  for (const z of [7, 10, 17, 22, 27]) hwall(z, 52, 57, 'glass');
 
   const rooms = [];
   const desks = {};
@@ -94,151 +99,161 @@ export function buildLayout(team) {
   const floors = [];
   const lights = [];
   const tables = [];
+  const stations = []; // desks, most wanted first
   const add = (type, cells, extra = {}) => { decor.push({ type, cells, ...extra }); for (const c of cells) block(...c); };
   const plant = (x, z) => { plants.push([x, z]); block(x, z); };
-  const room = (id, kind, name, x, z, extra = {}) => {
-    const r = { id, kind, name, x, z, rug: RUG[kind] ?? RUG.generic, ...extra };
-    rooms.push(r);
-    if (extra.light !== false) lights.push({ at: [(x[0] + x[1]) / 2, (z[0] + z[1]) / 2], k: 9 });
-    return r;
+  const room = (id, kind, name, x, z, extra = {}) => { const r = { id, kind, name, x, z, rug: RUG[kind] ?? RUG.generic, ...extra }; rooms.push(r); return r; };
+  const light = (x, z, k = 9, d = 11) => lights.push({ at: [x, z], k, d });
+  const station = (rank, x, z, roomId) => { stations.push({ rank, desk: [x, z], seat: [x, z + 1], room: roomId }); block(x, z); };
+  const tableSet = (x0, x1, seatXs, z0) => {
+    for (let x = x0; x <= x1; x++) for (const z of [z0, z0 + 1]) block(x, z);
+    return { table: { x: [x0, x1], z: [z0, z0 + 1] }, seats: [...seatXs.map((x) => [x, z0 - 1]), ...seatXs.map((x) => [x, z0 + 2])] };
   };
-  const tableSet = (x0, x1, seatXs) => {
-    for (let x = x0; x <= x1; x++) for (const z of [3, 4]) block(x, z);
-    return { table: { x: [x0, x1], z: [3, 4] }, seats: [...seatXs.map((x) => [x, 2]), ...seatXs.map((x) => [x, 5])] };
-  };
-
-  // ---- meeting rooms ----
-  room('meeting', 'meeting', tr('Conference room A'), [1, 18], [1, 6]);
-  const meeting = { ...tableSet(4, 16, [5, 7, 9, 11, 13, 15]), screen: { x: 10, z: 0, off: 0.2 }, view: [10, 6] };
-  plant(1, 1); plant(18, 1); plant(1, 6);
-  room('meeting-b', 'meeting', tr('Meeting room B'), [20, 30], [1, 6]);
-  tables.push(tableSet(23, 27, [23, 25, 27]));
-  add('standBoard', [[29, 5]]); plant(20, 1);
-  room('meeting-c', 'meeting', tr('Meeting room C'), [32, W - 2], [1, 6]);
-  const cMid = Math.round((32 + W - 2) / 2);
-  tables.push(tableSet(cMid - 3, cMid + 3, [cMid - 3, cMid - 1, cMid + 1, cMid + 3]));
-  add('standBoard', [[33, 5]], { chart: true }); plant(W - 2, 1);
-  windows.push(['top', 4], ['top', 16], ['top', 22.5], ['top', 27.5], ['top', cMid - 2.5], ['top', cMid + 2.5]);
 
   // ---- left column ----
-  room('server', 'server', tr('Server room'), [1, 9], [8, 12]);
-  add('serverRack', [[2, 8], [3, 8]], { alert: true });
-  add('serverRack', [[4, 8], [5, 8]], { gpu: true });
-  add('ups', [[6, 8]]);
-  add('monitorWall', [[7, 8], [8, 8]]);
-  add('crates', [[1, 12]]);
+  room('sales', 'frontend', tr('Sales & merchandising'), [1, 7], [1, 6]);
+  station(6, 4, 3, 'sales');
+  add('bookshelf', [[6, 1], [7, 1]]); add('standBoard', [[1, 5]], { chart: true });
+  plant(1, 1); plant(7, 6);
+  windows.push(['top', 3.5], ['left', 3.5]);
+
+  room(fin ? fin.id : 'accounting', 'accounting', tr('Accounting office'), [1, 7], [8, 12], { role: !!fin });
+  const accId = fin ? fin.id : 'spare-acc';
+  desks[accId] = { desk: [3, 10], seat: [3, 11], room: accId };
+  desks[`${accId}#2`] = { desk: [6, 10], seat: [6, 11], room: accId };
+  block(3, 10); block(6, 10);
+  add('bookshelf', [[1, 8], [2, 8]]); add('printer', [[7, 8]]);
   windows.push(['left', 10]);
 
-  room('manager', 'manager', tr('Atlas · CEO office'), [1, 9], [14, 19]);
-  desks.manager = { desk: [5, 16], seat: [5, 17], room: 'manager' };
-  block(5, 16);
-  add('bookshelf', [[7, 14], [8, 14]]);
-  add('armchairs', [[1, 17], [1, 18]]);
-  add('globe', [[8, 19]]);
-  add('floorLamp', [[1, 19]]);
-  plant(1, 14); plant(9, 14);
-  windows.push(['left', 15.5], ['left', 17.5]);
+  room('server', 'server', tr('IT / server room'), [1, 7], [14, 17]);
+  add('serverRack', [[1, 14], [2, 14]], { alert: true });
+  add('serverRack', [[3, 14], [4, 14]], { gpu: true });
+  add('ups', [[5, 14]]);
+  add('monitorWall', [[6, 14], [7, 14]]);
+  windows.push(['left', 16]);
 
-  room(fin ? fin.id : 'accounting', 'accounting', fin ? `${fin.name} · ${tr('Accounting')}` : tr('Accounting'), [1, 9], [21, 25], { role: !!fin });
-  const accId = fin ? fin.id : 'spare-acc';
-  desks[accId] = { desk: [3, 23], seat: [3, 24], room: accId };
-  desks[`${accId}#2`] = { desk: [6, 23], seat: [6, 24], room: accId };
-  block(3, 23); block(6, 23);
-  add('bookshelf', [[1, 21], [2, 21]]);
-  add('printer', [[8, 21]]);
-  plant(1, 25);
-  windows.push(['left', 23]);
+  room('meeting-b', 'meeting', tr('Meeting room B'), [1, 7], [19, 26]);
+  tables.push(tableSet(2, 6, [2, 4, 6], 22));
+  add('standBoard', [[7, 19]]); plant(1, 19); plant(1, 26);
+  windows.push(['left', 21], ['left', 24.5]);
 
-  room('training', 'training', tr('Training room'), [1, 13], [27, 30]);
-  add('whiteboard', [[2, 27], [3, 27], [4, 27]]);
-  for (const x of [2, 5, 8, 11]) add('schoolDesk', [[x, 29]]);
-  decor.push({ type: 'clock', at: [9, 26.05] });
-  plant(13, 27);
-  windows.push(['left', 28.5], ['bottom', 4], ['bottom', 8], ['bottom', 12]);
+  room('hr', 'design', tr('HR office'), [1, 7], [28, 32]);
+  station(7, 4, 30, 'hr');
+  add('bookshelf', [[1, 28], [2, 28]]); add('armchairs', [[7, 32]]);
+  plant(1, 32);
+  windows.push(['left', 30], ['bottom', 4]);
 
-  // ---- the open floor: pods of four desks, two facing two ----
-  const podX = Array.from({ length: cols }, (_, c) => 13 + c * POD_PITCH);
-  const podZ = [{ flip: 10, front: 11 }, { flip: 15, front: 16 }];
-  const order = [];
-  for (let c = 0; c < cols; c++) order.push([1, c], [0, c]);
-  order.sort((p, q) => ((p[0] + p[1]) % 2) - ((q[0] + q[1]) % 2) || p[1] - q[1]); // a checkerboard first, so the team spreads out
-  order.forEach(([row, c], i) => {
-    const r = podRoles[i];
-    const id = r ? r.id : `spare-${i}`;
-    const x = podX[c], z = podZ[row];
-    desks[id] = { desk: [x, z.front], seat: [x, z.front + 1], room: id };
-    desks[`${id}#2`] = { desk: [x + 2, z.front], seat: [x + 2, z.front + 1], room: id };
-    desks[`${id}#3`] = { desk: [x, z.flip], seat: [x, z.flip - 1], room: id, rot: Math.PI };
-    desks[`${id}#4`] = { desk: [x + 2, z.flip], seat: [x + 2, z.flip - 1], room: id, rot: Math.PI };
-    for (let dx = 0; dx <= 2; dx++) { block(x + dx, z.flip); block(x + dx, z.front); }
-    room(id, r ? r.kind : 'generic', r ? r.name : '', [x - 1, x + 3], [z.flip - 1, z.front + 1], { role: !!r, pod: true, inset: 0, rug: r ? RUG[r.kind] ?? RUG.generic : null, light: false });
-  });
-  const open = { id: 'corridor', kind: 'corridor', name: '', x: [11, W - 2], z: [8, 18] };
-  rooms.push(open);
-  const CARPET = '#9299a2';
-  floors.push({ x: [11, W - 2], z: [8, 18], color: CARPET }, { x: [11, R(24)], z: [19, 21], color: CARPET }, { x: [11, 14], z: [22, 25], color: CARPET });
-  for (let x = 16; x < W - 4; x += 12) lights.push({ at: [x, 13], k: 7 });
-  decor.push({ type: 'usageBoard', at: [19, 7] });
-  plant(11, 8); plant(W - 2, 8); plant(W - 2, 18); plant(11, 25);
-  windows.push(['right', 10], ['right', 13], ['right', 16]);
+  // ---- top row ----
+  room('team-a', 'backend', tr('Team room A'), [12, 18], [1, 6]);
+  [[15, 5, 2], [13, 5, 8], [17, 5, 13], [13, 2, 20], [15, 2, 21], [17, 2, 22]].forEach(([x, z, rank]) => station(rank, x, z, 'team-a'));
+  room('team-b', 'data', tr('Team room B'), [20, 27], [1, 6]);
+  [[24, 5, 3], [21, 5, 9], [26, 5, 14], [22, 2, 23], [24, 2, 24], [26, 2, 25]].forEach(([x, z, rank]) => station(rank, x, z, 'team-b'));
+  room('tech', 'devops', tr('Technical / planning'), [29, 35], [1, 6]);
+  [[30, 5, 1], [34, 5, 12], [30, 2, 26], [33, 2, 27]].forEach(([x, z, rank]) => station(rank, x, z, 'tech'));
+  add('standBoard', [[35, 3]], { chart: true });
+  plant(9, 1); plant(18, 1); plant(27, 1);
+  windows.push(['top', 13.5], ['top', 16.5], ['top', 22], ['top', 25.5], ['top', 31], ['top', 34]);
 
-  // ---- reception and lobby ----
-  room('lobby', 'lobby', tr('Reception'), [15, R(24)], [23, 30], { rug: null });
-  floors.push({ x: [17, 22], z: [26, 29], color: RUG.lobby });
-  add('reception', [[19, 24], [20, 24]]);
-  decor.push({ type: 'sign', at: [19.5, 22.05] });
-  add('bench', [[16, 30], [17, 30]]);
-  add('bench', [[22, 30], [23, 30]]);
-  add('waterCooler', [[15, 23]]);
-  plant(15, 30); plant(24, 30); plant(16, 23); plant(23, 23);
+  // ---- main conference room ----
+  room('meeting', 'meeting', tr('Main conference room'), [12, 24], [10, 17]);
+  const meeting = { ...tableSet(13, 23, [13, 15, 17, 19, 21, 23], 13), screen: { x: 18, z: 9 }, view: [18, 16.6] };
+  plant(12, 10); plant(24, 10); plant(12, 17); plant(24, 17);
+  decor.push({ type: 'usageBoard', at: [18, 18] });
+
+  // ---- lobby: logo, front desk, customer service area ----
+  room('lobby', 'lobby', tr('Reception · front desk'), [13, 23], [22, 25], { rug: null });
+  decor.push({ type: 'floorLogo', at: [18, 20.6] });
+  add('frontDesk', [[15, 24], [16, 24], [17, 24], [18, 24], [19, 24], [20, 24], [21, 24]]);
+  plant(13, 23); plant(23, 23);
+  room('customers', 'lounge', tr('Customer service area'), [10, 26], [27, 31], { inset: 0.6 });
+  add('armchairs', [[11, 28], [11, 30], [13, 31], [25, 28], [25, 30], [23, 31]]);
+  add('cafeTable', [[13, 29]]); add('cafeTable', [[23, 29]]);
+  plant(9, 32); plant(27, 32); plant(15, 31); plant(21, 31);
   decor.push({ type: 'entrance' });
-  windows.push(['bottom', 16.5], ['bottom', 22.5]);
+  windows.push(['bottom', 11], ['bottom', 14], ['bottom', 22], ['bottom', 25]);
 
-  // ---- right block ----
-  room('restrooms', 'restrooms', tr('Restrooms'), [R(26), R(31)], [20, 24], { rug: null });
-  floors.push({ x: [R(26), R(31)], z: [20, 24], color: '#dfe7ec' });
-  add('toilet', [[R(26), 21]], { rot: Math.PI / 2 });
-  add('toilet', [[R(26), 23]], { rot: Math.PI / 2 });
-  add('sink', [[R(31), 21]], { rot: -Math.PI / 2 });
-  add('sink', [[R(31), 23]], { rot: -Math.PI / 2 });
-  decor.push({ type: 'stall', at: [R(26.75), 22] });
+  // ---- storage and customer service office ----
+  room('storage', 'equipment', tr('Storage · paper & supplies'), [29, 35], [10, 16]);
+  add('shelf', [[29, 10], [30, 10]]);
+  add('shelf', [[31, 10], [32, 10]], { tools: true });
+  add('shelf', [[34, 10], [35, 10]]);
+  add('crates', [[35, 12]]); add('crates', [[35, 14]]); add('lockers', [[29, 14], [29, 15]], { rot: Math.PI / 2 });
+  for (const x of [31, 33, 35]) add('printer', [[x, 16]]);
 
-  room('equipment', 'equipment', tr('Equipment room'), [R(33), W - 2], [20, 24]);
-  add('printer', [[R(33), 20]]);
-  add('shelf', [[R(39), 20], [R(40), 20]]);
-  add('shelf', [[R(41), 20], [R(42), 20]], { tools: true });
-  add('lockers', [[R(42), 22], [R(42), 23]], { rot: -Math.PI / 2 });
-  add('workbench', [[R(36), 23], [R(37), 23]]);
-  add('crates', [[R(33), 24]]);
-  windows.push(['right', 22]);
+  room('cs', 'qa', tr('Customer service office'), [29, 35], [18, 25]);
+  [[30, 23, 4], [33, 23, 10], [31, 20, 15], [34, 20, 16]].forEach(([x, z, rank]) => station(rank, x, z, 'cs'));
+  plant(29, 18); plant(35, 25);
 
-  for (const [x, color] of [[26, '#2f6fb5'], [29, '#d9703a']]) {
-    add('phoneBooth', [[R(x), 26], [R(x + 1), 26]], { color });
-  }
-  rooms.push({ id: 'booths', kind: 'booths', name: tr('Phone booths'), x: [R(26), R(30)], z: [26, 27], rug: null });
+  // ---- executive office ----
+  room('manager', 'manager', tr('Executive office · Atlas'), [37, 48], [1, 12]);
+  desks.manager = { desk: [40, 4], seat: [40, 5], room: 'manager' };
+  desks['manager#2'] = { desk: [45, 4], seat: [45, 5], room: 'manager' };
+  block(40, 4); block(45, 4);
+  decor.push({ type: 'sign', at: [42.5, 0.1] });
+  add('bookshelf', [[37, 1], [38, 1]]); add('bookshelf', [[47, 1], [48, 1]]);
+  add('armchairs', [[40, 9], [45, 9]]); add('cafeTable', [[42, 10]]);
+  add('globe', [[48, 12]]); add('floorLamp', [[37, 12]]);
+  plant(37, 6); plant(48, 6); plant(41, 12); plant(44, 12);
+  windows.push(['top', 40.5], ['top', 45]);
 
-  room('lounge', 'lounge', tr('Breakout & kitchen'), [R(32), W - 2], [26, 30]);
+  // ---- operations center ----
+  room('ops', 'security', tr('Operations center'), [40, 47], [16, 25]);
+  add('monitorWall', [[42, 16], [43, 16]]); add('monitorWall', [[44, 16], [45, 16]]);
+  [[42, 22, 5], [45, 22, 11], [42, 19, 17], [45, 19, 18]].forEach(([x, z, rank]) => station(rank, x, z, 'ops'));
+  plant(40, 16); plant(40, 25); plant(47, 25);
+
+  // ---- restrooms ----
+  room('rest-m', 'restrooms', tr("Men's restroom"), [29, 34], [29, 32], { rug: null });
+  room('rest-a', 'restrooms', tr('Wash area'), [36, 42], [29, 32], { rug: null });
+  room('rest-w', 'restrooms', tr("Women's restroom"), [44, 48], [29, 32], { rug: null });
+  floors.push({ x: [29, 48], z: [29, 32], color: '#dfe7ec' });
+  for (const x of [30, 32, 34, 44, 46, 48]) add('toilet', [[x, 29]]);
+  for (const x of [37, 39, 41]) add('sink', [[x, 32]], { rot: Math.PI });
+  windows.push(['bottom', 31.5], ['bottom', 39.5], ['bottom', 46]);
+
+  // ---- medical wing ----
+  room('clinic', 'clinic', tr('Medical area'), [52, 57], [1, 6], { rug: '#b9d6d2' });
+  add('bed', [[53, 1], [53, 2]]); add('bed', [[55, 1], [55, 2]]);
+  add('workbench', [[56, 5], [57, 5]]);
+  decor.push({ type: 'medCross', at: [56.5, 0.1] });
+  room('janitor', 'equipment', tr('Janitorial storage'), [52, 57], [8, 9], { rug: null });
+  add('shelf', [[54, 8], [55, 8]], { tools: true }); add('crates', [[57, 8]]);
+
+  room('lounge', 'lounge', tr('Staff lounge · rest area'), [52, 57], [11, 16]);
   const lounge = {
-    couch: { x: [R(34), R(38)], z: 30 },
-    couchSeats: [[R(35), 30], [R(37), 30], [R(34), 30], [R(36), 30], [R(38), 30]],
-    coffeeTable: { x: [R(35), R(37)], z: 29 },
-    beanBags: [[R(32), 30], [R(40), 30]],
-    coffee: [R(41), 26],
-    coffeeSpot: [R(41), 27],
-    spots: [[R(33), 28], [R(35), 28], [R(38), 28], [R(40), 28], [R(28), 28], [R(31), 28], [R(39), 27], [R(36), 27]],
+    couch: { x: [53, 57], z: 16 },
+    couchSeats: [[54, 16], [56, 16], [53, 16], [55, 16], [57, 16]],
+    coffeeTable: { x: [54, 56], z: 15 },
+    beanBags: [[52, 16], [57, 14]],
+    coffee: [57, 11],
+    coffeeSpot: [56, 12],
+    spots: [[53, 13], [55, 13], [54, 14], [56, 14], [53, 14], [55, 14], [56, 13], [54, 13]],
   };
-  for (let x = R(34); x <= R(38); x++) block(x, 30);
-  for (let x = R(35); x <= R(37); x++) block(x, 29);
+  for (let x = 53; x <= 57; x++) block(x, 16);
+  for (let x = 54; x <= 56; x++) block(x, 15);
   lounge.beanBags.forEach((c) => block(...c));
   block(...lounge.coffee);
-  add('arcade', [[R(32), 26]]);
-  add('vending', [[R(33), 26]]);
-  add('kitchenCounter', [[R(36), 26], [R(37), 26], [R(38), 26], [R(39), 26], [R(40), 26]]);
-  add('fridge', [[R(42), 26]]);
-  add('cafeTable', [[R(27), 30]]);
-  add('cafeTable', [[R(30), 30]]);
-  plant(R(42), 30); plant(R(25), 29);
-  windows.push(['right', 28.5], ['bottom', R(28.5)], ['bottom', R(41)]);
+  add('bed', [[53, 11], [53, 12]]); add('bed', [[55, 11], [55, 12]]);
+
+  room('trauma', 'clinic', tr('Trauma / support room'), [52, 57], [18, 21], { rug: '#b9d6d2' });
+  add('bed', [[55, 18], [55, 19]]); add('workbench', [[56, 21], [57, 21]]);
+  room('treatment', 'clinic', tr('Treatment room 2'), [52, 57], [23, 26], { rug: '#b9d6d2' });
+  add('bed', [[55, 23], [55, 24]]); add('sink', [[57, 26]], { rot: -Math.PI / 2 });
+  room('triage', 'clinic', tr('Registration / triage'), [52, 57], [28, 32], { rug: '#b9d6d2' });
+  add('reception', [[54, 30], [55, 30]]); add('bench', [[53, 32], [54, 32]]);
+  plant(57, 28); plant(57, 32);
+  windows.push(['right', 3.5], ['right', 13.5], ['right', 19.5], ['right', 24.5], ['right', 30], ['top', 54]);
+
+  // ---- who sits where: the finance helper in accounting, everyone else by the plan's order of rooms ----
+  stations.sort((p, q) => p.rank - q.rank);
+  stations.forEach((s, i) => { desks[others[i] ? others[i].id : `spare-${i}`] = { desk: s.desk, seat: s.seat, room: s.room }; });
+
+  const open = { id: 'corridor', kind: 'corridor', name: '', x: [9, 50], z: [8, 32] };
+  rooms.push(open);
+  floors.unshift({ x: [1, W - 2], z: [1, H - 2], color: '#f1e3cd' });
+  light(4, 5); light(4, 16); light(4, 28); light(15, 4); light(27, 4); light(18, 13.5); light(18, 24, 10, 14); light(32, 17, 9, 13);
+  light(42.5, 6, 10, 13); light(43.5, 21); light(39, 30); light(54.5, 5); light(54.5, 15); light(54.5, 27);
+  plant(9, 19); plant(27, 19); plant(50, 1); plant(37, 27);
 
   // ---- wall pieces to draw: straight runs of one kind, then single posts for what is left ----
   const typeAt = (x, z) => (inB(x, z) ? wallType.get(z * W + x) : undefined);
@@ -268,7 +283,7 @@ export function buildLayout(team) {
   const doorX = (DOOR[0] + DOOR[1]) / 2;
 
   return {
-    W, H, cols, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
+    W, H, cols: 1, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
     roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 },
     bossStart: [doorX, H - 4], bossRot: Math.PI, key: `${W}|${rooms.map((r) => r.id).join('|')}`,
     // Outside: the way from the front door round to the store on the left, and where to stand there.

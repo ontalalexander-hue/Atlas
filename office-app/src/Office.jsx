@@ -130,7 +130,7 @@ function Floors({ L }) {
         const w = f.x[1] - f.x[0] + 1, d = f.z[1] - f.z[0] + 1;
         const [cx, cz] = L.toWorld([center(f.x[0], f.x[1]), center(f.z[0], f.z[1])]);
         return (
-          <mesh key={`f${i}`} rotation-x={-Math.PI / 2} position={[cx, 0.004, cz]} receiveShadow>
+          <mesh key={`f${i}`} rotation-x={-Math.PI / 2} position={[cx, 0.004 + i * 0.001, cz]} receiveShadow>
             <planeGeometry args={[w, d]} /><meshStandardMaterial color={f.color} roughness={0.92} />
           </mesh>
         );
@@ -378,7 +378,7 @@ function RoomLights({ L }) {
   if (lamps < 0.05 || roofClosed) return null;
   return L.lights.map((l, i) => {
     const [cx, cz] = L.toWorld(l.at);
-    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * lamps} distance={10} decay={1.6} color="#ffd9a8" />;
+    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * lamps} distance={l.d ?? 10} decay={1.6} color="#ffd9a8" />;
   });
 }
 
