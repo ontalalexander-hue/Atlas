@@ -7,6 +7,7 @@ import { SEV, visibleSev } from './severity.js';
 import Decor from './Details.jsx';
 import Windows from './Windows.jsx';
 import Outside from './Outside.jsx';
+import City from './City.jsx';
 import Roof from './Roof.jsx';
 import { tr } from './i18n.js';
 import { todayTheme } from './layout.js';
@@ -147,6 +148,7 @@ function Floors({ L }) {
   const todayKind = useOffice((s) => todayTheme(s.plan)?.room ?? null);
   const theme = useOffice((s) => (s.sky.lamps > 0.5 ? 'night' : 'day'));
   const boss = useOffice((s) => s.boss);
+  const bossOutside = useOffice((s) => s.bossOutside);
   const roofClosed = useOffice((s) => s.roofClosed);
   return (
     <group>
@@ -175,7 +177,7 @@ function Floors({ L }) {
                 <meshStandardMaterial color={r.rug} roughness={1} />
               </RoundedBox>
             )}
-            {r.name && (!roofClosed || boss) && (
+            {r.name && (!roofClosed || (boss && !bossOutside)) && (
               <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25)]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
                 <div className={`room-label ${theme} ${r.kind === todayKind ? 'today' : ''}`}>{r.kind === todayKind ? `★ ${tr('Today')} · ` : ''}{r.name}</div>
               </Html>
@@ -419,6 +421,7 @@ export default function Office() {
     <group>
       <RoomLights L={L} />
       <Windows L={L} />
+      <City />
       <Outside L={L} key={`g${L.W}`} />
       <Floors L={L} />
       <TodayRoom L={L} />

@@ -16,6 +16,7 @@ import Sky from './Sky.jsx';
 import { FollowCamera, Visitors } from './Director.jsx';
 import { TOP as ROOF_TOP } from './Roof.jsx';
 import RoomPlan from './Plan.jsx';
+import Reception from './Reception.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
 function useSmall() {
@@ -586,6 +587,7 @@ export default function App() {
           <Office />
           {ids.split(',').map((id) => <Agent key={id} id={id} />)}
           <Visitors />
+          <Reception />
           <OrbitControls makeDefault target={[1, 0, 1.5]} maxPolarAngle={1.5} minDistance={8} maxDistance={190} enableDamping dampingFactor={0.08} />
           <Views small={small} />
           <FollowCamera small={small} />

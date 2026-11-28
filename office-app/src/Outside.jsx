@@ -43,18 +43,6 @@ function StreetLamp({ lamps }) {
   );
 }
 
-function Car({ color = '#d9534f' }) {
-  return (
-    <group>
-      <RoundedBox args={[1.7, 0.5, 3.6]} radius={0.16} position-y={0.5} castShadow><meshStandardMaterial color={color} roughness={0.35} metalness={0.3} /></RoundedBox>
-      <RoundedBox args={[1.5, 0.48, 1.9]} radius={0.18} position={[0, 0.95, -0.15]} castShadow><meshStandardMaterial color="#1e2a38" roughness={0.15} metalness={0.4} /></RoundedBox>
-      {[[-0.82, 1.1], [0.82, 1.1], [-0.82, -1.15], [0.82, -1.15]].map(([x, z], i) => (
-        <mesh key={i} position={[x, 0.3, z]} rotation-z={Math.PI / 2}><cylinderGeometry args={[0.3, 0.3, 0.2, 18]} /><meshStandardMaterial color="#15171b" roughness={0.9} /></mesh>
-      ))}
-      {[-0.55, 0.55].map((x) => <mesh key={x} position={[x, 0.55, 1.81]}><boxGeometry args={[0.3, 0.12, 0.02]} /><meshStandardMaterial color="#fff6d8" emissive="#fff6d8" emissiveIntensity={0.4} /></mesh>)}
-    </group>
-  );
-}
 
 // The store: front faces +x, toward the office's front door.
 function Store({ lamps }) {
@@ -124,7 +112,6 @@ export default function Outside({ L }) {
   const o = L.outside;
   const grass = useMemo(() => new THREE.Color('#6f9a5c').lerp(new THREE.Color('#1c2a22'), lamps * 0.85), [lamps]);
   const paving = useMemo(() => new THREE.Color('#c9c4ba').lerp(new THREE.Color('#2c3038'), lamps * 0.8), [lamps]);
-  const tarmac = useMemo(() => new THREE.Color('#5a5f68').lerp(new THREE.Color('#1a1c21'), lamps * 0.7), [lamps]);
 
   const left = L.toWorld([0, 0])[0] - 0.5; // the building's left face, in the world
   const lawnW = L.W + 30, lawnD = L.H + 16;
@@ -133,7 +120,6 @@ export default function Outside({ L }) {
   const pts = [...o.walk, o.storeSpot].map((c) => L.toWorld(c));
   const [dx0, dz0] = L.toWorld([L.door.x, L.H]);
   const [spx, spz] = L.toWorld(o.storeSpot);
-  const roadX = left - 15.5;
 
   const trees = [
     [left - 3, -10, 1.1, 0], [left - 7, -11.5, 0.9, 1], [left - 11.5, -9.5, 1.2, 2], [left - 2.6, 9, 1, 1],
@@ -168,20 +154,11 @@ export default function Outside({ L }) {
 
       <group position={[sx, 0, sz]}><Store lamps={lamps} /></group>
 
-      {/* the road, with two cars at the kerb */}
-      <mesh rotation-x={-Math.PI / 2} position={[roadX, -0.022, 0]} receiveShadow>
-        <planeGeometry args={[4.4, lawnD - 1.2]} /><meshStandardMaterial color={tarmac} roughness={0.95} />
-      </mesh>
-      {Array.from({ length: 9 }).map((_, i) => (
-        <mesh key={i} rotation-x={-Math.PI / 2} position={[roadX, -0.02, -lawnD / 2 + 3 + i * 4.1]}><planeGeometry args={[0.14, 1.6]} /><meshBasicMaterial color="#e8e2c8" /></mesh>
-      ))}
-      <group position={[roadX + 1.2, -0.03, -7]}><Car color="#d9534f" /></group>
-      <group position={[roadX + 1.2, -0.03, 12.5]} rotation-y={Math.PI}><Car color="#2f6fb5" /></group>
+      {/* the streets and the rest of the city: City.jsx */}
 
       {trees.map(([x, z, s, tone], i) => <group key={i} position={[x, -0.03, z]}><Tree s={s} tone={tone} /></group>)}
       <group position={[dx0 + 2.8, -0.03, dz0 + 0.6]} rotation-y={Math.PI}><StreetLamp lamps={lamps} /></group>
       <group position={[spx + 1.9, -0.03, spz + 3.2]} rotation-y={Math.PI}><StreetLamp lamps={lamps} /></group>
-      <group position={[roadX + 2.6, -0.03, -1]}><StreetLamp lamps={lamps} /></group>
     </group>
   );
 }
