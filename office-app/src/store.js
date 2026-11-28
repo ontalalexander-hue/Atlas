@@ -31,12 +31,14 @@ export const normTeam = (team) => team.map((r, i) => {
 function makeAgent(def, L, index, inLounge) {
   const deskId = def.id === 'manager' ? 'manager' : (L.desks[def.id] ? def.id : null);
   const spots = L.lounge.spots;
-  const start = def.spawn ?? (inLounge && def.id !== 'manager' ? spots[index % spots.length] : L.desks[deskId]?.seat ?? spots[0]);
+  const seat = L.desks[deskId]?.seat;
+  const start = def.spawn ?? seat ?? spots[index % spots.length];
   positions[def.id] = { x: start[0], z: start[1], rot: Math.PI };
   return {
     id: def.id, name: personName(def.id), title: def.name, role: def.role ?? def.kind, color: def.color, kind: def.kind,
     deskId, index,
     state: inLounge ? 'idle' : 'working',
+    seated: inLounge && !def.spawn && !!seat, bed: null,
     task: inLounge ? '' : tr('Starting work'),
     bubble: '', bubbleUntil: 0, bubbleKind: '',
     path: [], pathId: 0, after: null,
@@ -51,6 +53,20 @@ function agentsFor(team, L, inLounge) {
 
 const stamp = () => new Date().toLocaleTimeString(LOCALE, { hour12: false });
 const calmTimers = {};
+const sickTimers = {};
+// visitors: one per conversation waiting on Atlas, keyed by a short id of our own
+const visitorIds = new Map();
+let visitorSeq = 0;
+export const CHANNELS = {
+  web: { label: 'Web chat', icon: '💬', color: '#1f7ae0' },
+  telegram: { label: 'Telegram', icon: '✈️', color: '#2aabee' },
+  whatsapp: { label: 'WhatsApp', icon: '📱', color: '#25d366' },
+  discord: { label: 'Discord', icon: '🎮', color: '#5865f2' },
+  slack: { label: 'Slack', icon: '#', color: '#e01e5a' },
+  email: { label: 'Email', icon: '✉️', color: '#ea4335' },
+  api: { label: 'API', icon: '🔌', color: '#7c4dff' },
+  acp: { label: 'Editor', icon: '🔗', color: '#14b8a6' },
+};
 const initialTeam = normTeam(DEFAULT_TEAM);
 const initialLayout = buildLayout(initialTeam);
 
@@ -100,7 +116,14 @@ export const useOffice = create((set, get) => ({
   setRoofMode: (roofMode) => { try { localStorage.setItem('atlas-office-roof', roofMode); } catch {} set({ roofMode }); },
   roofClosed: false, // is the roof down right now (name tags and room labels under it are hidden)
   setRoofClosed: (roofClosed) => { if (get().roofClosed !== roofClosed) set({ roofClosed }); },
-  view: null, // { name: 'overview'|'street'|'deck', n } — a camera position asked for from the panel
+  view: null, // { name: 'auto'|'overview'|'street'|'deck', n } — a camera position asked for from the panel; none is 'auto'
+  // the last one to do something, for the camera in Auto view: { id, at }
+  spotlight: null,
+  setSpotlight: (id) => { if (id && get().agents[id]) set({ spotlight: { id, at: Date.now() } }); },
+  // the other boards: GET /api/office/status
+  status: null,
+  setStatus: (status) => set({ status }),
+  visitors: {},
   setView: (name) => set({ view: { name, n: Date.now() } }),
   sheet: false, // phone: is the panel pulled up
   setSheet: (sheet) => set({ sheet }),
@@ -141,7 +164,7 @@ export const useOffice = create((set, get) => ({
     const agents = { ...get().agents };
     let n = Object.keys(agents).length;
     for (const r of add) {
-      agents[r.id] = makeAgent({ ...r, spawn: spawnAtEntrance ? [1, 10 + (n % 2)] : undefined }, L, n++, true);
+      agents[r.id] = makeAgent({ ...r, spawn: spawnAtEntrance ? L.outside.door : undefined }, L, n++, true);
     }
     // nomi/rangi yangilanganlar
     for (const r of updated) if (agents[r.id]) agents[r.id] = { ...agents[r.id], name: r.name, color: r.color, kind: r.kind, deskId: L.desks[r.id] ? r.id : agents[r.id].deskId };
@@ -182,12 +205,12 @@ export const useOffice = create((set, get) => ({
       walk.forEach((w, i) => { if (far(w) < far(walk[near])) near = i; });
       path = [...walk.slice(0, near + 1).reverse(), L.outside.door, ...path];
     }
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false });
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false, seated: false, bed: null });
   },
   goToDesk: (id, after = { state: 'working' }) => {
     const a = get().agents[id];
     const d = a && get().layout.desks[a.deskId];
-    if (d) get().goTo(id, d.seat, { face: 'desk', ...after });
+    if (d) get().goTo(id, d.seat, { face: 'desk', ...(after.state === 'idle' ? { sit: true } : {}), ...after });
   },
   goToLounge: (id, after = { state: 'idle' }) => {
     const a = get().agents[id];
@@ -206,13 +229,101 @@ export const useOffice = create((set, get) => ({
     get().say(id, tr('Snack run 🥤'), 3000);
     setTimeout(() => {
       const b = get().agents[id];
-      if (b?.away && b.state === 'idle') { get().say(id, tr('Back to the floor'), 2500); get().goToLounge(id); }
+      if (b?.away && b.state === 'idle') { get().say(id, tr('Back to the floor'), 2500); get().goToDesk(id, { state: 'idle' }); }
     }, 24_000);
   },
   arrived: (id) => {
     const a = get().agents[id];
-    if (a) get().patch(id, { path: [], state: a.after?.state ?? 'idle', after: null });
+    if (!a) return;
+    const after = a.after || {};
+    get().patch(id, { path: [], state: after.state ?? 'idle', after: null, seated: !!after.sit });
+    // a walk with a next step (a handover in the conference room): it runs after a pause, unless they were sent elsewhere
+    if (after.next) {
+      setTimeout(() => {
+        const b = get().agents[id];
+        if (b && b.pathId === a.pathId && b.state !== 'walking' && !b.down && !get().isPanicking(id)) after.next();
+      }, after.hold ?? 2500);
+    }
   },
+
+  // Atlas hands a job over: both meet at the conference table, then the helper goes to its desk.
+  handover: (agent) => {
+    const L = get().layout;
+    const seats = L.meeting?.seats;
+    if (!seats?.length) { get().goToDesk(agent, { state: 'working' }); return; }
+    const half = seats.length / 2;
+    const i = (get().agents[agent]?.index ?? 0) % half;
+    const busyState = (who) => (get().agents[who]?.task ? (who === 'manager' ? 'thinking' : 'working') : 'idle');
+    if (get().agents.manager && !get().isPanicking('manager')) {
+      get().goTo('manager', seats[i], { state: 'talking', rot: 0, hold: 2600, next: () => get().goToDesk('manager', { state: busyState('manager') }) });
+    }
+    get().goTo(agent, seats[half + i], { state: 'talking', rot: Math.PI, hold: 2800, next: () => get().goToDesk(agent, { state: busyState(agent) }) });
+  },
+
+  // After an error: a spell on a bed in the medical wing (the trauma room for a critical one), then back to the desk.
+  sickBay: (id, severity = 'major') => {
+    const L = get().layout;
+    const a = get().agents[id];
+    const pos = positions[id];
+    if (!a || !pos || !L.clinic || a.down) return;
+    const beds = severity === 'critical' ? L.clinic.trauma : L.clinic.treatment;
+    const taken = new Set(Object.values(get().agents).filter((x) => x.id !== id && x.bed).map((x) => x.bed.join()));
+    const bed = beds.find((b) => !taken.has(b.cell.join())) ?? beds[0];
+    const path = [...findPath(L, [pos.x, pos.z], bed.cell), bed.lie];
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'resting', rot: bed.rot }, bed: bed.cell, seated: false, away: false });
+    get().say(id, severity === 'critical' ? tr('🚑 To the trauma room') : tr('🩹 Getting patched up'), 3500, `sev-${severity}`);
+    clearTimeout(sickTimers[id]);
+    sickTimers[id] = setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.state !== 'resting') return;
+      get().say(id, tr('✅ Feeling better'), 2500, 'ok');
+      get().goToDesk(id, { state: 'idle' });
+    }, severity === 'critical' ? 30_000 : 18_000);
+  },
+
+  // ---------- visitors ----------
+  visitorArrive: (key, source) => {
+    const L = get().layout;
+    const ch = CHANNELS[source];
+    if (!L.frontDesk || !ch || !key) return;
+    let vid = visitorIds.get(key);
+    const vs = get().visitors;
+    if (vid && vs[vid] && !vs[vid].leaving) { get().patchVisitor(vid, { bubble: tr('Another one…'), bubbleUntil: Date.now() + 2500 }); return; }
+    if (Object.keys(vs).length >= 7) return;
+    vid = `v${++visitorSeq}`;
+    visitorIds.set(key, vid);
+    const used = new Set(Object.values(vs).filter((v) => !v.leaving).map((v) => v.spot.join()));
+    const spot = L.frontDesk.spots.find((s) => !used.has(s.join())) ?? L.frontDesk.spots[0];
+    const dx = L.door.x, H = L.H;
+    positions[`v:${vid}`] = { x: dx + (visitorSeq % 2 ? -6 : 6), z: H + 2.6, rot: Math.PI };
+    const path = [[dx, H + 1.6], [dx, H - 1], ...findPath(L, L.outside.door, spot)];
+    set({ visitors: { ...vs, [vid]: { id: vid, key, source, ...ch, seed: visitorSeq, spot, path, pathId: 1, state: 'walking', leaving: false, bubble: '', bubbleUntil: 0 } } });
+    setTimeout(() => get().visitorLeave(key, null), 10 * 60_000); // never left waiting for good
+  },
+  visitorLeave: (key, ok) => {
+    const vid = visitorIds.get(key);
+    const v = vid && get().visitors[vid];
+    if (!v || v.leaving) return;
+    visitorIds.delete(key);
+    const L = get().layout;
+    const pos = positions[`v:${vid}`];
+    const dx = L.door.x, H = L.H;
+    const path = [...(pos ? findPath(L, [pos.x, pos.z], L.outside.door) : []), [dx, H - 1], [dx, H + 1.6], [dx + (v.seed % 2 ? 6 : -6), H + 2.6]];
+    get().patchVisitor(vid, {
+      path, pathId: v.pathId + 1, state: 'walking', leaving: true,
+      bubble: ok === false ? tr('😕 No answer') : ok ? tr('👍 Thanks!') : '', bubbleUntil: Date.now() + 3000,
+    });
+  },
+  visitorArrived: (vid) => {
+    const v = get().visitors[vid];
+    if (!v) return;
+    if (v.leaving) {
+      const { [vid]: _gone, ...rest } = get().visitors;
+      delete positions[`v:${vid}`];
+      set({ visitors: rest });
+    } else get().patchVisitor(vid, { state: 'waiting', bubble: tr('Waiting for Atlas…'), bubbleUntil: Date.now() + 3000 });
+  },
+  patchVisitor: (vid, p) => set((s) => (s.visitors[vid] ? { visitors: { ...s.visitors, [vid]: { ...s.visitors[vid], ...p } } } : s)),
   setState: (id, state) => {
     const a = get().agents[id];
     if (!a || a.down) return;
@@ -346,6 +457,8 @@ export const useOffice = create((set, get) => ({
     } else {
       get().patch(id, { state: a.calmState === 'panic' ? 'idle' : a.calmState });
     }
+    const calmState = a.calmState === 'panic' ? 'idle' : a.calmState;
+    if (!a.resume && calmState === 'idle') get().sickBay(id, a.alarm.severity);
   },
   clearErrors: (id) => get().clearIssues(id),
 

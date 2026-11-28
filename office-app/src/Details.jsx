@@ -1,5 +1,5 @@
 // Ofis jihozlari. Har biri rejadagi kataklardan joyini oladi: <Decor L={L} item={{ type, cells, ... }} />
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
@@ -728,6 +728,209 @@ function CafeTable() {
   );
 }
 
+// ---------- Live boards: what the operations center, the customer service office, storage and triage show ----------
+const ago = (ms) => {
+  if (!ms) return '—';
+  const t = typeof ms === 'string' ? Date.parse(ms) : ms;
+  if (!t) return '—';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return tr('now');
+  if (s < 3600) return `${Math.round(s / 60)}m`;
+  if (s < 86400) return `${Math.round(s / 3600)}h`;
+  return `${Math.round(s / 86400)}d`;
+};
+const fmtBytes = (n) => (n == null ? '—' : n >= 1e9 ? `${(n / 1e9).toFixed(1)} GB` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : n >= 1e3 ? `${Math.round(n / 1e3)} KB` : `${n} B`);
+const CH = {
+  web: ['Web', '#1f7ae0'], telegram: ['Telegram', '#2aabee'], whatsapp: ['WhatsApp', '#25d366'], discord: ['Discord', '#5865f2'],
+  slack: ['Slack', '#e01e5a'], email: ['Email', '#ea4335'], api: ['API', '#7c4dff'], acp: ['Editor', '#14b8a6'],
+};
+const GOOD = '#4ade80', WARN = '#fbbf24', BAD = '#f87171', DIM = '#8b98b0', INK = '#eef3fa';
+const F = (wgt, px) => `${wgt} ${px}px Inter, system-ui, sans-serif`;
+
+function fit(g, text, max) {
+  let s = String(text ?? '');
+  if (g.measureText(s).width <= max) return s;
+  while (s.length > 1 && g.measureText(`${s}…`).width > max) s = s.slice(0, -1);
+  return `${s}…`;
+}
+
+function useBoard(w, h, draw, deps) {
+  const canvas = useMemo(() => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }, [w, h]);
+  const tex = useMemo(() => { const t = new THREE.CanvasTexture(canvas); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; }, [canvas]);
+  const [tick, setTick] = useState(0);
+  // the "5m"s move on even when nothing new arrives
+  useEffect(() => { const i = setInterval(() => setTick((n) => n + 1), 30_000); return () => clearInterval(i); }, []);
+  useEffect(() => {
+    const g = canvas.getContext('2d');
+    g.textBaseline = 'middle';
+    g.textAlign = 'left';
+    draw(g);
+    tex.needsUpdate = true;
+  }, [...deps, tick]); // eslint-disable-line react-hooks/exhaustive-deps
+  return tex;
+}
+
+function header(g, w, h, title, color, right = '') {
+  g.fillStyle = '#0b1220'; g.fillRect(0, 0, w, h);
+  g.fillStyle = color; g.fillRect(0, 0, w, 96);
+  g.fillStyle = '#fff'; g.font = F(800, 56);
+  g.fillText(title, 32, 50);
+  if (right) { g.textAlign = 'right'; g.font = F(700, 44); g.fillText(right, w - 32, 50); g.textAlign = 'left'; }
+}
+const dot = (g, x, y, c, r = 13) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+function waiting(g, w, h) { g.fillStyle = DIM; g.font = F(600, 44); g.textAlign = 'center'; g.fillText(tr('Waiting for Atlas…'), w / 2, h / 2 + 40); g.textAlign = 'left'; }
+const right = (g, text, x, y) => { g.textAlign = 'right'; g.fillText(text, x, y); g.textAlign = 'left'; };
+
+// Leaned back a little, so the camera looking down from above reads it.
+function BoardPanel({ tex, w, h, y = 1.35, legs = false, tilt = -0.32 }) {
+  return (
+    <group position={[0, 0, legs ? 0 : 0.42]}>
+      {legs && [-(w / 2 - 0.15), w / 2 - 0.15].map((x) => <mesh key={x} position={[x, (y - h / 2) / 2, -0.04]} castShadow><boxGeometry args={[0.07, y - h / 2 + 0.1, 0.07]} /><meshStandardMaterial color={METAL} metalness={0.5} roughness={0.4} /></mesh>)}
+      <group position-y={y} rotation-x={tilt}>
+        <RoundedBox args={[w + 0.12, h + 0.1, 0.08]} radius={0.03} castShadow><meshStandardMaterial color={METAL} roughness={0.4} /></RoundedBox>
+        <mesh position-z={0.045}><planeGeometry args={[w, h]} /><meshBasicMaterial map={tex} toneMapped={false} /></mesh>
+      </group>
+    </group>
+  );
+}
+
+// The operations center's wall: channels, the heartbeat, and scheduled jobs.
+function OpsWall() {
+  const st = useOffice((s) => s.status);
+  const W = 1600, H = 720;
+  const tex = useBoard(W, H, (g) => {
+    header(g, W, H, tr('OPERATIONS'), '#0f766e', st ? `${tr('working now')}: ${st.working ?? 0}` : '');
+    if (!st) return waiting(g, W, H);
+    const title = (x, t) => { g.fillStyle = DIM; g.font = F(800, 36); g.fillText(t, x, 148); };
+    // channels
+    title(32, tr('CHANNELS'));
+    const chans = (st.channels || []).slice(0, 5);
+    if (!chans.length) { g.fillStyle = INK; g.font = F(600, 42); g.fillText(tr('Web chat only'), 32, 220); }
+    chans.forEach((c, i) => {
+      const y = 220 + i * 96;
+      const ok = c.status === 'running' && !c.warning;
+      const col = ok ? GOOD : c.status === 'error' ? BAD : WARN;
+      dot(g, 50, y, col);
+      g.fillStyle = INK; g.font = F(700, 44);
+      g.fillText(CH[c.id]?.[0] || c.id, 78, y - 4);
+      g.fillStyle = col; g.font = F(600, 30);
+      g.fillText(fit(g, c.error || c.warning || (ok ? tr('running') : c.status), 420), 78, y + 34);
+    });
+    // heartbeat
+    title(560, tr('HEARTBEAT'));
+    const hb = st.heartbeat;
+    if (hb) {
+      const [word, col] = !hb.running ? [tr('off'), DIM] : hb.ok === false ? [tr('failed'), BAD] : hb.waitingForOwner ? [tr('needs your OK'), WARN] : [tr('on'), GOOD];
+      dot(g, 578, 222, col);
+      g.fillStyle = INK; g.font = F(800, 52); g.fillText(word, 606, 222);
+      g.fillStyle = DIM; g.font = F(600, 36);
+      g.fillText(tr('last check'), 560, 310);
+      g.fillStyle = INK; g.font = F(800, 48); g.fillText(hb.lastRun ? `${ago(hb.lastRun)} ${tr('ago')}` : tr('not yet'), 560, 362);
+      g.fillStyle = DIM; g.font = F(600, 36); g.fillText(tr('checks so far'), 560, 450);
+      g.fillStyle = INK; g.font = F(800, 48); g.fillText(String(hb.runCount ?? 0), 560, 502);
+    }
+    // scheduled jobs
+    title(1010, tr('SCHEDULED JOBS'));
+    const cr = st.cron;
+    if (cr) {
+      g.fillStyle = INK; g.font = F(800, 44);
+      g.fillText(`${cr.on} ${tr('on')}${cr.running ? ` · ${cr.running} ${tr('running')}` : ''}`, 1010, 220);
+      if (cr.failing) { g.fillStyle = BAD; g.font = F(700, 34); g.fillText(`${cr.failing} ${tr('failing')}`, 1010, 266); }
+      if (!cr.jobs.length) { g.fillStyle = DIM; g.font = F(600, 38); g.fillText(tr('No jobs yet'), 1010, 320); }
+      cr.jobs.slice(0, 4).forEach((j, i) => {
+        const y = 330 + i * 92;
+        dot(g, 1024, y, j.failing ? BAD : j.state === 'running' ? '#60a5fa' : j.state === 'on' ? GOOD : DIM, 11);
+        g.fillStyle = INK; g.font = F(700, 38);
+        g.fillText(fit(g, j.name, 400), 1048, y - 4);
+        g.fillStyle = DIM; g.font = F(600, 28);
+        g.fillText(j.lastRun ? `${tr('ran')} ${ago(j.lastRun)} ${tr('ago')}` : tr('not run yet'), 1048, y + 32);
+      });
+    }
+    g.fillStyle = '#1c2840'; g.fillRect(528, 124, 4, H - 150); g.fillRect(978, 124, 4, H - 150);
+  }, [st]);
+  return <BoardPanel tex={tex} w={4.2} h={1.89} y={1.25} />;
+}
+
+// The customer service office: what came in from each channel, and whether Atlas has answered.
+function InboxBoard() {
+  const st = useOffice((s) => s.status);
+  const W = 1200, H = 680;
+  const tex = useBoard(W, H, (g) => {
+    const today = st?.inboxToday || {};
+    const total = Object.values(today).reduce((a, b) => a + b, 0);
+    header(g, W, H, tr('INBOX'), '#b45309', st ? `${tr('today')}: ${total}` : '');
+    if (!st) return waiting(g, W, H);
+    let x = 32;
+    g.font = F(800, 32);
+    for (const [src, n] of Object.entries(today)) {
+      const [name, color] = CH[src] || [src, DIM];
+      const label = `${name} ${n}`;
+      const wdt = g.measureText(label).width + 32;
+      if (x + wdt > W - 20) break;
+      g.fillStyle = color; g.fillRect(x, 118, wdt, 54);
+      g.fillStyle = '#fff'; g.fillText(label, x + 16, 146);
+      x += wdt + 14;
+    }
+    const list = (st.inbox || []).slice(0, 4);
+    if (!list.length) { g.fillStyle = DIM; g.font = F(600, 42); g.fillText(tr('No messages since Atlas started'), 32, 300); return; }
+    list.forEach((m, i) => {
+      const y = 240 + i * 112;
+      const [name, color] = CH[m.source] || [m.source, DIM];
+      dot(g, 46, y - 16, color);
+      g.fillStyle = INK; g.font = F(800, 38); g.fillText(name, 72, y - 16);
+      const [word, c] = m.state === 'answered' ? [`✓ ${tr('answered')}`, GOOD] : m.state === 'failed' ? [`✗ ${tr('failed')}`, BAD] : [tr('answering…'), WARN];
+      g.fillStyle = c; g.font = F(800, 34); right(g, word, W - 32, y - 16);
+      g.fillStyle = '#c9d4e5'; g.font = F(500, 34);
+      g.fillText(fit(g, m.text || '…', W - 104), 72, y + 28);
+    });
+  }, [st]);
+  return <BoardPanel tex={tex} w={3.5} h={1.98} y={1.22} />;
+}
+
+// Storage: Atlas's memory on disk.
+function MemoryBoard() {
+  const m = useOffice((s) => s.status?.memory);
+  const W = 1000, H = 680;
+  const tex = useBoard(W, H, (g) => {
+    header(g, W, H, tr('MEMORY'), '#6d28d9');
+    if (!m) return waiting(g, W, H);
+    const row = (i, k, v, c = INK) => {
+      const y = 170 + i * 118;
+      g.fillStyle = DIM; g.font = F(600, 40); g.fillText(k, 36, y);
+      g.fillStyle = c; g.font = F(800, 52); right(g, v, W - 36, y);
+    };
+    row(0, tr('Files'), `${m.files}${m.capped ? '+' : ''} · ${fmtBytes(m.bytes)}`);
+    row(1, tr('Last written'), m.lastWrite ? `${ago(m.lastWrite)} ${tr('ago')}` : '—');
+    row(2, tr('Last checkpoint'), m.lastCheckpoint ? `${ago(m.lastCheckpoint)} ${tr('ago')}` : tr('none yet'), m.lastCheckpoint ? INK : WARN);
+    row(3, tr('Database'), fmtBytes(m.dbBytes));
+  }, [m]);
+  return <BoardPanel tex={tex} w={2.9} h={1.97} y={1.25} legs />;
+}
+
+// Triage: the errors Atlas and the helpers ran into, and who is in the sick bay now.
+function TriageBoard() {
+  const errors = useOffice((s) => s.status?.errors);
+  const resting = useOffice((s) => Object.values(s.agents).filter((a) => a.state === 'resting' || a.bed).map((a) => a.name).join(', '));
+  const nameList = useOffice((s) => Object.values(s.agents).map((a) => `${a.id}=${a.name}`).join('|'));
+  const names = useMemo(() => Object.fromEntries(nameList.split('|').map((p) => p.split('='))), [nameList]);
+  const W = 1000, H = 680;
+  const tex = useBoard(W, H, (g) => {
+    header(g, W, H, tr('TRIAGE'), '#b91c1c', resting ? `${tr('in bed')}: ${resting}` : '');
+    if (!errors) return waiting(g, W, H);
+    if (!errors.length) { g.fillStyle = GOOD; g.font = F(800, 46); g.fillText(tr('No errors ✓'), 36, 200); g.fillStyle = DIM; g.font = F(600, 34); g.fillText(tr('since Atlas last started'), 36, 254); return; }
+    errors.slice(0, 4).forEach((e, i) => {
+      const y = 170 + i * 124;
+      dot(g, 48, y - 18, BAD, 11);
+      g.fillStyle = INK; g.font = F(800, 40);
+      g.fillText(fit(g, names[e.who] || (e.who === 'manager' ? 'Atlas' : e.who), 560), 74, y - 18);
+      g.fillStyle = DIM; g.font = F(700, 34); right(g, `${ago(e.at)} ${tr('ago')}`, W - 32, y - 18);
+      g.fillStyle = '#f1c4c4'; g.font = F(500, 34);
+      g.fillText(fit(g, e.text, W - 110), 74, y + 28);
+    });
+  }, [errors, resting, names]);
+  return <BoardPanel tex={tex} w={2.9} h={1.97} y={1.22} />;
+}
+
 const COMPONENTS = {
   bookshelf: Bookshelf, serverRack: ServerRack, monitorWall: MonitorWall, ups: Ups, stickyBoard: StickyBoard,
   standBoard: StandBoard, armchairs: Armchair, globe: Globe, floorLamp: FloorLamp, printer: Printer, coatRack: CoatRack,
@@ -735,6 +938,7 @@ const COMPONENTS = {
   arcade: Arcade, waterCooler: WaterCooler, vending: Vending, bench: Bench, clock: Clock, sign: Sign,
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
+  opsWall: OpsWall, inboxBoard: InboxBoard, memoryBoard: MemoryBoard, triageBoard: TriageBoard,
   frontDesk: FrontDesk, floorLogo: FloorLogo, bed: Bed, medCross: MedCross,
   toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };

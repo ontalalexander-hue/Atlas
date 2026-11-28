@@ -13,6 +13,7 @@ import { BossController, BossHud } from './Boss.jsx';
 import { replayUrl, startReplay, stopReplay } from './replay.js';
 import { SkyBackdrop, StudioLight, Effects, CinemaCamera } from './Look.jsx';
 import Sky from './Sky.jsx';
+import { FollowCamera, Visitors } from './Director.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
 function useSmall() {
@@ -131,16 +132,16 @@ const hm = (d) => (d ? new Date(d).toLocaleTimeString(LOCALE, { hour: '2-digit',
 // Live rejimni Claude'siz sinash uchun namunaviy hodisalar
 const DEMO = [
   { hook: 'SessionStart' },
-  { hook: 'UserPromptSubmit', prompt: tr('Add a login page and an API') },
+  { hook: 'UserPromptSubmit', prompt: tr('Add a login page and an API'), source: 'telegram', session_id: 'demo' },
   { hook: 'PreToolUse', tool: 'Agent', tool_use_id: 'demo1', input: { subagent_type: 'coder', description: tr('Write the login API') } },
   { hook: 'PreToolUse', tool: 'Read', agent_type: 'coder', input: { file_path: 'src/server/routes.ts' } },
   { hook: 'PreToolUse', tool: 'Agent', tool_use_id: 'demo2', input: { subagent_type: 'writer', description: tr('Login form') } },
   { hook: 'PreToolUse', tool: 'Edit', agent_type: 'coder', input: { file_path: 'src/server/auth.ts' } },
   { hook: 'PreToolUse', tool: 'Write', agent_type: 'writer', input: { file_path: 'src/pages/Login.tsx' } },
   { hook: 'PostToolUseFailure', tool: 'Bash', agent_type: 'coder', input: { command: 'npm test' }, error: 'Exit code 1\nError: Cannot find module \'express\'' },
-  { hook: 'PostToolUse', tool: 'Agent', tool_use_id: 'demo2' },
+  { hook: 'PostToolUseFailure', tool: 'Agent', tool_use_id: 'demo2', agent_type: 'manager', severity: 'moderate', error: tr('The writer ran into an error') },
   { hook: 'PostToolUse', tool: 'Agent', tool_use_id: 'demo1' },
-  { hook: 'Stop' },
+  { hook: 'Stop', session_id: 'demo' },
 ];
 
 async function runDemo() {
@@ -214,8 +215,8 @@ function Views({ small }) {
   const camera = useThree((s) => s.camera);
   const controls = useThree((s) => s.controls);
   useEffect(() => {
-    if (!controls) return;
-    const p = poseFor(view?.name || 'overview', W, H, small);
+    if (!controls || !view || view.name === 'auto') return;
+    const p = poseFor(view.name, W, H, small);
     camera.position.set(...p.pos);
     controls.target.set(...p.target);
     controls.update();
@@ -225,13 +226,14 @@ function Views({ small }) {
 
 function ViewRow() {
   const setView = useOffice((s) => s.setView);
-  const name = useOffice((s) => s.view?.name || 'overview');
+  const name = useOffice((s) => s.view?.name || 'auto');
+  const TIP = { auto: tr('Follows whoever is working') };
   return (
     <div className="roof-row">
       <span>{tr('View')}</span>
-      <div className="seg seg3">
-        {[['overview', tr('Floor')], ['street', tr('Street')], ['deck', tr('Deck')]].map(([k, l]) => (
-          <button key={k} className={name === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>
+      <div className="seg seg4">
+        {[['auto', tr('Auto')], ['overview', tr('Floor')], ['street', tr('Street')], ['deck', tr('Deck')]].map(([k, l]) => (
+          <button key={k} className={name === k ? 'on' : ''} onClick={() => setView(k)} title={TIP[k] || ''}>{l}</button>
         ))}
       </div>
     </div>
@@ -579,8 +581,10 @@ export default function App() {
           <Lights small={small} />
           <Office />
           {ids.split(',').map((id) => <Agent key={id} id={id} />)}
+          <Visitors />
           <OrbitControls makeDefault target={[1, 0, 1.5]} maxPolarAngle={1.5} minDistance={8} maxDistance={190} enableDamping dampingFactor={0.08} />
           <Views small={small} />
+          <FollowCamera small={small} />
           <BossController />
           <CinemaCamera />
           {!small && <Effects />}
