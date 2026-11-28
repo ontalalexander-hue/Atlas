@@ -130,14 +130,16 @@ export default function Outside({ L }) {
   const lawnW = L.W + 30, lawnD = L.H + 16;
   const lawnX = -9; // the lawn reaches further left, where the store is
   const [sx, sz] = L.toWorld(o.store);
-  const [ex, ez] = L.toWorld([0, 10.5]);
+  const pts = [...o.walk, o.storeSpot].map((c) => L.toWorld(c));
+  const [dx0, dz0] = L.toWorld([L.door.x, L.H]);
   const [spx, spz] = L.toWorld(o.storeSpot);
   const roadX = left - 15.5;
 
   const trees = [
-    [left - 3.2, -6.5, 1.1, 0], [left - 6.5, -8.2, 0.9, 1], [left - 10.5, -6.8, 1.2, 2], [left - 2.6, 9.6, 1, 1],
-    [left - 6.2, 10.6, 1.15, 0], [left - 11.5, 10.2, 0.95, 2], [left + 6, L.H / 2 + 4.2, 1, 2], [left + 19, L.H / 2 + 4.6, 1.15, 0],
-    [left + 33, L.H / 2 + 4.2, 0.95, 1], [left + 47, L.H / 2 + 4.6, 1.1, 2], [left + 12, -L.H / 2 - 4.2, 1.1, 1], [left + 30, -L.H / 2 - 4.4, 1, 0],
+    [left - 3, -10, 1.1, 0], [left - 7, -11.5, 0.9, 1], [left - 11.5, -9.5, 1.2, 2], [left - 2.6, 9, 1, 1],
+    [left - 9.5, 10.5, 1.15, 0], [left - 11.5, 15, 0.95, 2], [left + 6, L.H / 2 + 4.8, 1, 2], [left + 15, L.H / 2 + 5, 1.15, 0],
+    [left + 27, L.H / 2 + 4.8, 0.95, 1], [left + L.W - 5, L.H / 2 + 5, 1.1, 2], [left + 12, -L.H / 2 - 4.2, 1.1, 1], [left + 30, -L.H / 2 - 4.4, 1, 0],
+    [left + L.W + 3.5, -6, 1.1, 0], [left + L.W + 3.8, 7, 0.95, 2],
   ];
 
   return (
@@ -150,12 +152,18 @@ export default function Outside({ L }) {
         <meshStandardMaterial color={ground} roughness={1} />
       </RoundedBox>
 
-      {/* the walk: out of the front door, then down to the store */}
-      <mesh rotation-x={-Math.PI / 2} position={[(ex - 1.5 + spx) / 2 - 0.2, -0.022, ez]} receiveShadow>
-        <planeGeometry args={[Math.abs(ex - spx) + 1.4, 2.2]} /><meshStandardMaterial color={paving} roughness={0.95} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[spx, -0.021, (ez + spz) / 2 + 1.2]} receiveShadow>
-        <planeGeometry args={[2.6, Math.abs(spz - ez) + 6]} /><meshStandardMaterial color={paving} roughness={0.95} />
+      {/* the walk: out of the front door, along the front of the building, then up to the store */}
+      {pts.slice(1).map(([bx, bz], i) => {
+        const [ax, az] = pts[i];
+        return (
+          <mesh key={i} rotation-x={-Math.PI / 2} position={[(ax + bx) / 2, -0.006, (az + bz) / 2]} receiveShadow>
+            <planeGeometry args={[Math.abs(ax - bx) + 2.2, Math.abs(az - bz) + 2.2]} />
+            <meshStandardMaterial color={paving} roughness={0.95} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+        );
+      })}
+      <mesh rotation-x={-Math.PI / 2} position={[spx, -0.008, spz]} receiveShadow>
+        <planeGeometry args={[2.6, 7]} /><meshStandardMaterial color={paving} roughness={0.95} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
       </mesh>
 
       <group position={[sx, 0, sz]}><Store lamps={lamps} /></group>
@@ -171,7 +179,7 @@ export default function Outside({ L }) {
       <group position={[roadX + 1.2, -0.03, 12.5]} rotation-y={Math.PI}><Car color="#2f6fb5" /></group>
 
       {trees.map(([x, z, s, tone], i) => <group key={i} position={[x, -0.03, z]}><Tree s={s} tone={tone} /></group>)}
-      <group position={[left - 1.6, -0.03, ez - 2.4]}><StreetLamp lamps={lamps} /></group>
+      <group position={[dx0 + 2.8, -0.03, dz0 + 0.6]} rotation-y={Math.PI}><StreetLamp lamps={lamps} /></group>
       <group position={[spx + 1.9, -0.03, spz + 3.2]} rotation-y={Math.PI}><StreetLamp lamps={lamps} /></group>
       <group position={[roadX + 2.6, -0.03, -1]}><StreetLamp lamps={lamps} /></group>
     </group>

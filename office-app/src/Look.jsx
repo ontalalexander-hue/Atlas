@@ -12,8 +12,8 @@ export function overviewPose(L) {
   // far enough back to take in the whole floor and the store beside it; closer in on an upright phone
   let small = false;
   try { small = matchMedia('(max-width: 760px)').matches; } catch { /* not a browser */ }
-  const f = (L.W + 14) / (small ? 20 : 23);
-  return { pos: small ? new THREE.Vector3(5 * f, 26 * f, 26 * f) : new THREE.Vector3(9 * f, 23 * f, 29 * f), target: new THREE.Vector3(-5, 0, 0.5) };
+  const f = (L.W + 14) / (small ? 21 : 30);
+  return { pos: small ? new THREE.Vector3(5 * f, 26 * f, 26 * f) : new THREE.Vector3(9 * f, 23 * f, 29 * f), target: new THREE.Vector3(small ? -2 : 1, 0, 1.5) };
 }
 
 // Sky gradient drawn inside the scene, so post-processing sees it too.

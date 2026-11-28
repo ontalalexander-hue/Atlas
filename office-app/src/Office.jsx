@@ -83,10 +83,11 @@ function Walls({ L }) {
   return L.wallSegments.map((s, i) => {
     const len = s.b - s.a + 1;
     const [x, z] = s.dir === 'h' ? L.toWorld([center(s.a, s.b), s.at]) : L.toWorld([s.at, center(s.a, s.b)]);
-    const h = s.outer ? 1.3 : 1.5;
-    const t = s.outer ? 0.28 : 0.08;
+    const solid = s.type === 'solid';
+    const h = s.outer || solid ? 1.3 : 1.5;
+    const t = s.outer ? 0.28 : solid ? 0.14 : 0.08;
     const size = s.dir === 'h' ? [len, t] : [t, len];
-    if (s.outer) {
+    if (s.outer || solid) {
       return (
         <group key={i} position={[x, 0, z]}>
           <mesh position-y={h / 2} castShadow receiveShadow><boxGeometry args={[size[0], h, size[1]]} /><meshStandardMaterial color={C.wall} roughness={0.92} /></mesh>
@@ -125,23 +126,29 @@ function Floors({ L }) {
         <planeGeometry args={[L.W, L.H]} />
         <meshStandardMaterial map={wood} roughness={0.55} />
       </mesh>
+      {L.floors.map((f, i) => {
+        const w = f.x[1] - f.x[0] + 1, d = f.z[1] - f.z[0] + 1;
+        const [cx, cz] = L.toWorld([center(f.x[0], f.x[1]), center(f.z[0], f.z[1])]);
+        return (
+          <mesh key={`f${i}`} rotation-x={-Math.PI / 2} position={[cx, 0.004, cz]} receiveShadow>
+            <planeGeometry args={[w, d]} /><meshStandardMaterial color={f.color} roughness={0.92} />
+          </mesh>
+        );
+      })}
       {L.rooms.map((r) => {
+        if (r.kind === 'corridor') return null;
         const w = r.x[1] - r.x[0] + 1, d = r.z[1] - r.z[0] + 1;
         const [cx, cz] = L.toWorld([center(r.x[0], r.x[1]), center(r.z[0], r.z[1])]);
-        if (r.kind === 'corridor') {
-          return (
-            <mesh key={r.id} rotation-x={-Math.PI / 2} position={[cx, 0.003, cz]} receiveShadow>
-              <planeGeometry args={[w, d - 2]} /><meshStandardMaterial color="#c8ccd1" roughness={0.35} metalness={0.05} />
-            </mesh>
-          );
-        }
+        const inset = (r.inset ?? 1.2) * 2;
         return (
           <group key={r.id}>
-            <RoundedBox args={[w - 2.4, 0.02, d - 2.4]} radius={0.01} position={[cx, 0.012, cz]} receiveShadow>
-              <meshStandardMaterial color={r.rug} roughness={1} />
-            </RoundedBox>
+            {r.rug && (
+              <RoundedBox args={[w - inset, 0.02, d - inset]} radius={0.01} position={[cx, 0.012, cz]} receiveShadow>
+                <meshStandardMaterial color={r.rug} roughness={1} />
+              </RoundedBox>
+            )}
             {r.name && !roofClosed && (
-              <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + 0.25]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
+              <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25)]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
                 <div className={`room-label ${theme}`}>{r.name}</div>
               </Html>
             )}
@@ -191,7 +198,7 @@ export function OfficeChair({ color = C.chair }) {
   );
 }
 
-function Desk({ L, id, desk, seat }) {
+function Desk({ L, id, desk, seat, rot = 0 }) {
   const owner = useOffice((s) => Object.values(s.agents).find((a) => a.deskId === id));
   const night = useOffice((s) => s.sky.lamps > 0.5);
   const settings = useOffice((s) => s.settings);
@@ -206,7 +213,7 @@ function Desk({ L, id, desk, seat }) {
   const lampOn = night || !!sevFill;
   return (
     <group>
-      <group position={[x, 0, z]}>
+      <group position={[x, 0, z]} rotation-y={rot}>
         <RoundedBox args={[1.7, 0.05, 0.85]} radius={0.02} position-y={0.75} castShadow receiveShadow><meshStandardMaterial color={C.deskTop} roughness={0.35} /></RoundedBox>
         {[-0.78, 0.78].map((lx) => (
           <mesh key={lx} position={[lx, 0.37, 0]} castShadow><boxGeometry args={[0.05, 0.74, 0.72]} /><meshStandardMaterial color={C.metal} roughness={0.5} /></mesh>
@@ -225,7 +232,30 @@ function Desk({ L, id, desk, seat }) {
         <mesh position={[0.68, 0.82, 0.05]}><cylinderGeometry args={[0.04, 0.035, 0.09, 12]} /><meshStandardMaterial color={accent} /></mesh>
         <mesh position={[0.95, 0.17, 0.25]} castShadow><cylinderGeometry args={[0.13, 0.11, 0.34, 16, 1, true]} /><meshStandardMaterial color="#9aa0a8" side={THREE.DoubleSide} /></mesh>
       </group>
-      <group position={[sx, 0, sz]}><OfficeChair /></group>
+      <group position={[sx, 0, sz]} rotation-y={rot}><OfficeChair /></group>
+    </group>
+  );
+}
+
+// ---------- Meeting tables ----------
+function TableSet({ L, set, color = '#d97a4a' }) {
+  const [x, z] = L.toWorld([center(...set.table.x), center(...set.table.z)]);
+  const len = set.table.x[1] - set.table.x[0] + 1.4;
+  return (
+    <group>
+      <RoundedBox args={[len, 0.07, 2.1]} radius={0.03} position={[x, 0.75, z]} castShadow receiveShadow><meshStandardMaterial color={C.oak} roughness={0.45} /></RoundedBox>
+      {[-(len / 2 - 0.7), len / 2 - 0.7].map((lx) => <mesh key={lx} position={[x + lx, 0.37, z]} castShadow><boxGeometry args={[0.08, 0.74, 1.6]} /><meshStandardMaterial color={C.metal} /></mesh>)}
+      {set.seats.map((s, i) => {
+        const [sx, sz] = L.toWorld(s);
+        const back = s[1] < set.table.z[0] ? -1 : 1;
+        return (
+          <group key={i} position={[sx, 0, sz]}>
+            <RoundedBox args={[0.5, 0.1, 0.48]} radius={0.05} position-y={0.47} castShadow><meshStandardMaterial color={color} roughness={0.85} /></RoundedBox>
+            <RoundedBox args={[0.48, 0.42, 0.07]} radius={0.04} position={[0, 0.74, back * 0.24]} castShadow><meshStandardMaterial color={color} roughness={0.85} /></RoundedBox>
+            <mesh position-y={0.22}><cylinderGeometry args={[0.03, 0.12, 0.44, 10]} /><meshStandardMaterial color={C.metal} /></mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -255,24 +285,11 @@ function Meeting({ L }) {
   }, [task, busy, slide]);
   const m = L.meeting;
   if (!m.table) return null;
-  const [x, z] = L.toWorld([center(...m.table.x), center(...m.table.z)]);
   const [scx, scz] = L.toWorld([m.screen.x, m.screen.z]);
   return (
     <group>
-      <RoundedBox args={[5.4, 0.07, 2.1]} radius={0.03} position={[x, 0.75, z]} castShadow receiveShadow><meshStandardMaterial color={C.oak} roughness={0.45} /></RoundedBox>
-      {[-2, 2].map((lx) => <mesh key={lx} position={[x + lx, 0.37, z]} castShadow><boxGeometry args={[0.08, 0.74, 1.6]} /><meshStandardMaterial color={C.metal} /></mesh>)}
-      {m.seats.map((s, i) => {
-        const [sx, sz] = L.toWorld(s);
-        const back = s[1] < m.table.z[0] ? -1 : 1;
-        return (
-          <group key={i} position={[sx, 0, sz]}>
-            <RoundedBox args={[0.5, 0.1, 0.48]} radius={0.05} position-y={0.47} castShadow><meshStandardMaterial color="#d97a4a" roughness={0.85} /></RoundedBox>
-            <RoundedBox args={[0.48, 0.42, 0.07]} radius={0.04} position={[0, 0.74, back * 0.24]} castShadow><meshStandardMaterial color="#d97a4a" roughness={0.85} /></RoundedBox>
-            <mesh position-y={0.22}><cylinderGeometry args={[0.03, 0.12, 0.44, 10]} /><meshStandardMaterial color={C.metal} /></mesh>
-          </group>
-        );
-      })}
-      <group position={[scx, 0, scz + 0.12]}>
+      <TableSet L={L} set={m} />
+      <group position={[scx, 0, scz + (m.screen.off ?? 0.12)]}>
         <RoundedBox args={[2.6, 1.0, 0.06]} radius={0.02} position-y={0.95} castShadow><meshStandardMaterial color={C.metal} /></RoundedBox>
         <mesh position={[0, 0.95, 0.032]}><planeGeometry args={[2.48, 0.88]} /><meshBasicMaterial map={slide} toneMapped={false} color={night ? '#ffffff' : '#e6e6e6'} /></mesh>
       </group>
@@ -359,9 +376,9 @@ function RoomLights({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 20) / 20);
   const roofClosed = useOffice((s) => s.roofClosed);
   if (lamps < 0.05 || roofClosed) return null;
-  return L.rooms.map((r) => {
-    const [cx, cz] = L.toWorld([center(r.x[0], r.x[1]), center(r.z[0], r.z[1])]);
-    return <pointLight key={r.id} position={[cx, 3.4, cz]} intensity={(r.kind === 'corridor' ? 5 : 9) * lamps} distance={10} decay={1.6} color="#ffd9a8" />;
+  return L.lights.map((l, i) => {
+    const [cx, cz] = L.toWorld(l.at);
+    return <pointLight key={i} position={[cx, 3.4, cz]} intensity={l.k * lamps} distance={10} decay={1.6} color="#ffd9a8" />;
   });
 }
 
@@ -376,6 +393,7 @@ export default function Office() {
       <Walls L={L} />
       {Object.entries(L.desks).map(([id, d]) => <Desk key={`${id}`} L={L} id={id} {...d} />)}
       <Meeting L={L} />
+      {L.tables.map((t, i) => <TableSet key={i} L={L} set={t} color={i % 2 ? '#3f8f7a' : '#3b6fb5'} />)}
       <Lounge L={L} />
       {L.decor.map((d, i) => <Decor key={`${L.key}-${i}`} L={L} item={d} />)}
       <Plants L={L} />

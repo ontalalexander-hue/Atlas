@@ -32,6 +32,7 @@ export default function Windows({ L }) {
     let pos, rotY;
     if (side === 'top') { const [x, z] = L.toWorld([at, 0]); pos = [x, Y, z + INSET]; rotY = 0; }
     else if (side === 'left') { const [x, z] = L.toWorld([0, at]); pos = [x + INSET, Y, z]; rotY = Math.PI / 2; }
+    else if (side === 'bottom') { const [x, z] = L.toWorld([at, L.H - 1]); pos = [x, Y, z - INSET]; rotY = Math.PI; }
     else { const [x, z] = L.toWorld([L.W - 1, at]); pos = [x - INSET, Y, z]; rotY = -Math.PI / 2; }
     return (
       <group key={`${L.key}-${i}`} position={pos} rotation-y={rotY}>

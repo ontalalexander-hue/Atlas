@@ -38,7 +38,7 @@ function screensOf(L, agents) {
       list.push({ kind: 'services', id: 'services', label: 'Monitoring', at: [cx, it.cells[0][1] + 1] });
     }
   }
-  if (L.meeting.screen) list.push({ kind: 'feed', id: 'feed', label: tr('Meeting screen'), at: [L.meeting.screen.x, 14.6] });
+  if (L.meeting.screen) list.push({ kind: 'feed', id: 'feed', label: tr('Meeting screen'), at: L.meeting.view ?? [L.meeting.screen.x, 14.6] });
   return list;
 }
 
@@ -79,7 +79,7 @@ export function BossController() {
   useEffect(() => {
     if (!controls) return;
     if (boss) {
-      if (!positions.boss) positions.boss = { x: L.bossStart[0], z: L.bossStart[1], rot: Math.PI / 2 };
+      if (!positions.boss) positions.boss = { x: L.bossStart[0], z: L.bossStart[1], rot: L.bossRot ?? Math.PI / 2 };
       const p = positions.boss;
       const [wx, wz] = L.toWorld([p.x, p.z]);
       controls.target.set(wx, 1.2, wz);

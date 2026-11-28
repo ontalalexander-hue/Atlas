@@ -1,17 +1,8 @@
-// Ofis rejasi generatori. Jamoa (rollar ro'yxati) berilsa, har bir rol uchun alohida xona yasaydi.
+// The floor plan. One fixed plan, drawn like a commercial office: meeting rooms across the back, private offices down
+// the left, an open floor of desk pods in the middle, reception at the front door, and on the right the restrooms,
+// phone booths, equipment room and the breakout kitchen. Each helper gets a pod; a finance helper gets the accounting
+// office. A bigger team adds pod columns, and the building grows to the right.
 import { tr } from './i18n.js';
-// Xonalar "slot"larga joylashadi va faqat oxiriga qo'shiladi, shuning uchun yangi agent kelganda
-// bino o'ngga kengayadi, mavjud xonalar esa joyidan siljimaydi.
-//
-//   ustki qator:  [Manager] [rol1] [rol2] [rol4] ...
-//   koridor       ======== kirish eshigi chapda ========
-//   pastki qator: [Dam olish] [Majlis] [rol3] [rol5] ...
-
-export const COL = 11; // bitta xona eni (10 katak ichki + 1 devor)
-export const H = 22;
-const TOP = { z0: 1, z1: 7, deskZ: 3 };
-const BOTTOM = { z0: 14, z1: 20, deskZ: 17 };
-export const ENTRANCE = [[0, 10], [0, 11]];
 
 // Rol nomidan xona turi
 export function kindOf(id = '') {
@@ -34,6 +25,7 @@ export const KIND_COLOR = {
 };
 const RUG = {
   manager: '#b9a48a', lounge: '#c99a86', meeting: '#c4b394', garden: '#a9b98f', equipment: '#9aa3ad', training: '#b7c2a0',
+  server: '#8f9bb0', accounting: '#b9b08f', lobby: '#8a7f73',
   backend: '#8fa4b8', frontend: '#b29bbd', devops: '#8fae99', mobile: '#8fb7c9', qa: '#c9a08f',
   data: '#a39bc4', design: '#c99bb2', docs: '#b9a68a', security: '#b99393', generic: '#93b8b0',
 };
@@ -46,244 +38,240 @@ const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const SPECIAL = { devops: 'DevOps', ios: 'iOS', ml: 'ML', ai: 'AI', qa: 'QA', ui: 'UI', ux: 'UX', sre: 'SRE', api: 'API', dba: 'DBA' };
 export const prettyName = (id) => id.split(/[-_ ]/).map((w) => SPECIAL[w.toLowerCase()] ?? cap(w)).join(' ');
 
-// slot raqami -> [ustun, qator]
-function slotPos(i) {
-  if (i === 0) return [0, 'top'];
-  if (i === 1) return [0, 'bottom'];
-  if (i === 2) return [1, 'bottom'];
-  const k = i - 3; // 0,1,2,3...
-  // rol1: ustun1 ust, rol2: ustun2 ust, rol3: ustun2 past, rol4: ustun3 ust, rol5: ustun3 past...
-  if (k === 0) return [1, 'top'];
-  const col = 2 + Math.floor((k - 1) / 2);
-  return [col, (k - 1) % 2 === 0 ? 'top' : 'bottom'];
-}
+const H = 32;
+const POD_PITCH = 8;
 
 export function buildLayout(team) {
-  const roles = team.filter((r) => r.id !== 'manager');
-  const slots = [{ kind: 'manager', id: 'manager', name: tr('Atlas') }, { kind: 'lounge', id: 'lounge', name: tr('Pantry & lounge') },
-    { kind: 'meeting', id: 'meeting', name: tr('Conference room') },
-    ...roles.map((r) => ({ kind: r.kind || kindOf(r.id), id: r.id, name: r.name || prettyName(r.id), role: true })),
-    { kind: 'equipment', id: 'equipment', name: tr('Equipment room') }, { kind: 'training', id: 'training', name: tr('Training room') }];
-  const placed = slots.map((s, i) => ({ ...s, pos: slotPos(i) }));
-  const cols = Math.max(2, ...placed.map((s) => s.pos[0] + 1));
-  // bo'sh qolgan slotlar — yashil zona
-  for (let c = 0; c < cols; c++) for (const row of ['top', 'bottom']) {
-    if (!placed.some((s) => s.pos[0] === c && s.pos[1] === row)) placed.push({ kind: 'garden', id: `garden-${c}`, name: tr('Green zone'), pos: [c, row] });
-  }
+  const roles = team.filter((r) => r.id !== 'manager').map((r) => ({ ...r, kind: r.kind || kindOf(r.id), name: r.name || prettyName(r.id) }));
+  const fin = roles.find((r) => /financ|account|bookkeep|payroll/i.test(r.id));
+  const podRoles = roles.filter((r) => r !== fin);
+  const cols = Math.max(4, Math.ceil(podRoles.length / 2));
+  const S = (cols - 4) * POD_PITCH; // how far the right-hand block moves when the floor grows
+  const R = (x) => x + S;
+  const W = 44 + S;
+  const DOOR = [19, 20]; // the front door, in the front wall
 
-  const W = cols * COL + 1;
   const blocked = Array.from({ length: H }, () => new Array(W).fill(false));
-  const wallSet = new Set();
+  const wallType = new Map();
   const walls = [];
   const inB = (x, z) => x >= 0 && z >= 0 && x < W && z < H;
   const block = (x, z) => { if (inB(x, z)) blocked[z][x] = true; };
-  const wall = (x, z) => { block(x, z); const k = z * W + x; if (!wallSet.has(k)) { wallSet.add(k); walls.push([x, z]); } };
+  const wall = (x, z, type) => {
+    if (!inB(x, z)) return;
+    const k = z * W + x;
+    if (!wallType.has(k)) { walls.push([x, z]); block(x, z); }
+    if (wallType.get(k) !== 'outer') wallType.set(k, type);
+  };
+  const hwall = (z, x0, x1, type, gaps = []) => { for (let x = x0; x <= x1; x++) if (!gaps.includes(x)) wall(x, z, type); };
+  const vwall = (x, z0, z1, type, gaps = []) => { for (let z = z0; z <= z1; z++) if (!gaps.includes(z)) wall(x, z, type); };
   const toWorld = ([x, z]) => [x - W / 2 + 0.5, z - H / 2 + 0.5];
 
-  // tashqi devorlar (chapda kirish eshigi)
-  for (let x = 0; x < W; x++) { wall(x, 0); wall(x, H - 1); }
-  for (let z = 1; z < H - 1; z++) { if (!ENTRANCE.some(([, ez]) => ez === z)) wall(0, z); wall(W - 1, z); }
-  // xonalar orasidagi devorlar
-  for (let c = 1; c < cols; c++) {
-    const x = c * COL;
-    for (let z = 1; z < 8; z++) wall(x, z);
-    for (let z = 14; z < H - 1; z++) wall(x, z);
-  }
+  // outer walls, with the front door left open
+  hwall(0, 0, W - 1, 'outer'); hwall(H - 1, 0, W - 1, 'outer', DOOR);
+  vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer');
+  // back band: three meeting rooms behind a glass front
+  hwall(7, 1, W - 2, 'glass', [14, 15, 24, 25, 36, 37]);
+  vwall(19, 1, 6, 'solid'); vwall(31, 1, 6, 'solid');
+  // left column: private offices behind a glass front, and the training room at the front corner
+  vwall(10, 8, 25, 'glass', [10, 11, 16, 17, 23, 24]);
+  hwall(13, 1, 9, 'solid'); hwall(20, 1, 9, 'solid'); hwall(26, 1, 14, 'solid');
+  vwall(14, 27, 30, 'glass', [28, 29]);
+  // the wall behind the reception desk
+  hwall(22, 16, 23, 'solid');
+  // right block: restrooms, equipment room, phone booths
+  vwall(R(25), 19, 27, 'solid');
+  hwall(19, R(25), R(32), 'solid', [R(30)]);
+  hwall(19, R(33), W - 2, 'glass', [R(36), R(37)]);
+  vwall(R(32), 19, 25, 'solid');
+  hwall(25, R(25), W - 2, 'solid');
+  vwall(R(28), 26, 27, 'solid'); vwall(R(31), 26, 27, 'solid');
 
   const rooms = [];
   const desks = {};
   const decor = [];
   const plants = [];
   const windows = [];
-  const lounge = {};
-  const meeting = {};
-  const doorsTop = new Set();
-  const doorsBottom = new Set();
+  const floors = [];
+  const lights = [];
+  const tables = [];
   const add = (type, cells, extra = {}) => { decor.push({ type, cells, ...extra }); for (const c of cells) block(...c); };
   const plant = (x, z) => { plants.push([x, z]); block(x, z); };
+  const room = (id, kind, name, x, z, extra = {}) => {
+    const r = { id, kind, name, x, z, rug: RUG[kind] ?? RUG.generic, ...extra };
+    rooms.push(r);
+    if (extra.light !== false) lights.push({ at: [(x[0] + x[1]) / 2, (z[0] + z[1]) / 2], k: 9 });
+    return r;
+  };
+  const tableSet = (x0, x1, seatXs) => {
+    for (let x = x0; x <= x1; x++) for (const z of [3, 4]) block(x, z);
+    return { table: { x: [x0, x1], z: [3, 4] }, seats: [...seatXs.map((x) => [x, 2]), ...seatXs.map((x) => [x, 5])] };
+  };
 
-  for (const s of placed) {
-    const [c, row] = s.pos;
-    const x0 = c * COL + 1;
-    const R = row === 'top' ? TOP : BOTTOM;
-    const room = { id: s.id, kind: s.kind, name: s.name, role: !!s.role, row, x: [x0, x0 + 9], z: [R.z0, R.z1], rug: RUG[s.kind] ?? RUG.generic };
-    rooms.push(room);
-    const door = row === 'top' ? [x0 + 4, x0 + 5] : [x0 + 5, x0 + 6];
-    (row === 'top' ? doorsTop : doorsBottom).add(door[0]).add(door[1]);
-    room.door = door.map((x) => [x, row === 'top' ? 8 : 13]);
-    const T = row === 'top';
+  // ---- meeting rooms ----
+  room('meeting', 'meeting', tr('Conference room A'), [1, 18], [1, 6]);
+  const meeting = { ...tableSet(4, 16, [5, 7, 9, 11, 13, 15]), screen: { x: 10, z: 0, off: 0.2 }, view: [10, 6] };
+  plant(1, 1); plant(18, 1); plant(1, 6);
+  room('meeting-b', 'meeting', tr('Meeting room B'), [20, 30], [1, 6]);
+  tables.push(tableSet(23, 27, [23, 25, 27]));
+  add('standBoard', [[29, 5]]); plant(20, 1);
+  room('meeting-c', 'meeting', tr('Meeting room C'), [32, W - 2], [1, 6]);
+  const cMid = Math.round((32 + W - 2) / 2);
+  tables.push(tableSet(cMid - 3, cMid + 3, [cMid - 3, cMid - 1, cMid + 1, cMid + 3]));
+  add('standBoard', [[33, 5]], { chart: true }); plant(W - 2, 1);
+  windows.push(['top', 4], ['top', 16], ['top', 22.5], ['top', 27.5], ['top', cMid - 2.5], ['top', cMid + 2.5]);
 
-    if (s.kind === 'manager') {
-      desks.manager = { desk: [x0 + 4, 3], seat: [x0 + 4, 4], room: s.id };
-      add('bookshelf', [[x0 + 6, 1], [x0 + 7, 1]]);
-      add('armchairs', [[x0, 5], [x0, 6]]);
-      add('globe', [[x0 + 8, 6]]);
-      add('floorLamp', [[x0 + 9, 7]]);
-      plant(x0, 1); plant(x0 + 9, 1);
-      windows.push(['top', x0 + 1.6], ['top', x0 + 3.6], ['top', x0 + 8.8]);
-      if (c === 0) windows.push(['left', 2.6], ['left', 4.2]);
-    } else if (s.kind === 'lounge') {
-      Object.assign(lounge, {
-        couch: { x: [x0 + 3, x0 + 7], z: 19 },
-        couchSeats: [[x0 + 4, 19], [x0 + 6, 19], [x0 + 3, 19], [x0 + 5, 19], [x0 + 7, 19]],
-        coffeeTable: { x: [x0 + 4, x0 + 6], z: 18 },
-        beanBags: [[x0 + 9, 17], [x0 + 9, 19]],
-        coffee: [x0 + 9, 14],
-        coffeeSpot: [x0 + 8, 15],
-        spots: [[x0 + 2, 17], [x0 + 3, 16], [x0 + 7, 16], [x0 + 8, 17], [x0 + 1, 16], [x0 + 3, 15], [x0 + 7, 15], [x0 + 2, 18]],
-      });
-      for (let x = x0 + 3; x <= x0 + 7; x++) block(x, 19);
-      for (let x = x0 + 4; x <= x0 + 6; x++) block(x, 18);
-      lounge.beanBags.forEach((b) => block(...b));
-      block(...lounge.coffee);
-      add('fridge', [[x0, 14]]);
-      add('arcade', [[x0 + 1, 14]]);
-      if (c === 0) { lounge.tv = { side: 'left', z: 16.6 }; windows.push(['left', 19.2]); }
-      plant(x0, 20);
-    } else if (s.kind === 'meeting') {
-      Object.assign(meeting, {
-        table: { x: [x0 + 2, x0 + 6], z: [16, 17] },
-        seats: [[x0 + 2, 15], [x0 + 4, 15], [x0 + 6, 15], [x0 + 2, 18], [x0 + 4, 18], [x0 + 6, 18]],
-        screen: { x: x0 + 2.2, z: 13 },
-      });
-      for (let x = x0 + 2; x <= x0 + 6; x++) for (let z = 16; z <= 17; z++) block(x, z);
-      add('standBoard', [[x0 + 8, 16]]);
-      plant(x0, 20); plant(x0 + 9, 20);
-    } else if (s.kind === 'equipment') {
-      const back = T ? 1 : 14;
-      add('serverRack', [[x0 + 1, back], [x0 + 2, back]]);
-      add('ups', [[x0 + 3, back]]);
-      add('shelf', [[x0 + 5, back], [x0 + 6, back]]);
-      add('shelf', [[x0 + 7, back], [x0 + 8, back]], { tools: true });
-      add('lockers', [[x0, T ? 4 : 17], [x0, T ? 5 : 18]], { rot: Math.PI / 2 });
-      add('workbench', [[x0 + 4, T ? 4 : 17], [x0 + 5, T ? 4 : 17]]);
-      add('crates', [[x0 + 8, T ? 5 : 18]]);
-      add('printer', [[x0 + 9, T ? 3 : 16]]);
-      plant(x0, T ? 1 : 20);
-    } else if (s.kind === 'training') {
-      const back = T ? 1 : 14;
-      add('whiteboard', [[x0 + 1, back], [x0 + 2, back], [x0 + 3, back]]);
-      for (const dz of T ? [3, 5] : [16, 18]) for (const dx of [1, 4, 8]) add('schoolDesk', [[x0 + dx, dz]]);
-      plant(x0 + 9, T ? 1 : 20); plant(x0, T ? 7 : 20);
-    } else if (s.kind === 'garden') {
-      const zs = T ? [1, 3, 5] : [15, 17, 19];
-      for (const [i, z] of zs.entries()) { plant(x0 + 1 + (i % 2) * 2, z); plant(x0 + 7 + (i % 2), z); }
-      add('bench', [[x0 + 4, T ? 3 : 17], [x0 + 5, T ? 3 : 17]]);
-      if (T) windows.push(['top', x0 + 4.5]);
-    } else {
-      // ish xonasi: 3 ta stol (asosiy + 2 zaxira)
-      const dz = R.deskZ;
-      [2, 5, 8].forEach((dx, i) => {
-        desks[i === 0 ? s.id : `${s.id}#${i + 1}`] = { desk: [x0 + dx, dz], seat: [x0 + dx, dz + 1], room: s.id };
-        block(x0 + dx, dz);
-      });
-      furnishWork(s.kind, x0, T, add, plant, windows, s.id);
-    }
-  }
+  // ---- left column ----
+  room('server', 'server', tr('Server room'), [1, 9], [8, 12]);
+  add('serverRack', [[2, 8], [3, 8]], { alert: true });
+  add('serverRack', [[4, 8], [5, 8]], { gpu: true });
+  add('ups', [[6, 8]]);
+  add('monitorWall', [[7, 8], [8, 8]]);
+  add('crates', [[1, 12]]);
+  windows.push(['left', 10]);
 
-  // ichki gorizontal devorlar (eshik joylari ochiq)
-  for (let x = 1; x < W - 1; x++) {
-    if (!doorsTop.has(x)) wall(x, 8);
-    if (!doorsBottom.has(x)) wall(x, 13);
-  }
+  room('manager', 'manager', tr('Atlas · CEO office'), [1, 9], [14, 19]);
+  desks.manager = { desk: [5, 16], seat: [5, 17], room: 'manager' };
+  block(5, 16);
+  add('bookshelf', [[7, 14], [8, 14]]);
+  add('armchairs', [[1, 17], [1, 18]]);
+  add('globe', [[8, 19]]);
+  add('floorLamp', [[1, 19]]);
+  plant(1, 14); plant(9, 14);
+  windows.push(['left', 15.5], ['left', 17.5]);
 
-  // koridor
-  const corridor = { id: 'corridor', kind: 'corridor', name: '', x: [1, W - 2], z: [9, 12] };
-  rooms.push(corridor);
-  add('waterCooler', [[1, 12]]);
-  add('reception', [[2, 9], [3, 9]]);
-  if (cols >= 3) decor.push({ type: 'usageBoard', at: [2 * COL + 8.3, 8] });
-  add('vending', [[W - 2, 9]]);
-  for (let c = 1; c < cols; c++) add('bench', [[c * COL + 2, 12], [c * COL + 3, 12]]);
-  decor.push({ type: 'clock', at: [8.6, 8] });
-  decor.push({ type: 'sign', at: [COL + 8, 8] });
-  decor.push({ type: 'runner' });
+  room(fin ? fin.id : 'accounting', 'accounting', fin ? `${fin.name} · ${tr('Accounting')}` : tr('Accounting'), [1, 9], [21, 25], { role: !!fin });
+  const accId = fin ? fin.id : 'spare-acc';
+  desks[accId] = { desk: [3, 23], seat: [3, 24], room: accId };
+  desks[`${accId}#2`] = { desk: [6, 23], seat: [6, 24], room: accId };
+  block(3, 23); block(6, 23);
+  add('bookshelf', [[1, 21], [2, 21]]);
+  add('printer', [[8, 21]]);
+  plant(1, 25);
+  windows.push(['left', 23]);
+
+  room('training', 'training', tr('Training room'), [1, 13], [27, 30]);
+  add('whiteboard', [[2, 27], [3, 27], [4, 27]]);
+  for (const x of [2, 5, 8, 11]) add('schoolDesk', [[x, 29]]);
+  decor.push({ type: 'clock', at: [9, 26.05] });
+  plant(13, 27);
+  windows.push(['left', 28.5], ['bottom', 4], ['bottom', 8], ['bottom', 12]);
+
+  // ---- the open floor: pods of four desks, two facing two ----
+  const podX = Array.from({ length: cols }, (_, c) => 13 + c * POD_PITCH);
+  const podZ = [{ flip: 10, front: 11 }, { flip: 15, front: 16 }];
+  const order = [];
+  for (let c = 0; c < cols; c++) order.push([1, c], [0, c]);
+  order.sort((p, q) => ((p[0] + p[1]) % 2) - ((q[0] + q[1]) % 2) || p[1] - q[1]); // a checkerboard first, so the team spreads out
+  order.forEach(([row, c], i) => {
+    const r = podRoles[i];
+    const id = r ? r.id : `spare-${i}`;
+    const x = podX[c], z = podZ[row];
+    desks[id] = { desk: [x, z.front], seat: [x, z.front + 1], room: id };
+    desks[`${id}#2`] = { desk: [x + 2, z.front], seat: [x + 2, z.front + 1], room: id };
+    desks[`${id}#3`] = { desk: [x, z.flip], seat: [x, z.flip - 1], room: id, rot: Math.PI };
+    desks[`${id}#4`] = { desk: [x + 2, z.flip], seat: [x + 2, z.flip - 1], room: id, rot: Math.PI };
+    for (let dx = 0; dx <= 2; dx++) { block(x + dx, z.flip); block(x + dx, z.front); }
+    room(id, r ? r.kind : 'generic', r ? r.name : '', [x - 1, x + 3], [z.flip - 1, z.front + 1], { role: !!r, pod: true, inset: 0, rug: r ? RUG[r.kind] ?? RUG.generic : null, light: false });
+  });
+  const open = { id: 'corridor', kind: 'corridor', name: '', x: [11, W - 2], z: [8, 18] };
+  rooms.push(open);
+  const CARPET = '#9299a2';
+  floors.push({ x: [11, W - 2], z: [8, 18], color: CARPET }, { x: [11, R(24)], z: [19, 21], color: CARPET }, { x: [11, 14], z: [22, 25], color: CARPET });
+  for (let x = 16; x < W - 4; x += 12) lights.push({ at: [x, 13], k: 7 });
+  decor.push({ type: 'usageBoard', at: [19, 7] });
+  plant(11, 8); plant(W - 2, 8); plant(W - 2, 18); plant(11, 25);
+  windows.push(['right', 10], ['right', 13], ['right', 16]);
+
+  // ---- reception and lobby ----
+  room('lobby', 'lobby', tr('Reception'), [15, R(24)], [23, 30], { rug: null });
+  floors.push({ x: [17, 22], z: [26, 29], color: RUG.lobby });
+  add('reception', [[19, 24], [20, 24]]);
+  decor.push({ type: 'sign', at: [19.5, 22.05] });
+  add('bench', [[16, 30], [17, 30]]);
+  add('bench', [[22, 30], [23, 30]]);
+  add('waterCooler', [[15, 23]]);
+  plant(15, 30); plant(24, 30); plant(16, 23); plant(23, 23);
   decor.push({ type: 'entrance' });
-  windows.push(['right', 10.5]);
-  if (placed.some((s) => s.pos[0] === cols - 1 && s.pos[1] === 'top')) windows.push(['right', 2.6], ['right', 5.4]);
-  if (placed.some((s) => s.pos[0] === cols - 1 && s.pos[1] === 'bottom')) windows.push(['right', 16.4], ['right', 19.0]);
+  windows.push(['bottom', 16.5], ['bottom', 22.5]);
 
-  // devor segmentlari (vizual)
-  const isWall = (x, z) => inB(x, z) && wallSet.has(z * W + x);
+  // ---- right block ----
+  room('restrooms', 'restrooms', tr('Restrooms'), [R(26), R(31)], [20, 24], { rug: null });
+  floors.push({ x: [R(26), R(31)], z: [20, 24], color: '#dfe7ec' });
+  add('toilet', [[R(26), 21]], { rot: Math.PI / 2 });
+  add('toilet', [[R(26), 23]], { rot: Math.PI / 2 });
+  add('sink', [[R(31), 21]], { rot: -Math.PI / 2 });
+  add('sink', [[R(31), 23]], { rot: -Math.PI / 2 });
+  decor.push({ type: 'stall', at: [R(26.75), 22] });
+
+  room('equipment', 'equipment', tr('Equipment room'), [R(33), W - 2], [20, 24]);
+  add('printer', [[R(33), 20]]);
+  add('shelf', [[R(39), 20], [R(40), 20]]);
+  add('shelf', [[R(41), 20], [R(42), 20]], { tools: true });
+  add('lockers', [[R(42), 22], [R(42), 23]], { rot: -Math.PI / 2 });
+  add('workbench', [[R(36), 23], [R(37), 23]]);
+  add('crates', [[R(33), 24]]);
+  windows.push(['right', 22]);
+
+  for (const [x, color] of [[26, '#2f6fb5'], [29, '#d9703a']]) {
+    add('phoneBooth', [[R(x), 26], [R(x + 1), 26]], { color });
+  }
+  rooms.push({ id: 'booths', kind: 'booths', name: tr('Phone booths'), x: [R(26), R(30)], z: [26, 27], rug: null });
+
+  room('lounge', 'lounge', tr('Breakout & kitchen'), [R(32), W - 2], [26, 30]);
+  const lounge = {
+    couch: { x: [R(34), R(38)], z: 30 },
+    couchSeats: [[R(35), 30], [R(37), 30], [R(34), 30], [R(36), 30], [R(38), 30]],
+    coffeeTable: { x: [R(35), R(37)], z: 29 },
+    beanBags: [[R(32), 30], [R(40), 30]],
+    coffee: [R(41), 26],
+    coffeeSpot: [R(41), 27],
+    spots: [[R(33), 28], [R(35), 28], [R(38), 28], [R(40), 28], [R(28), 28], [R(31), 28], [R(39), 27], [R(36), 27]],
+  };
+  for (let x = R(34); x <= R(38); x++) block(x, 30);
+  for (let x = R(35); x <= R(37); x++) block(x, 29);
+  lounge.beanBags.forEach((c) => block(...c));
+  block(...lounge.coffee);
+  add('arcade', [[R(32), 26]]);
+  add('vending', [[R(33), 26]]);
+  add('kitchenCounter', [[R(36), 26], [R(37), 26], [R(38), 26], [R(39), 26], [R(40), 26]]);
+  add('fridge', [[R(42), 26]]);
+  add('cafeTable', [[R(27), 30]]);
+  add('cafeTable', [[R(30), 30]]);
+  plant(R(42), 30); plant(R(25), 29);
+  windows.push(['right', 28.5], ['bottom', R(28.5)], ['bottom', R(41)]);
+
+  // ---- wall pieces to draw: straight runs of one kind, then single posts for what is left ----
+  const typeAt = (x, z) => (inB(x, z) ? wallType.get(z * W + x) : undefined);
+  const covered = new Set();
   const wallSegments = [];
-  for (let z = 0; z < H; z++) {
-    let s = null;
-    for (let x = 0; x <= W; x++) {
-      if (x < W && isWall(x, z)) { if (s === null) s = x; }
-      else { if (s !== null && x - s >= 2) wallSegments.push({ dir: 'h', a: s, b: x - 1, at: z, outer: z === 0 || z === H - 1 }); s = null; }
+  const scan = (dir) => {
+    const A = dir === 'h' ? H : W, B = dir === 'h' ? W : H;
+    for (let a = 0; a < A; a++) {
+      let s = 0, t;
+      for (let b = 0; b <= B; b++) {
+        const cur = b < B ? (dir === 'h' ? typeAt(b, a) : typeAt(a, b)) : undefined;
+        if (cur === t) continue;
+        if (t && b - s >= 2) {
+          wallSegments.push({ dir, a: s, b: b - 1, at: a, type: t, outer: t === 'outer' });
+          for (let k = s; k < b; k++) covered.add(dir === 'h' ? a * W + k : k * W + a);
+        }
+        s = b; t = cur;
+      }
     }
-  }
-  for (let x = 0; x < W; x++) {
-    let s = null;
-    for (let z = 0; z <= H; z++) {
-      if (z < H && isWall(x, z)) { if (s === null) s = z; }
-      else { if (s !== null && z - s >= 2) wallSegments.push({ dir: 'v', a: s, b: z - 1, at: x, outer: x === 0 || x === W - 1 }); s = null; }
-    }
-  }
+  };
+  scan('h'); scan('v');
+  for (const [x, z] of walls) if (!covered.has(z * W + x)) wallSegments.push({ dir: 'h', a: x, b: x, at: z, type: typeAt(x, z), outer: typeAt(x, z) === 'outer' });
 
   const isFree = (x, z) => inB(x, z) && !blocked[z][x];
   const roomOf = (id) => rooms.find((r) => r.id === id);
-  const roomAt = ([x, z]) => rooms.find((r) => r.kind !== 'corridor' && x >= r.x[0] && x <= r.x[1] && z >= r.z[0] && z <= r.z[1]) ?? corridor;
+  const roomAt = ([x, z]) => rooms.find((r) => r.kind !== 'corridor' && x >= r.x[0] && x <= r.x[1] && z >= r.z[0] && z <= r.z[1]) ?? open;
+  const doorX = (DOOR[0] + DOOR[1]) / 2;
 
   return {
-    W, H, cols, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting,
-    roomOf, roomAt, entrance: ENTRANCE, bossStart: [1, 10.5], key: rooms.map((r) => r.id).join('|'),
-    // Outside the front door (grid cells left of the building): the store, where to stand, and the way there.
-    outside: { store: [-10, 14.5], storeSpot: [-5.5, 16], walk: [[-1, 10.5], [-5.5, 10.5]], door: [1, 10] },
+    W, H, cols, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
+    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 },
+    bossStart: [doorX, H - 4], bossRot: Math.PI, key: `${W}|${rooms.map((r) => r.id).join('|')}`,
+    // Outside: the way from the front door round to the store on the left, and where to stand there.
+    outside: { store: [-10, 14.5], storeSpot: [-5.5, 16], walk: [[doorX, H - 1], [doorX, H + 1.5], [-5.5, H + 1.5]], door: [DOOR[0], H - 2] },
   };
-}
-
-// Rol turiga qarab xona jihozlari
-function furnishWork(kind, x0, T, add, plant, windows, id) {
-  const back = T ? 1 : 14; // kameradan uzoq qator (devor tomonda)
-  const side = T ? [5, 6, 7] : [15, 16, 19];
-  plant(x0, T ? 1 : 20);
-  if (T) plant(x0 + 9, 7); else plant(x0 + 9, 14);
-  const wallItems = []; // ustki xonalarda orqa devorga osiladiganlar
-
-  switch (kind) {
-    case 'devops':
-    case 'security':
-      add('serverRack', [[x0 + 1, back], [x0 + 2, back]], { alert: true });
-      add('ups', [[x0 + 3, back]]);
-      add('monitorWall', [[x0 + 7, back], [x0 + 8, back]]);
-      if (T) windows.push(['top', x0 + 5.0]);
-      break;
-    case 'data':
-      add('serverRack', [[x0 + 1, back], [x0 + 2, back]], { gpu: true });
-      add('standBoard', [[x0 + 9, side[1]]], { chart: true });
-      if (T) windows.push(['top', x0 + 6.6]);
-      break;
-    case 'mobile':
-      add('deviceLab', [[x0 + 6, back], [x0 + 7, back]]);
-      add('phoneStand', [[x0 + 9, side[1]]]);
-      add('beanBag', [[x0, side[2]]]);
-      if (T) { wallItems.push(['stickyBoard', x0 + 2.6]); windows.push(['top', x0 + 9.0]); }
-      break;
-    case 'frontend':
-    case 'design':
-      add('easel', [[x0 + 9, side[0]]]);
-      add('loungeChair', [[x0, side[1]]]);
-      if (T) { wallItems.push(['stickyBoard', x0 + 5]); windows.push(['top', x0 + 1.6], ['top', x0 + 8.4]); }
-      else add('standBoard', [[x0 + 9, side[2]]]);
-      break;
-    case 'qa':
-      add('standBoard', [[x0 + 9, side[0]]], { bugs: true });
-      add('printer', [[x0, side[1]]]);
-      if (T) { wallItems.push(['stickyBoard', x0 + 5, { bugs: true }]); windows.push(['top', x0 + 1.6], ['top', x0 + 8.4]); }
-      break;
-    case 'docs':
-      add('bookshelf', [[x0 + 6, back], [x0 + 7, back]]);
-      add('armchairs', [[x0, side[1]]]);
-      if (T) windows.push(['top', x0 + 2.4]);
-      break;
-    case 'backend':
-    default:
-      add('printer', [[x0 + 9, side[0]]]);
-      add('coatRack', [[x0, side[1]]]);
-      if (T) { wallItems.push(['stickyBoard', x0 + 5]); windows.push(['top', x0 + 1.6], ['top', x0 + 8.4]); }
-      else add('standBoard', [[x0 + 9, side[2]]]);
-      break;
-  }
-  for (const [type, x, extra] of wallItems) add(type, [], { at: [x, 0], room: id, ...extra });
 }
