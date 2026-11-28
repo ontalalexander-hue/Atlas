@@ -14,6 +14,7 @@ import { replayUrl, startReplay, stopReplay } from './replay.js';
 import { SkyBackdrop, StudioLight, Effects, CinemaCamera } from './Look.jsx';
 import Sky from './Sky.jsx';
 import { FollowCamera, Visitors } from './Director.jsx';
+import RoomPlan from './Plan.jsx';
 
 // A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
 function useSmall() {
@@ -418,6 +419,7 @@ function Panel() {
         <SunRow />
         <RoofRow />
         <ViewRow />
+        <RoomPlan />
       </div>
 
       <div className="scroll">

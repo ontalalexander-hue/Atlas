@@ -123,6 +123,18 @@ export const useOffice = create((set, get) => ({
   // the other boards: GET /api/office/status
   status: null,
   setStatus: (status) => set({ status }),
+  // GET /api/office/world: { plan, padayon, lifeos, railway }, each source { status, data?, error? }
+  world: null,
+  plan: null,
+  setWorld: (world) => {
+    const same = JSON.stringify(world?.plan ?? null) === JSON.stringify(get().plan);
+    if (same) { set({ world }); return; }
+    // a new plan moves rooms and desks: lay the floor out again and seat everyone afresh
+    const plan = world?.plan ?? null;
+    const L = buildLayout(get().team, plan);
+    for (const k of Object.keys(positions)) if (k.startsWith('v:')) delete positions[k];
+    set({ world, plan, layout: L, agents: agentsFor(get().team, L, get().mode === 'live'), visitors: {}, selected: null });
+  },
   visitors: {},
   setView: (name) => set({ view: { name, n: Date.now() } }),
   sheet: false, // phone: is the panel pulled up
@@ -151,7 +163,7 @@ export const useOffice = create((set, get) => ({
       const team = normTeam(incoming.filter((r) => r.id !== 'manager'));
       const same = team.map((r) => r.id).join() === get().team.map((r) => r.id).join();
       if (same) { set({ team: get().team.map((c) => ({ ...c, ...team.find((t) => t.id === c.id) })) }); return; }
-      const L = buildLayout(team);
+      const L = buildLayout(team, get().plan);
       set({ team, layout: L, agents: agentsFor(team, L, get().mode === 'live'), services: {}, issues: {}, selected: null });
       return;
     }
@@ -160,7 +172,7 @@ export const useOffice = create((set, get) => ({
     const updated = cur.map((c) => { const n = incoming.find((r) => r.id === c.id); return n ? { ...c, ...normTeam([n])[0] } : c; });
     if (!add.length && JSON.stringify(updated) === JSON.stringify(cur)) return;
     const team = [...updated, ...add];
-    const L = buildLayout(team);
+    const L = buildLayout(team, get().plan);
     const agents = { ...get().agents };
     let n = Object.keys(agents).length;
     for (const r of add) {

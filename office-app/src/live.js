@@ -42,6 +42,36 @@ export function refreshStatus(delay = 0) {
   }, delay);
 }
 
+// ---------- the owner's room plan and the world it shows ----------
+let worldTimer = null;
+export function refreshWorld(delay = 0) {
+  clearTimeout(worldTimer);
+  worldTimer = setTimeout(() => {
+    fetch(`${SERVER}/world`, { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j) S().setWorld(j); })
+      .catch(() => {});
+  }, delay);
+}
+
+/** Save the plan typed in the panel. Answers { plan, problems } or { error }. */
+export async function savePlan(text) {
+  let plan;
+  try { plan = JSON.parse(text); } catch (err) { return { error: tr('That is not valid JSON: {err}', { err: err.message }) }; }
+  try {
+    const csrf = await csrfToken();
+    const res = await fetch(`${SERVER}/plan`, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+      body: JSON.stringify({ plan }),
+    });
+    const j = await res.json().catch(() => ({}));
+    return res.ok ? j : { error: j.error || tr('Could not save ({n}).', { n: res.status }) };
+  } catch {
+    return { error: tr('Could not reach Atlas. Check your connection.') };
+  }
+}
+
 // where a turn came from: someone writing in (a visitor walks in), or Atlas's own schedule
 const PEOPLE = new Set(['web', 'telegram', 'whatsapp', 'discord', 'slack', 'email', 'api', 'acp']);
 const OWN = { cron: '📅 ', heartbeat: '💓 ', boot: '🔆 ' };
@@ -294,6 +324,7 @@ export function handleEvent(e) {
 let es = null;
 let usagePoll = null;
 let statusPoll = null;
+let worldPoll = null;
 let snackTimer = null;
 export async function startLive() {
   stopLive();
@@ -301,6 +332,8 @@ export async function startLive() {
   usagePoll = setInterval(() => refreshUsage(), 60_000);
   refreshStatus();
   statusPoll = setInterval(() => { if (!document.hidden) refreshStatus(); }, 20_000);
+  refreshWorld();
+  worldPoll = setInterval(() => { if (!document.hidden) refreshWorld(); }, 60_000);
   // now and then, someone with nothing to do pops out to the store
   snackTimer = setInterval(() => {
     if (document.hidden || Math.random() > 0.6) return;
@@ -321,7 +354,7 @@ export async function startLive() {
 }
 export function stopLive() {
   if (es) { es.close(); es = null; }
-  clearInterval(usagePoll); clearInterval(statusPoll); clearInterval(snackTimer);
+  clearInterval(usagePoll); clearInterval(statusPoll); clearInterval(worldPoll); clearInterval(snackTimer);
   running = [];
   S().setConn('off');
 }
