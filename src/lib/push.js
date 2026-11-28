@@ -20,6 +20,7 @@
  */
 import webpush from "web-push";
 import { SettingsStore } from "../db/settings.js";
+import { isEncrypted } from "./vault.js";
 
 let _settingsStore = null;
 
@@ -44,6 +45,16 @@ function ensureVapidKeys() {
   const s = store();
   let pub = s.get("push.vapid_public");
   let priv = s.get("push.vapid_private");
+  // A key saved before it counted as a secret sits in the database as plain text: save it again, encrypted.
+  if (priv && s._get) {
+    try {
+      const raw = s._get.get("push.vapid_private")?.value;
+      if (raw && !isEncrypted(raw) && process.env.ENCRYPTION_KEY) {
+        s.set("push.vapid_private", priv);
+        console.log("[push] the push signing key is now stored encrypted");
+      }
+    } catch (err) { console.warn(`[push] could not re-save the push key encrypted: ${err.message}`); }
+  }
   if (!pub || !priv) {
     const keys = webpush.generateVAPIDKeys();
     pub = keys.publicKey;

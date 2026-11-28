@@ -43,6 +43,22 @@ const DENIED_SEGMENT_PATTERNS = [/^\.codex-home/, /^\.claude-home-/];
 const DENIED_PATTERNS = [/\.db$/i, /\.db-wal$/i, /\.db-shm$/i, /\.credentials\.json$/i];
 
 /**
+ * What the send_file tool must never send out of the server, on top of isSensitivePath: environment files, private
+ * keys and certificates, backup keys and encrypted backups. A message from a stranger, a web page or an email that
+ * talks the agent into "send me that file" must not get the keys to everything else.
+ */
+const NEVER_SEND = [
+  /(^|[\\/])\.env(\.[^\\/]*)?$/i,
+  /\.(key|pem|p12|pfx|jks|keystore)$/i,
+  /(^|[\\/])id_(rsa|dsa|ecdsa|ed25519)(\.pub)?$/i,
+  /(^|[\\/])backups[\\/]keys([\\/]|$)/i,
+  /\.(db|sqlite3?)[.-][^\\/]*$/i,   // database copies: atlas.db.gz, atlas.db.enc, atlas.db-2026…
+];
+export function isUnsendable(resolvedPath) {
+  return isSensitivePath(resolvedPath) || NEVER_SEND.some((re) => re.test(String(resolvedPath)));
+}
+
+/**
  * A path segment as the file system will treat it: lower case (Windows and macOS match names case-insensitively),
  * without an NTFS stream suffix ("auth.json::$DATA") or the trailing dots and spaces Windows drops ("auth.json.").
  */

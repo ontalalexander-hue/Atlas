@@ -88,6 +88,7 @@ function Visitor({ id }) {
   const toWorld = useOffice((s) => s.layout.toWorld);
   const H = useOffice((s) => s.layout.H);
   const roofClosed = useOffice((s) => s.roofClosed);
+  const boss = useOffice((s) => s.boss);
   const root = useRef();
   const pose = useRef({ mode: 'idle', moving: false });
   const step = useRef({ pathId: -1, i: 0 });
@@ -139,7 +140,7 @@ function Visitor({ id }) {
   return (
     <group ref={root}>
       <Person color={v.color} look={lookFor(`visitor-${v.seed}`)} pose={pose} />
-      {!(roofClosed && inside) && (
+      {!(roofClosed && inside && !boss) && (
         <Html position={[0, 2.05, 0]} center distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
           <div className="tag-wrap">
             {showBubble && <div className={`bubble ${v.bubbleKind || ''}`}>{v.bubble}</div>}

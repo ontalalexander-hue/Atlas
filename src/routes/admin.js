@@ -170,6 +170,21 @@ adminRouter.post("/channels/:type/stop", async (req, res) => {
  * during the snapshot. The file is produced in a tmp location, streamed
  * to the client, then deleted.
  */
+/**
+ * POST /api/admin/backup/offsite — run the off-site backup now (lib/offsite-backup.js); GET answers how the last went.
+ */
+adminRouter.post("/backup/offsite", async (req, res) => {
+  const { backupNow } = await import("../lib/offsite-backup.js");
+  const db = req.app.get("db");
+  const status = await backupNow(db);
+  try { req.app.get("auditLog")?.log({ action: "admin.backup.offsite", actor: "user", ip: req.ip, detail: status.ok ? status.tag : "failed" }); } catch { /* the backup's own status still says it */ }
+  res.status(status.ok ? 200 : 502).json(status);
+});
+adminRouter.get("/backup/offsite", async (req, res) => {
+  const { offsiteStatus } = await import("../lib/offsite-backup.js");
+  res.json(offsiteStatus(req.app.get("db")));
+});
+
 adminRouter.get("/backup", async (req, res) => {
   const db = req.app.get("db");
   if (!db) return res.status(500).json({ error: "Database not initialized" });

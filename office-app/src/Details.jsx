@@ -902,8 +902,10 @@ function MemoryBoard() {
     };
     row(0, tr('Files'), `${m.files}${m.capped ? '+' : ''} · ${fmtBytes(m.bytes)}`);
     row(1, tr('Last written'), m.lastWrite ? `${ago(m.lastWrite)} ${tr('ago')}` : '—');
-    row(2, tr('Last checkpoint'), m.lastCheckpoint ? `${ago(m.lastCheckpoint)} ${tr('ago')}` : tr('none yet'), m.lastCheckpoint ? INK : WARN);
-    row(3, tr('Database'), fmtBytes(m.dbBytes));
+    row(2, tr('Database'), fmtBytes(m.dbBytes));
+    const o = m.offsite;
+    const [word, c] = !o?.configured ? [tr('not set up'), WARN] : o.failed ? [tr('failed'), BAD] : o.lastOkAt ? [`${ago(o.lastOkAt)} ${tr('ago')} ✓`, GOOD] : [tr('not yet'), WARN];
+    row(3, tr('Off-site backup'), word, c);
   }, [m]);
   return <BoardPanel tex={tex} w={2.9} h={1.97} y={1.25} legs />;
 }

@@ -130,11 +130,27 @@ export function getAllSkillsWithStatus() {
 }
 
 /**
+ * A skill's folder name: letters, digits, dot, dash and underscore, starting with a letter or digit. Anything else
+ * (an empty name, "..", a path with a slash) is refused, so a name can never point outside the skills folders: the
+ * uninstall route used to delete whatever folder it was given, the data folder included.
+ */
+const SKILL_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+export function assertSkillName(name) {
+  if (typeof name !== "string" || !SKILL_NAME.test(name) || name.includes("..")) throw new Error("That is not a skill name.");
+  return name;
+}
+function skillDir(base, name) {
+  const dir = path.resolve(base, assertSkillName(name));
+  if (path.dirname(dir) !== path.resolve(base)) throw new Error("That is not a skill name.");
+  return dir;
+}
+
+/**
  * Install a skill — copy from built-in to workspace.
  */
 export function installSkill(name) {
-  const srcDir = path.join(getBuiltInSkillsDir(), name);
-  const destDir = path.join(getCustomSkillsDir(), name);
+  const srcDir = skillDir(getBuiltInSkillsDir(), name);
+  const destDir = skillDir(getCustomSkillsDir(), name);
   if (!fs.existsSync(srcDir)) throw new Error(`Skill "${name}" not found`);
   fs.mkdirSync(destDir, { recursive: true });
   // Copy all files recursively
@@ -154,7 +170,7 @@ export function installSkill(name) {
  * Uninstall a skill — remove from workspace.
  */
 export function uninstallSkill(name) {
-  const destDir = path.join(getCustomSkillsDir(), name);
+  const destDir = skillDir(getCustomSkillsDir(), name);
   if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true });
   invalidateCache();
 }

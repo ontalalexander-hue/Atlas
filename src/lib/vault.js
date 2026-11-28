@@ -118,6 +118,7 @@ const SECRET_KEY_PATTERNS = [
   /^encryption\./,       // encryption config keys
   /api[_-]?key/i,        // anything with "apikey" or "api_key"
   /secret/i,             // anything with "secret"
+  /^push\.vapid_private$/, // the Web Push signing key: whoever has it can send notifications as this server
 ];
 
 /**

@@ -7,6 +7,9 @@ import { Html } from '@react-three/drei';
 import { useOffice, positions } from './store.js';
 import Person from './Person.jsx';
 import { overviewPose } from './Look.jsx';
+import { TOP as ROOF_TOP } from './Roof.jsx';
+
+const BOSS_CEILING = ROOF_TOP - 0.7;
 import { tr, STATE_LABEL } from './i18n.js';
 
 const WALK = 3.2;
@@ -83,7 +86,7 @@ export function BossController() {
       const p = positions.boss;
       const [wx, wz] = L.toWorld([p.x, p.z]);
       controls.target.set(wx, 1.2, wz);
-      camera.position.set(wx - Math.sin(p.rot) * 6, 4.6, wz - Math.cos(p.rot) * 6);
+      camera.position.set(wx - Math.sin(p.rot) * 6, Math.min(4.6, BOSS_CEILING), wz - Math.cos(p.rot) * 6);
       controls.minDistance = 2.5; controls.maxDistance = 16; controls.maxPolarAngle = 1.45;
     } else {
       const f = Math.max(1, L.W / 34);
@@ -135,6 +138,8 @@ export function BossController() {
     const dx = (wx - controls.target.x) * k, dz = (wz - controls.target.z) * k, dy = (1.2 - controls.target.y) * k;
     controls.target.x += dx; controls.target.y += dy; controls.target.z += dz;
     camera.position.x += dx; camera.position.y += dy; camera.position.z += dz;
+    // with the roof on, the camera stays under the ceiling
+    if (st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
 
     // yaqin monitor
     let best = null, bestD = 1.9;
