@@ -570,36 +570,102 @@ function UsageBoard() {
   );
 }
 
-function Runner({ L }) {
-  const [x, z] = L.toWorld([(L.W - 1) / 2, 10.5]);
+// The front door, in the front wall, with a mat inside and a step outside
+function Entrance({ L }) {
+  const [x, z] = L.toWorld([L.door.x, L.door.z]);
+  const mat = useMemo(() => textTexture(tr('WELCOME'), { w: 512, h: 128, color: '#f4f1ea', font: '800 72px Inter, system-ui, sans-serif' }), []);
   return (
-    <group>
-      <mesh rotation-x={-Math.PI / 2} position={[x, 0.008, z]} receiveShadow><planeGeometry args={[L.W - 6, 1.1]} /><meshStandardMaterial color="#8a7f73" roughness={1} /></mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[x, 0.009, z]}><planeGeometry args={[L.W - 6.2, 0.9]} /><meshStandardMaterial color="#a3988b" roughness={1} /></mesh>
+    <group position={[x, 0, z]}>
+      {[-1.05, 1.05].map((dx) => (
+        <mesh key={dx} position={[dx, 1.2, 0]} castShadow><boxGeometry args={[0.12, 2.4, 0.36]} /><meshStandardMaterial color="#2b2f36" /></mesh>
+      ))}
+      <mesh position={[0, 2.38, 0]}><boxGeometry args={[2.22, 0.12, 0.36]} /><meshStandardMaterial color="#2b2f36" /></mesh>
+      {/* the glass doors, standing open */}
+      {[-1, 1].map((s) => (
+        <mesh key={s} position={[s * 0.98, 1.15, -0.45]} rotation-y={-s * 0.45}>
+          <boxGeometry args={[0.04, 2.2, 0.9]} />
+          <meshStandardMaterial color="#cfe6f5" transparent opacity={0.35} depthWrite={false} />
+        </mesh>
+      ))}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.012, -1.0]}><planeGeometry args={[1.8, 1.1]} /><meshStandardMaterial color="#3a4252" roughness={1} /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.014, -1.0]}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={mat} transparent /></mesh>
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.004, 1.1]} receiveShadow><planeGeometry args={[2.4, 2]} /><meshStandardMaterial color="#9aa0a8" /></mesh>
     </group>
   );
 }
 
-// Kirish eshigi (chap tashqi devorda) va gilamcha
-function Entrance({ L }) {
-  const [x, z] = L.toWorld([0, 10.5]);
-  const mat = useMemo(() => textTexture(tr('ENTRANCE'), { w: 512, h: 128, color: '#f4f1ea', font: '800 72px Inter, system-ui, sans-serif' }), []);
+// ---------- Restrooms ----------
+const PORCELAIN = '#fafafa';
+function Toilet() {
   return (
-    <group position={[x, 0, z]}>
-      {[-1.05, 1.05].map((dz) => (
-        <mesh key={dz} position={[0, 1.2, dz]} castShadow><boxGeometry args={[0.36, 2.4, 0.12]} /><meshStandardMaterial color="#2b2f36" /></mesh>
+    <group>
+      <RoundedBox args={[0.42, 0.38, 0.5]} radius={0.08} position={[0, 0.2, 0.08]} castShadow><meshStandardMaterial color={PORCELAIN} roughness={0.25} /></RoundedBox>
+      <RoundedBox args={[0.46, 0.05, 0.52]} radius={0.02} position={[0, 0.42, 0.08]}><meshStandardMaterial color="#e6ebee" roughness={0.3} /></RoundedBox>
+      <RoundedBox args={[0.5, 0.5, 0.18]} radius={0.04} position={[0, 0.62, -0.3]} castShadow><meshStandardMaterial color={PORCELAIN} roughness={0.25} /></RoundedBox>
+    </group>
+  );
+}
+
+function Sink() {
+  return (
+    <group position-z={-0.18}>
+      <RoundedBox args={[0.9, 0.8, 0.5]} radius={0.03} position-y={0.4} castShadow><meshStandardMaterial color="#f2f2f0" roughness={0.5} /></RoundedBox>
+      <RoundedBox args={[0.94, 0.05, 0.54]} radius={0.015} position-y={0.83}><meshStandardMaterial color="#cfd6db" roughness={0.3} /></RoundedBox>
+      <mesh position={[0, 0.86, 0.04]} rotation-x={-Math.PI / 2}><circleGeometry args={[0.18, 24]} /><meshStandardMaterial color="#9fb0ba" roughness={0.2} metalness={0.3} /></mesh>
+      <mesh position={[0, 0.95, -0.17]}><cylinderGeometry args={[0.02, 0.02, 0.18, 8]} /><meshStandardMaterial color="#c9ced6" metalness={0.8} roughness={0.25} /></mesh>
+      <mesh position={[0, 1.02, -0.28]}><boxGeometry args={[0.7, 0.5, 0.03]} /><meshStandardMaterial color="#bfe0f2" roughness={0.05} metalness={0.6} /></mesh>
+    </group>
+  );
+}
+
+function Stall() {
+  return <mesh position-y={0.62} castShadow><boxGeometry args={[1.5, 1.24, 0.06]} /><meshStandardMaterial color="#aab7c0" roughness={0.6} /></mesh>;
+}
+
+// ---------- Phone booth: a coloured nook with a shelf, a screen and a stool ----------
+function PhoneBooth({ color = '#2f6fb5' }) {
+  const lamps = useOffice((s) => s.sky.lamps);
+  return (
+    <group>
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.006, 0.5]} receiveShadow><planeGeometry args={[2, 2]} /><meshStandardMaterial color={color} roughness={1} /></mesh>
+      <mesh position={[0, 0.66, -0.41]}><planeGeometry args={[1.95, 1.26]} /><meshStandardMaterial color={color} roughness={0.9} /></mesh>
+      <RoundedBox args={[1.5, 0.05, 0.42]} radius={0.015} position={[0, 0.75, -0.18]} castShadow><meshStandardMaterial color={OAK} roughness={0.45} /></RoundedBox>
+      <RoundedBox args={[0.56, 0.34, 0.03]} radius={0.01} position={[0, 1.04, -0.36]}><meshStandardMaterial color="#12161d" emissive="#7fc4ff" emissiveIntensity={0.35 + lamps * 0.5} /></RoundedBox>
+      <mesh position={[0, 0.24, 0.55]}><cylinderGeometry args={[0.03, 0.14, 0.48, 10]} /><meshStandardMaterial color={METAL} /></mesh>
+      <mesh position={[0, 0.5, 0.55]} castShadow><cylinderGeometry args={[0.2, 0.2, 0.07, 18]} /><meshStandardMaterial color="#f4f1ec" roughness={0.8} /></mesh>
+    </group>
+  );
+}
+
+// ---------- Kitchen ----------
+function KitchenCounter({ cells }) {
+  const w = cells.length;
+  return (
+    <group position-z={-0.12}>
+      <RoundedBox args={[w, 0.86, 0.62]} radius={0.02} position-y={0.43} castShadow receiveShadow><meshStandardMaterial color="#f2f2f0" roughness={0.5} /></RoundedBox>
+      <RoundedBox args={[w + 0.04, 0.05, 0.66]} radius={0.015} position-y={0.89}><meshStandardMaterial color={OAK} roughness={0.4} /></RoundedBox>
+      {Array.from({ length: w }).map((_, i) => <mesh key={i} position={[-w / 2 + 0.5 + i, 0.45, 0.312]}><planeGeometry args={[0.9, 0.7]} /><meshStandardMaterial color="#e3e1dc" roughness={0.6} /></mesh>)}
+      <mesh position={[-w / 2 + 0.9, 0.92, 0]} rotation-x={-Math.PI / 2}><planeGeometry args={[0.7, 0.42]} /><meshStandardMaterial color="#9fb0ba" roughness={0.2} metalness={0.4} /></mesh>
+      <mesh position={[-w / 2 + 0.9, 1.02, -0.2]}><cylinderGeometry args={[0.02, 0.02, 0.2, 8]} /><meshStandardMaterial color="#c9ced6" metalness={0.8} roughness={0.25} /></mesh>
+      <RoundedBox args={[0.62, 0.36, 0.42]} radius={0.03} position={[w / 2 - 0.7, 1.1, -0.02]} castShadow><meshStandardMaterial color="#2a2e36" metalness={0.3} roughness={0.4} /></RoundedBox>
+      <mesh position={[w / 2 - 0.78, 1.1, 0.195]}><planeGeometry args={[0.36, 0.24]} /><meshStandardMaterial color="#0f1218" roughness={0.1} /></mesh>
+      {[['#e8684a', 0.1], ['#ffd166', 0.32], ['#2f9e64', 0.54]].map(([c, x]) => <mesh key={c} position={[x, 0.99, -0.12]} castShadow><cylinderGeometry args={[0.07, 0.07, 0.16, 12]} /><meshStandardMaterial color={c} /></mesh>)}
+    </group>
+  );
+}
+
+function CafeTable() {
+  return (
+    <group>
+      <mesh position-y={0.74} castShadow receiveShadow><cylinderGeometry args={[0.48, 0.48, 0.05, 28]} /><meshStandardMaterial color="#f4f1ec" roughness={0.4} /></mesh>
+      <mesh position-y={0.37}><cylinderGeometry args={[0.04, 0.04, 0.74, 10]} /><meshStandardMaterial color={METAL} /></mesh>
+      <mesh position-y={0.03}><cylinderGeometry args={[0.26, 0.28, 0.05, 20]} /><meshStandardMaterial color={METAL} /></mesh>
+      {[-0.78, 0.78].map((x) => (
+        <group key={x} position={[x, 0, -0.1]}>
+          <mesh position-y={0.46} castShadow><cylinderGeometry args={[0.19, 0.19, 0.06, 16]} /><meshStandardMaterial color="#d97a4a" roughness={0.8} /></mesh>
+          <mesh position-y={0.23}><cylinderGeometry args={[0.025, 0.1, 0.46, 8]} /><meshStandardMaterial color={METAL} /></mesh>
+        </group>
       ))}
-      <mesh position={[0, 2.38, 0]}><boxGeometry args={[0.36, 0.12, 2.22]} /><meshStandardMaterial color="#2b2f36" /></mesh>
-      {/* ochiq shisha eshik tavaqalari */}
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[-0.45, 1.15, s * 0.98]} rotation-y={s * 1.1}>
-          <boxGeometry args={[0.9, 2.2, 0.04]} />
-          <meshStandardMaterial color="#cfe6f5" transparent opacity={0.35} depthWrite={false} />
-        </mesh>
-      ))}
-      <mesh rotation-x={-Math.PI / 2} position={[0.9, 0.012, 0]}><planeGeometry args={[1.1, 1.8]} /><meshStandardMaterial color="#3a4252" roughness={1} /></mesh>
-      <mesh rotation={[-Math.PI / 2, 0, Math.PI / 2]} position={[0.9, 0.014, 0]}><planeGeometry args={[1.6, 0.4]} /><meshBasicMaterial map={mat} transparent /></mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[-1.1, -0.004, 0]} receiveShadow><planeGeometry args={[2, 2.4]} /><meshStandardMaterial color="#9aa0a8" /></mesh>
     </group>
   );
 }
@@ -611,10 +677,10 @@ const COMPONENTS = {
   arcade: Arcade, waterCooler: WaterCooler, vending: Vending, bench: Bench, clock: Clock, sign: Sign,
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
+  toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };
 
 export default function Decor({ L, item }) {
-  if (item.type === 'runner') return <Runner L={L} />;
   if (item.type === 'entrance') return <Entrance L={L} />;
   const Comp = COMPONENTS[item.type];
   if (!Comp) return null;

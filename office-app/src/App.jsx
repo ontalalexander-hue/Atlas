@@ -201,10 +201,10 @@ function RoofRow() {
 
 // Where the camera stands for each view. `small` is a phone, held upright.
 function poseFor(name, W, H, small) {
-  const f = (W + 14) / (small ? 20 : 23);
+  const f = (W + 14) / (small ? 21 : 30);
   if (name === 'street') return { pos: [-W / 2 - 22, 3.2, H / 2 + 26], target: [-W / 2 + 8, 8, -6] };
   if (name === 'deck') return { pos: [-W / 2 + 4, 9, H / 2 + 15], target: [-W / 2 + 11, 3, 4] };
-  return { pos: small ? [5 * f, 26 * f, 26 * f] : [9 * f, 23 * f, 29 * f], target: [-5, 0, 0.5] };
+  return { pos: small ? [5 * f, 26 * f, 26 * f] : [9 * f, 23 * f, 29 * f], target: [small ? -2 : 1, 0, 1.5] };
 }
 
 function Views({ small }) {
@@ -579,7 +579,7 @@ export default function App() {
           <Lights small={small} />
           <Office />
           {ids.split(',').map((id) => <Agent key={id} id={id} />)}
-          <OrbitControls makeDefault target={[-5, 0, 0.5]} maxPolarAngle={1.5} minDistance={8} maxDistance={190} enableDamping dampingFactor={0.08} />
+          <OrbitControls makeDefault target={[1, 0, 1.5]} maxPolarAngle={1.5} minDistance={8} maxDistance={190} enableDamping dampingFactor={0.08} />
           <Views small={small} />
           <BossController />
           <CinemaCamera />

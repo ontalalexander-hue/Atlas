@@ -172,9 +172,16 @@ export const useOffice = create((set, get) => ({
     if (!force && get().isPanicking(id)) { get().patch(id, { resume: { cell, after } }); return; }
     // Outside (on a snack run): back along the walk and in through the front door first.
     const L = get().layout;
-    const out = pos.x < 0.5;
+    const out = pos.x < 0.5 || pos.z > L.H - 1.5;
     let path = findPath(L, out ? L.outside.door : [pos.x, pos.z], cell);
-    if (out) path = [...[...L.outside.walk].reverse().filter((w) => w[0] > pos.x + 0.2), L.outside.door, ...path];
+    if (out) {
+      // back along the walk from the nearest point on it
+      const walk = L.outside.walk;
+      const far = (w) => Math.hypot(w[0] - pos.x, w[1] - pos.z);
+      let near = 0;
+      walk.forEach((w, i) => { if (far(w) < far(walk[near])) near = i; });
+      path = [...walk.slice(0, near + 1).reverse(), L.outside.door, ...path];
+    }
     get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false });
   },
   goToDesk: (id, after = { state: 'working' }) => {
