@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Html, RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
@@ -8,6 +9,7 @@ import Windows from './Windows.jsx';
 import Outside from './Outside.jsx';
 import Roof from './Roof.jsx';
 import { tr } from './i18n.js';
+import { todayTheme } from './layout.js';
 
 export const C = {
   wall: '#f3eee6', cap: '#3a3f48', glass: '#d6ebf7', frame: '#565e6a', deskTop: '#f4f1ec', metal: '#2a2e35',
@@ -115,8 +117,34 @@ function Walls({ L }) {
 }
 
 // ---------- Pollar ----------
+// Today's room (the plan's theme for this weekday): a warm border round its floor and a light that breathes.
+function TodayRoom({ L }) {
+  const kind = useOffice((s) => todayTheme(s.plan)?.room ?? null);
+  const light = useRef();
+  useFrame(({ clock }) => { if (light.current) light.current.intensity = 10 + Math.sin(clock.elapsedTime * 1.6) * 3; });
+  const r = kind ? L.rooms.find((x) => x.kind === kind) : null;
+  if (!r) return null;
+  const w = r.x[1] - r.x[0] + 1, d = r.z[1] - r.z[0] + 1;
+  const [cx, cz] = L.toWorld([center(r.x[0], r.x[1]), center(r.z[0], r.z[1])]);
+  const edge = (key, pos, size) => (
+    <mesh key={key} rotation-x={-Math.PI / 2} position={[cx + pos[0], 0.02, cz + pos[1]]}>
+      <planeGeometry args={size} /><meshBasicMaterial color="#fbbf24" toneMapped={false} transparent opacity={0.9} />
+    </mesh>
+  );
+  return (
+    <group>
+      {edge('n', [0, -d / 2 + 0.12], [w - 0.2, 0.14])}
+      {edge('s', [0, d / 2 - 0.12], [w - 0.2, 0.14])}
+      {edge('w', [-w / 2 + 0.12, 0], [0.14, d - 0.2])}
+      {edge('e', [w / 2 - 0.12, 0], [0.14, d - 0.2])}
+      <pointLight ref={light} position={[cx, 3.2, cz]} intensity={10} distance={Math.max(w, d) + 6} decay={1.4} color="#ffd98a" />
+    </group>
+  );
+}
+
 function Floors({ L }) {
   const wood = useWoodTexture(L.W, L.H);
+  const todayKind = useOffice((s) => todayTheme(s.plan)?.room ?? null);
   const theme = useOffice((s) => (s.sky.lamps > 0.5 ? 'night' : 'day'));
   const boss = useOffice((s) => s.boss);
   const roofClosed = useOffice((s) => s.roofClosed);
@@ -149,7 +177,7 @@ function Floors({ L }) {
             )}
             {r.name && !roofClosed && (
               <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + (r.pod ? 0.95 : 0.25)]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
-                <div className={`room-label ${theme}`}>{r.name}</div>
+                <div className={`room-label ${theme} ${r.kind === todayKind ? 'today' : ''}`}>{r.kind === todayKind ? `★ ${tr('Today')} · ` : ''}{r.name}</div>
               </Html>
             )}
           </group>
@@ -390,6 +418,7 @@ export default function Office() {
       <Windows L={L} />
       <Outside L={L} key={`g${L.W}`} />
       <Floors L={L} />
+      <TodayRoom L={L} />
       <Walls L={L} />
       {Object.entries(L.desks).map(([id, d]) => <Desk key={`${id}`} L={L} id={id} {...d} />)}
       <Meeting L={L} />

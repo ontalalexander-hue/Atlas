@@ -425,6 +425,7 @@ function Panel() {
       <div className="scroll">
         <UsageCard />
         <div className="agents">
+          <div className="agents-head">{tr("Atlas and its team")}<span>{tr('the other desks in the office belong to your own agents')}</span></div>
           {list.map((a) => {
             const isBad = a.state === 'panic' || a.down;
             const vis = visibleSev(isBad ? maxSev(maxSev(a.sev ?? 'info', a.down?.severity ?? 'info'), a.alarm?.severity ?? 'major') : a.sev, settings);

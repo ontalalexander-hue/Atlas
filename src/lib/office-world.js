@@ -69,7 +69,12 @@ export function normalizePlan(input) {
     if (r.subtitle) room.subtitle = str(r.subtitle, 60);
     const notes = list(r.notes, 6, 90);
     if (notes.length) room.notes = notes;
-    const agents = list(r.agents, 6, 24);
+    // other agents' desks: a name, and the app (a Railway project or service) whose state the desk shows
+    const agents = (Array.isArray(r.agents) ? r.agents : []).slice(0, 6).map((a) => {
+      const name = str(typeof a === "string" ? a : a?.name, 24);
+      const app = typeof a === "object" && a?.app ? str(a.app, 60) : null;
+      return name ? { name, ...(app ? { app } : {}) } : null;
+    }).filter(Boolean);
     if (agents.length) room.agents = agents;
     if (r.paused === true) room.paused = true;
     if (r.hours) room.hours = str(r.hours, 40);
@@ -83,7 +88,15 @@ export function normalizePlan(input) {
     byKind.set(r.kind, room);
   }
   const days = {};
-  for (const d of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) if (raw.days?.[d]) days[d] = str(raw.days[d], 40);
+  // each weekday's theme, and the room it belongs to (lit up that day)
+  for (const d of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]) {
+    const v = raw.days?.[d];
+    if (!v) continue;
+    const label = str(typeof v === "string" ? v : v.label, 40);
+    const roomKind = typeof v === "object" && KINDS.includes(v.room) ? v.room : null;
+    if (typeof v === "object" && v.room && !roomKind) problems.push(`Day ${d}: room ${JSON.stringify(v.room)} is not one of ${KINDS.join(", ")}.`);
+    if (label || roomKind) days[d] = { ...(label ? { label } : {}), ...(roomKind ? { room: roomKind } : {}) };
+  }
   const helpers = { ...HELPERS_DEFAULT };
   if (raw.helpers && typeof raw.helpers === "object") {
     for (const [id, kind] of Object.entries(raw.helpers)) {

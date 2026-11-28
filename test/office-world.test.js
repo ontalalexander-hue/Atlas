@@ -10,23 +10,23 @@ test("office plan: the default has one room of every kind and nothing personal",
 test("office plan: a written plan replaces rooms by kind and keeps the rest", () => {
   const { plan, problems } = normalizePlan({
     rooms: [
-      { kind: "growth", name: "Agency HQ", subtitle: "Primary growth engine", agents: ["A1", "A2"], padayon: ["agency"], railway: ["agency-site"], notes: ["one", "two"] },
+      { kind: "growth", name: "Agency HQ", subtitle: "Primary growth engine", agents: ["A1", { name: "A2", app: "a2-bot" }, { app: "no-name" }], padayon: ["agency"], railway: ["agency-site"], notes: ["one", "two"] },
       { kind: "separate", name: "Client X wing", hours: "8pm–5am", railway: ["client-x"] },
       { kind: "spaceship", name: "nope" },
     ],
-    days: { mon: "CEO day", xyz: "ignored" },
+    days: { mon: "CEO day", tue: { label: "Sales day", room: "sales" }, wed: { label: "x", room: "moon" }, xyz: "ignored" },
     helpers: { coder: "server", quick: "growth", bad: "moon" },
   });
   assert.equal(plan.rooms.length, KINDS.length);
   const growth = plan.rooms.find((r) => r.kind === "growth");
   assert.equal(growth.name, "Agency HQ");
-  assert.deepEqual(growth.agents, ["A1", "A2"]);
+  assert.deepEqual(growth.agents, [{ name: "A1" }, { name: "A2", app: "a2-bot" }], "an agent with no name is dropped");
   assert.equal(plan.rooms.find((r) => r.kind === "separate").hours, "8pm–5am");
   assert.equal(plan.rooms.find((r) => r.kind === "ceo").name, "CEO office", "a kind left out keeps the default");
-  assert.deepEqual(plan.days, { mon: "CEO day" });
+  assert.deepEqual(plan.days, { mon: { label: "CEO day" }, tue: { label: "Sales day", room: "sales" }, wed: { label: "x" } });
   assert.equal(plan.helpers.quick, "growth");
   assert.equal(plan.helpers.bad, undefined);
-  assert.equal(problems.length, 2, problems.join(" | "));
+  assert.equal(problems.length, 3, problems.join(" | "));
 });
 
 test("office plan: text is parsed, and bad JSON says so", () => {

@@ -6,6 +6,7 @@ import { RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
 import { rank } from './severity.js';
 import { tr } from './i18n.js';
+import { todayTheme } from './layout.js';
 
 const METAL = '#1f232a';
 const OAK = '#c9a27a';
@@ -949,12 +950,18 @@ function businessesFor(room, padayon) {
   return want.map((w) => all.find((b) => slug(b.name) === slug(w) || b.name.toLowerCase() === String(w).toLowerCase())).filter(Boolean);
 }
 const isPaused = (room, name) => (room?.pausedBusinesses ?? []).some((p) => slug(p) === slug(name));
+/** An app by its Railway project name, or by one of its services' names (projects can have made-up names). */
+const findApp = (name, railway) => {
+  const all = railway?.projects ?? [];
+  const s = slug(name);
+  return all.find((p) => slug(p.name) === s) ?? all.find((p) => p.services?.some((x) => slug(x.name) === s)) ?? null;
+};
 const appsFor = (room, railway) => {
   const all = railway?.projects ?? [];
   const want = room?.railway ?? [];
   if (!want.length) return [];
   if (want.includes('*')) return all;
-  return want.map((w) => all.find((p) => slug(p.name) === slug(w))).filter(Boolean);
+  return want.map((w) => findApp(w, railway)).filter(Boolean);
 };
 const APP_COLOR = { UP: GOOD, DOWN: BAD, DEPLOYING: '#60a5fa', SLEEPING: DIM, EMPTY: DIM, UNKNOWN: WARN };
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
@@ -982,8 +989,10 @@ function RoomBoard({ kind, w = 3.2 }) {
     const P = world.padayon?.data, L = world.lifeos?.data, R = world.railway?.data;
 
     if (kind === 'ceo') {
-      const theme = world.plan?.days?.[DAYS[new Date().getDay()]];
-      line(`${tr('Today')}: ${theme || new Date().toLocaleDateString([], { weekday: 'long' })}`, { size: 50, wgt: 800 });
+      const t = todayTheme(world.plan);
+      const where = t?.room ? world.plan?.rooms?.find((r) => r.kind === t.room)?.name : null;
+      line(`${tr('Today')}: ${t?.label || new Date().toLocaleDateString([], { weekday: 'long' })}`, { size: 50, wgt: 800 });
+      if (where) line(`→ ${where}`, { size: 38, wgt: 700, c: '#fde68a' });
       const note = sourceNote(world.padayon, 'padayon');
       if (note) sub(note);
       (P?.tasks ?? []).slice(0, 4).forEach((t) => {
@@ -1026,6 +1035,8 @@ function RoomBoard({ kind, w = 3.2 }) {
         g.fillStyle = b.profit == null ? DIM : b.profit < 0 ? BAD : GOOD; g.fillText(b.profit == null ? '—' : peso(b.profit), W - 32, y); g.textAlign = 'left';
         y += 70;
       }
+      g.fillStyle = DIM; g.font = F(600, 28);
+      g.fillText(tr('Atlas reads these figures; record sales in Padayon.'), 32, H - 30);
     } else if (kind === 'server') {
       const note = sourceNote(world.railway, 'railway');
       if (note) { sub(note); sub(tr('Add a Railway token to see your apps')); return; }
@@ -1075,8 +1086,20 @@ function RoomBoard({ kind, w = 3.2 }) {
 }
 
 // A desk for an agent of the owner's that is not one of Atlas's helpers: a name plate, screens on (or off when paused).
-function AgentDesk({ label, paused }) {
+const DESK_STATE = {
+  UP: { screen: '#2b4c7e', glow: '#3b6fd6', lamp: '#4ade80', on: 0.5 },
+  DEPLOYING: { screen: '#4a3b12', glow: '#f59e0b', lamp: '#fbbf24', on: 0.45 },
+  DOWN: { screen: '#4a1216', glow: '#ef4444', lamp: '#f87171', on: 0.7 },
+  OFF: { screen: '#1a1f28', glow: '#000000', lamp: '#64748b', on: 0 },
+};
+function AgentDesk({ label, app, paused }) {
   const plate = useMemo(() => textTexture(label || '', { w: 512, h: 128, color: '#1b1f27', font: '800 80px Inter, system-ui, sans-serif' }), [label]);
+  const status = useOffice((s) => (app ? findApp(app, s.world?.railway?.data)?.status ?? 'UNLINKED' : 'UNLINKED'));
+  const st = paused ? DESK_STATE.OFF : DESK_STATE[status] ?? DESK_STATE.OFF;
+  const lampRef = useRef();
+  useFrame(({ clock }) => {
+    if (lampRef.current && status === 'DOWN' && !paused) lampRef.current.emissiveIntensity = 1 + Math.sin(clock.elapsedTime * 6) * 0.8;
+  });
   return (
     <group>
       <RoundedBox args={[1.7, 0.05, 0.85]} radius={0.02} position-y={0.75} castShadow receiveShadow><meshStandardMaterial color="#f4f1ec" roughness={0.35} /></RoundedBox>
@@ -1084,9 +1107,13 @@ function AgentDesk({ label, paused }) {
       {[-0.34, 0.34].map((x) => (
         <group key={x} position={[x, 0, -0.22]}>
           <RoundedBox args={[0.66, 0.4, 0.03]} radius={0.012} position-y={1.12} castShadow><meshStandardMaterial color={METAL} roughness={0.4} /></RoundedBox>
-          <mesh position={[0, 1.13, 0.017]}><planeGeometry args={[0.62, 0.35]} /><meshStandardMaterial color={paused ? '#1a1f28' : '#2b4c7e'} emissive={paused ? '#000' : '#3b6fd6'} emissiveIntensity={paused ? 0 : 0.5} /></mesh>
+          <mesh position={[0, 1.13, 0.017]}><planeGeometry args={[0.62, 0.35]} /><meshStandardMaterial color={st.screen} emissive={st.glow} emissiveIntensity={st.on} /></mesh>
         </group>
       ))}
+      <mesh position={[0.72, 0.84, 0.25]}>
+        <sphereGeometry args={[0.06, 14, 10]} />
+        <meshStandardMaterial ref={lampRef} color={st.lamp} emissive={st.lamp} emissiveIntensity={st.on ? 1.4 : 0.2} toneMapped={false} />
+      </mesh>
       <group position={[0, 0.86, 0.3]} rotation-x={-0.5}>
         <mesh><boxGeometry args={[0.7, 0.18, 0.04]} /><meshStandardMaterial color="#e8d9b5" /></mesh>
         <mesh position-z={0.021}><planeGeometry args={[0.66, 0.16]} /><meshBasicMaterial map={plate} transparent toneMapped={false} /></mesh>
