@@ -467,3 +467,8 @@ body { background: var(--bg); }
 /* first person in boss mode: a dot in the middle, and how to look round */
 .fp-cross { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.45); pointer-events: none; z-index: 30; }
 .fp-hint { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); padding: 5px 12px; border-radius: 999px; background: rgba(8, 12, 20, 0.6); color: #e6edf6; font-size: 0.76rem; pointer-events: none; z-index: 30; }
+
+/* the Discord channel picker, in groups by category */
+.pc-link-group { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.pc-link-head { width: 100%; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; margin-top: 4px; }
+.pc-link-list { max-height: 34vh; overflow-y: auto; }

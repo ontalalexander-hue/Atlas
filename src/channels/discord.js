@@ -634,6 +634,25 @@ ${sendFileHint("discord")}`,
      * vault), done by this logged-in client so the agent never handles the bot token. No deletes.
      */
     admin: (args) => discordAdmin(args, { client }),
+    /**
+     * The text channels the bot can see and post in, in every server it is in, in Discord's own order:
+     * [{ id, name, server, category }]. For the office's room computers, which link to one.
+     */
+    textChannels: () => {
+      const out = [];
+      for (const g of client.guilds.cache.values()) {
+        const me = g.members?.me;
+        const list = [...g.channels.cache.values()].filter((c) => c.type === ChannelType.GuildText || c.type === ChannelType.GuildAnnouncement);
+        const pos = (c) => [c.parent ? (c.parent.rawPosition ?? c.parent.position ?? 0) : -1, c.rawPosition ?? c.position ?? 0];
+        list.sort((a, b) => { const [ap, ac] = pos(a), [bp, bc] = pos(b); return ap - bp || ac - bc; });
+        for (const c of list) {
+          const perms = me ? c.permissionsFor(me) : null;
+          if (perms && !perms.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) continue;
+          out.push({ id: c.id, name: c.name, server: g.name, category: c.parent?.name || null });
+        }
+      }
+      return out;
+    },
     /** Send a file as a real Discord attachment (the send_file tool). Bots upload up to 25 MB on a server without boosts. */
     sendFile: async (channelId, filePath, caption) => {
       if (!fs.existsSync(filePath)) throw new Error(`sendFile: file not found at ${filePath}`);

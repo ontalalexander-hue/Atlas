@@ -195,16 +195,27 @@ officeRouter.get("/world", async (req, res) => {
 const KIND_RE = /^[a-z]{2,20}$/;
 const chatKey = (room) => (room.discord ? `discord:${room.discord}` : `web:office-${room.kind}`);
 
-/** Discord channel id → the title of Atlas's conversation in it ("#general"). */
+/** The text channels Atlas's Discord bot can post in, every server it is in ([] when Discord is not running). */
+function discordServerChannels(req) {
+  try {
+    const list = req.app.get("channelManager")?.channels?.get?.("discord")?.bot?.textChannels?.();
+    return Array.isArray(list) ? list : [];
+  } catch { return []; }
+}
+
+/** Discord channel id → the title of Atlas's conversation in it ("#general"), else the channel's own name. */
 function discordTitles(req) {
   const out = new Map();
+  for (const c of discordServerChannels(req)) out.set(c.id, `#${c.name}`);
   try {
     const convs = new ConversationStore(req.app.get("db"));
     for (const { key, value } of settingsStore?.getByPrefix("channel_conv.discord:") ?? []) {
       const id = key.slice("channel_conv.discord:".length);
       if (!/^\d{5,25}$/.test(id)) continue;   // threads ("<parent>:thread:<id>") are left out
       const conv = convs.get(value);
-      out.set(id, conv?.title || `#${id}`);
+      // a conversation the office started is titled by its key ("discord:<id>"): the channel's name reads better
+      const title = conv?.title && !/^discord:/.test(conv.title) ? conv.title : null;
+      if (title || !out.has(id)) out.set(id, title || `#${id}`);
     }
   } catch { /* no titles: ids are shown */ }
   return out;
@@ -276,7 +287,16 @@ officeRouter.post("/rooms/:kind/mirror", async (req, res) => {
 officeRouter.get("/discord-channels", (req, res) => {
   let running = false;
   try { running = req.app.get("channelManager")?.getStatus?.()?.discord?.status === "running"; } catch { /* shown as not running */ }
-  const list = [...discordTitles(req)].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
+  // every channel the bot can post in, in the server's own order, then any other channel Atlas has talked in
+  const titles = discordTitles(req);
+  const server = discordServerChannels(req);
+  const known = new Set(server.map((c) => c.id));
+  const talked = new Set();
+  try { for (const { key } of settingsStore?.getByPrefix("channel_conv.discord:") ?? []) talked.add(key.slice("channel_conv.discord:".length)); } catch { /* none marked */ }
+  const list = [
+    ...server.map((c) => ({ id: c.id, title: `#${c.name}`, server: c.server, category: c.category, talked: talked.has(c.id) })),
+    ...[...titles].filter(([id]) => !known.has(id)).map(([id, title]) => ({ id, title, server: null, category: null, talked: true })),
+  ];
   res.json({ running, list });
 });
 

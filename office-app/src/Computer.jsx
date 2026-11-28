@@ -56,6 +56,18 @@ export function RoomComputer({ kind }) {
   );
 }
 
+/** The channel list in groups: "Server · Category" (the server left out when Atlas is in only one). */
+function groupChannels(list) {
+  const servers = new Set(list.map((c) => c.server).filter(Boolean));
+  const groups = new Map();
+  for (const c of list) {
+    const head = [servers.size > 1 ? c.server : null, c.category].filter(Boolean).join(' · ') || (c.server ? '' : tr('Other chats'));
+    if (!groups.has(head)) groups.set(head, []);
+    groups.get(head).push(c);
+  }
+  return [...groups];
+}
+
 /** The chat window: history from the server, then this session's messages as they stream in. */
 export function ComputerPanel() {
   const kind = useOffice((s) => s.computer);
@@ -117,10 +129,15 @@ export function ComputerPanel() {
           <div className="pc-link">
             {!channels ? tr('Loading channels…') : channels.error ? channels.error : (
               <>
-                <div className="pc-link-hint">{channels.running ? tr('Discord channels Atlas has talked in. Pick one: what you say here is posted there too, and its conversation shows here.') : tr('Discord is not connected to Atlas right now.')}</div>
+                <div className="pc-link-hint">{channels.running ? tr('Pick a Discord channel: what you say here is posted there too, and its conversation shows here.') : tr('Discord is not connected to Atlas right now.')}</div>
                 <div className="pc-link-list">
-                  {channels.list.map((c) => <button key={c.id} onClick={() => pick(c.id)} className={chat?.linked?.id === c.id ? 'on' : ''}>{c.title}</button>)}
-                  {!channels.list.length && <em>{tr('None yet: send Atlas one message in a Discord channel first.')}</em>}
+                  {groupChannels(channels.list).map(([head, list]) => (
+                    <div key={head} className="pc-link-group">
+                      {head && <div className="pc-link-head">{head}</div>}
+                      {list.map((c) => <button key={c.id} onClick={() => pick(c.id)} className={chat?.linked?.id === c.id ? 'on' : ''}>{c.title}</button>)}
+                    </div>
+                  ))}
+                  {!channels.list.length && <em>{tr('No channels: check that Atlas is in your Discord server and can see its channels.')}</em>}
                 </div>
                 <div className="pc-link-actions">
                   {chat?.linked && <button className="link" onClick={() => pick(null)}>{tr('Unlink')}</button>}
