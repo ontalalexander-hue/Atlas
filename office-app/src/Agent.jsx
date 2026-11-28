@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useOffice, positions } from './store.js';
 import { TOP as ROOF_TOP, roofLift } from './Roof.jsx';
+import { useSightRef } from './sight.js';
 import Person, { lookFor } from './Person.jsx';
 import { SEV, visibleSev, rank, maxSev } from './severity.js';
 
@@ -20,6 +21,8 @@ export default function Agent({ id }) {
   const cinema = useOffice((s) => s.cinema);
   const settings = useOffice((s) => s.settings);
   const roofClosed = useOffice((s) => s.roofClosed);
+  // walking about inside: no tag through a solid wall
+  const sight = useSightRef(() => { const p = positions[id]; return p ? { x: p.x, z: p.z, deck: !!p.deck } : null; });
   const bossOnDeck = useOffice((s) => s.bossOnDeck);
   const bossOutside = useOffice((s) => s.bossOutside);
   // ko'rsatiladigan daraja: panika/ishlamay qolish holatida — kamida signal darajasi
@@ -124,7 +127,6 @@ export default function Agent({ id }) {
         <ringGeometry args={[0.5, 0.72, 48]} />
         <meshBasicMaterial color={sevColor} transparent opacity={0.8} depthWrite={false} toneMapped={false} />
       </mesh>
-      <pointLight ref={alarmLight} position={[0, 2.2, 0]} color="#ff2a2a" intensity={0} distance={5} decay={1.4} />
       {selected && (
         <mesh rotation-x={-Math.PI / 2} position-y={0.02}>
           <ringGeometry args={[0.42, 0.52, 48]} />
@@ -133,7 +135,7 @@ export default function Agent({ id }) {
       )}
       <Person color={a.color} look={lookFor(id)} pose={pose} tie={id === 'manager'} />
       {!(roofClosed && !a.away && !(boss && !bossOutside)) && !(a.deckSeat && positions[id]?.deck && boss && !bossOutside && !bossOnDeck) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-        <div className="tag-wrap">
+        <div className="tag-wrap" ref={sight}>
           {showBubble && <div className={`bubble ${a.bubbleKind}`}>{a.bubble}</div>}
           <div className={`tag ${tagClass}`}>
             {vis && !bad && <span className="tag-flag">{vis === 'minor' ? '⚠' : '❗'}</span>}

@@ -35,13 +35,43 @@ function wallCells(L) {
   return wallCache.get(L);
 }
 
+/** The office's walls by cell (z * W + x): which way each runs and how thick it is, as drawn. */
+const wallShape = new WeakMap();
+function wallInfo(L) {
+  if (!wallShape.has(L)) {
+    const m = new Map();
+    for (const s of L.wallSegments) {
+      const t = s.outer ? 0.28 : s.type === 'solid' ? 0.14 : 0.08;
+      for (let k = s.a; k <= s.b; k++) {
+        const key = s.dir === 'h' ? s.at * L.W + k : k * L.W + s.at;
+        if (!m.has(key)) m.set(key, []);
+        m.get(key).push({ dir: s.dir, t });
+      }
+    }
+    wallShape.set(L, m);
+  }
+  return wallShape.get(L);
+}
+/** Can a point inside the building be stood on: furniture blocks its whole cell, a wall only its own thickness. */
+function freeInside(L, x, z) {
+  const gx = Math.round(x), gz = Math.round(z);
+  if (L.isFree(gx, gz)) return true;
+  const walls = wallInfo(L).get(gz * L.W + gx);
+  if (!walls) return false;
+  for (const w of walls) {
+    if (w.dir === 'h' && Math.abs(z - gz) < w.t / 2 + 0.06) return false;
+    if (w.dir === 'v' && Math.abs(x - gx) < w.t / 2 + 0.06) return false;
+  }
+  return true;
+}
+
 function canStand(L, x, z, onDeck = false) {
   if (onDeck) { const [wx, wz] = L.toWorld([x, z]); return !!L.deck && canStandDeck(L.deck, wx, wz); }
   const m = L.mart?.world;
   for (const [dx, dz] of [[-R, -R], [R, -R], [-R, R], [R, R]]) {
     const cx = x + dx, cz = z + dz;
     if (insideBuilding(L, cx, cz)) {
-      if (!L.isFree(Math.round(cx), Math.round(cz))) return false;
+      if (!freeInside(L, cx, cz)) return false;
     } else {
       const [wx, wz] = L.toWorld([cx, cz]);
       if (!cityWalkable(wx, wz)) return false;
@@ -209,8 +239,8 @@ export function BossController() {
   useEffect(() => {
     if (!boss || !firstPerson) return undefined;
     const canvas = gl.domElement;
-    const prev = { near: camera.near, fov: camera.fov };
-    camera.near = 0.05; camera.fov = 72; camera.updateProjectionMatrix();
+    const prev = { fov: camera.fov };
+    camera.fov = 72; camera.updateProjectionMatrix();
     if (controls) controls.enabled = false;
     look.pitch = -0.05;
     let drag = null;
@@ -246,7 +276,7 @@ export function BossController() {
       document.removeEventListener('pointerlockchange', onLock);
       unsub();
       if (document.pointerLockElement === canvas) document.exitPointerLock();
-      camera.near = prev.near; camera.fov = prev.fov; camera.updateProjectionMatrix();
+      camera.fov = prev.fov; camera.updateProjectionMatrix();
       if (controls) controls.enabled = true;
       jump.behind = true;
     };
@@ -268,6 +298,7 @@ export function BossController() {
       controls.target.copy(o.target);
       camera.position.copy(o.pos);
       controls.minDistance = 8; controls.maxDistance = 110 * f; controls.maxPolarAngle = 1.5;
+      camera.near = 0.5; camera.updateProjectionMatrix();
     }
     controls.update();
   }, [boss, controls, camera, L]);
@@ -277,6 +308,8 @@ export function BossController() {
     const dt = Math.min(dtRaw, 0.1);
     const p = positions.boss;
     const st = useOffice.getState();
+    const near = st.firstPerson ? 0.05 : 0.15;
+    if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
 
     // kameraga nisbatan yo'nalish (first person: the way you face; the arrow keys turn, A and D step sideways)
     const fp = !!st.firstPerson;
@@ -301,8 +334,9 @@ export function BossController() {
       mx /= len; mz /= len;
       const sp = (run ? RUN : WALK) * dt;
       const nx = p.x + mx * sp, nz = p.z + mz * sp;
-      if (canStand(L, nx, p.z, onDeck)) p.x = nx;
-      if (canStand(L, p.x, nz, onDeck)) p.z = nz;
+      const stuck = !canStand(L, p.x, p.z, onDeck);
+      if (stuck || canStand(L, nx, p.z, onDeck)) p.x = nx;
+      if (stuck || canStand(L, p.x, nz, onDeck)) p.z = nz;
       if (!fp) {
         let diff = Math.atan2(mx, mz) - p.rot;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));

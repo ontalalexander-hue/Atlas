@@ -4,6 +4,7 @@
 // Atlas to a department's agent, and the answer comes back to the desk. They do no work of their own.
 import { useEffect, useRef, useState } from 'react';
 import { relayFromDesk } from './live.js';
+import { useSightRef } from './sight.js';
 import { Html } from '@react-three/drei';
 import { useOffice } from './store.js';
 import Person, { lookFor } from './Person.jsx';
@@ -35,12 +36,13 @@ function Receptionist({ who, seat, bubble: visitorBubble, busy }) {
   bubble = own || bubble;
   const [wx, wz] = toWorld(seat);
   const showTag = !(roofClosed && !(boss && !bossOutside));
+  const sight = useSightRef(() => ({ x: seat[0], z: seat[1] }));
   return (
     <group position={[wx, 0, wz]}>
       <Person color={who.color} look={lookFor(who.id)} pose={pose} />
       {showTag && (
         <Html position={[0, 2.05, 0]} center distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-          <div className="tag-wrap">
+          <div className="tag-wrap" ref={sight}>
             {bubble && <div className="bubble">{bubble}</div>}
             <div className="tag"><span className="dot" style={{ background: who.color }} />{who.name}<span className="tag-role">{tr('Front desk · AI')}</span></div>
           </div>

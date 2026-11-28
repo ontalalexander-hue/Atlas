@@ -156,7 +156,7 @@ function Deck({ D, lamps }) {
           </mesh>
         );
       })}
-      {lamps > 0.3 && <pointLight position={[cx, TOP + 2.4, cz]} intensity={16 * lamps} distance={14} decay={1.6} color="#ffd9a0" />}
+      <pointLight position={[cx, TOP + 2.4, cz]} intensity={lamps > 0.3 ? 16 * lamps : 0} distance={14} decay={1.6} color="#ffd9a0" />
     </group>
   );
 }

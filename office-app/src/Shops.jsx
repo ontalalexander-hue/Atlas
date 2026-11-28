@@ -77,8 +77,6 @@ function Store({ s, lamps }) {
       {!s.big && (
         <mesh position={[cx, 3.05, s.z0 - 0.7]} rotation-x={0.35}><boxGeometry args={[w - 0.4, 0.06, 1.4]} /><meshStandardMaterial color={s.band} roughness={0.8} /></mesh>
       )}
-      {/* a light over the entrance at night */}
-      {lamps > 0.3 && <pointLight position={[cx, 3.2, s.z0 - 2]} intensity={10 * lamps} distance={9} decay={1.6} color="#fff1cf" />}
     </group>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import { useSightRef } from './sight.js';
 import { useOffice, positions } from './store.js';
 import Person, { lookFor } from './Person.jsx';
 import { overviewPose } from './Look.jsx';
@@ -102,6 +103,7 @@ function Visitor({ id }) {
     return () => clearTimeout(t);
   }, [v?.bubble, v?.bubbleUntil]);
 
+  const sight = useSightRef(() => { const p = positions[`v:${id}`]; return p ? { x: p.x, z: p.z } : null; });
   useFrame((_, dtRaw) => {
     if (!v || !root.current) return;
     const pos = positions[`v:${id}`];
@@ -143,7 +145,7 @@ function Visitor({ id }) {
       <Person color={v.color} look={lookFor(`visitor-${v.seed}`)} pose={pose} />
       {!(roofClosed && inside && !(boss && !bossOutside)) && (
         <Html position={[0, 2.05, 0]} center distanceFactor={15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
-          <div className="tag-wrap">
+          <div className="tag-wrap" ref={sight}>
             {showBubble && <div className={`bubble ${v.bubbleKind || ''}`}>{v.bubble}</div>}
             <div className="tag visitor"><span className="dot" style={{ background: v.color }} />{v.icon} {v.label}</div>
           </div>

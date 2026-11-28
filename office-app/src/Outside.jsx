@@ -39,7 +39,7 @@ function StreetLamp({ lamps }) {
         <sphereGeometry args={[0.14, 16, 12]} />
         <meshStandardMaterial color="#fff2cf" emissive="#ffd98a" emissiveIntensity={0.15 + lamps * 3} />
       </mesh>
-      {lamps > 0.3 && <pointLight position={[0.6, 3, 0]} intensity={10 * lamps} distance={9} decay={1.6} color="#ffd9a0" />}
+      <pointLight position={[0.6, 3, 0]} intensity={lamps > 0.3 ? 10 * lamps : 0} distance={9} decay={1.6} color="#ffd9a0" />
     </group>
   );
 }

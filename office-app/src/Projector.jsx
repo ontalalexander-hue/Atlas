@@ -54,7 +54,6 @@ export function ProjectorScreen({ id, w = 3.4 }) {
         <RoundedBox args={[0.5, 0.16, 0.42]} radius={0.04}><meshStandardMaterial color="#dfe3e8" roughness={0.4} /></RoundedBox>
         <mesh position={[0, 0, -0.22]} rotation-x={Math.PI / 2}><cylinderGeometry args={[0.06, 0.06, 0.04, 16]} /><meshStandardMaterial color="#1b1f27" emissive={info ? '#cfe3ff' : '#000000'} emissiveIntensity={info ? 1.5 : 0} /></mesh>
       </group>
-      {info && <pointLight position={[0, 1.15 + h / 2, 1.2]} intensity={2.5} distance={4} color="#cfe3ff" />}
     </group>
   );
 }
