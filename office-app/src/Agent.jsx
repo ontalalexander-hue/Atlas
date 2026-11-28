@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useOffice, positions } from './store.js';
+import { TOP as ROOF_TOP, roofLift } from './Roof.jsx';
 import Person, { lookFor } from './Person.jsx';
 import { SEV, visibleSev, rank, maxSev } from './severity.js';
 
@@ -19,6 +20,7 @@ export default function Agent({ id }) {
   const cinema = useOffice((s) => s.cinema);
   const settings = useOffice((s) => s.settings);
   const roofClosed = useOffice((s) => s.roofClosed);
+  const bossOnDeck = useOffice((s) => s.bossOnDeck);
   const bossOutside = useOffice((s) => s.bossOutside);
   // ko'rsatiladigan daraja: panika/ishlamay qolish holatida — kamida signal darajasi
   const rawSev = a ? maxSev(a.sev ?? 'info', a.state === 'panic' ? (a.alarm?.severity ?? 'info') : a.down ? (a.down.severity ?? 'info') : 'info') : 'info';
@@ -74,7 +76,8 @@ export default function Agent({ id }) {
     }
 
     const [wx, wz] = toWorld([pos.x, pos.z]);
-    root.current.position.set(wx, 0, wz);
+    // up on the view deck, riding along when the roof lifts
+    root.current.position.set(wx, pos.deck ? ROOF_TOP + roofLift.y : 0, wz);
     root.current.rotation.y = pos.rot;
     const panic = a.state === 'panic';
     const down = a.state === 'down';
@@ -129,7 +132,7 @@ export default function Agent({ id }) {
         </mesh>
       )}
       <Person color={a.color} look={lookFor(id)} pose={pose} tie={id === 'manager'} />
-      {!(roofClosed && !a.away && !(boss && !bossOutside)) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+      {!(roofClosed && !a.away && !(boss && !bossOutside)) && !(a.deckSeat && positions[id]?.deck && boss && !bossOutside && !bossOnDeck) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
         <div className="tag-wrap">
           {showBubble && <div className={`bubble ${a.bubbleKind}`}>{a.bubble}</div>}
           <div className={`tag ${tagClass}`}>

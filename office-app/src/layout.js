@@ -4,6 +4,7 @@
 // agents have a desk and what a room shows all come from the plan, which lives in the owner's settings, never here.
 import { tr } from './i18n.js';
 import { martLayout } from './mart.js';
+import { deckLayout } from './deck.js';
 
 // Rol nomidan xona turi
 export function kindOf(id = '') {
@@ -177,7 +178,7 @@ export function buildLayout(team, plan = null) {
   // ---- middle row ----
   room('market', [1, 10], [12, 19]);
   board('market', 5.5, 11, 3.6);
-  station('market', 5, 14);
+  station('market', 5, 14); station('market', 2, 14);
   decor.push({ type: 'stalls', at: [5.5, 17.4], kind: 'market' });
   for (let x = 1; x <= 10; x++) block(x, 17);
   plant(1, 12); plant(10, 12);
@@ -219,6 +220,7 @@ export function buildLayout(team, plan = null) {
   room('church', [1, 10], [24, 32]);
   board('church', 4.5, 23, 3.0);
   for (const z of [27, 30]) for (const x of [2, 5, 8]) add('schoolDesk', [[x, z]]);
+  station('church', 4, 25); station('church', 2, 25);
   plant(1, 24); plant(10, 32);
   windows.push(['left', 26], ['left', 30], ['bottom', 4], ['bottom', 8]);
 
@@ -226,6 +228,7 @@ export function buildLayout(team, plan = null) {
   board('personal', 15.5, 23, 3.2);
   add('armchairs', [[13, 28], [13, 29]]); add('cafeTable', [[15, 28]]);
   add('bookshelf', [[18, 32], [19, 32]]); add('floorLamp', [[12, 32]]);
+  station('personal', 18, 26);
   plant(19, 24); plant(12, 24);
   windows.push(['bottom', 15.5]);
 
@@ -251,6 +254,15 @@ export function buildLayout(team, plan = null) {
   lounge.beanBags.forEach((c) => block(...c));
   block(...lounge.coffee);
   plant(21, 32); plant(25, 32); plant(32, 32);
+  // the lift up to the view deck, in the lobby's left wall
+  const lift = { cell: [21, 30], front: [22, 30], rot: -Math.PI / 2 };
+  add('lift', [lift.cell]);
+  // the projectors: on the conference room's end wall, facing down the table, and on the library's right wall
+  decor.push({ type: 'projector', at: [14, 14.5], rot: Math.PI / 2, id: 'meeting', w: 3.4 });
+  decor.push({ type: 'projector', at: [48, 28], rot: -Math.PI / 2, id: 'library', w: 3.0 });
+  const projectors = [{ id: 'meeting', at: [15.2, 14.5] }, { id: 'library', at: [46.4, 28.5] }];
+  // the schedule board, on the conference room's glass wall, facing the hallway and the lobby
+  decor.push({ type: 'scheduleBoard', at: [21.5, 19], w: 5.2 });
   decor.push({ type: 'entrance' });
   windows.push(['bottom', 23], ['bottom', 34.5]);
 
@@ -285,8 +297,9 @@ export function buildLayout(team, plan = null) {
     }
     return null;
   };
-  for (const r of roles) {
-    const s = take(helperRoom[r.id] ?? 'growth');
+  // departments' agents first, each in its own room; then the helpers in the rooms the plan gives them
+  for (const r of [...roles.filter((x) => x.room), ...roles.filter((x) => !x.room)]) {
+    const s = take(r.room ?? helperRoom[r.id] ?? 'growth');
     if (!s) continue;
     desks[r.id] = { desk: s.desk, seat: s.seat, room: s.room };
     block(...s.desk);
@@ -331,10 +344,22 @@ export function buildLayout(team, plan = null) {
   const roomOf = (id) => rooms.find((r) => r.id === id);
   const roomAt = ([x, z]) => rooms.find((r) => r.kind !== 'corridor' && x >= r.x[0] && x <= r.x[1] && z >= r.z[0] && z <= r.z[1]) ?? open;
   const doorX = (DOOR[0] + DOOR[1]) / 2;
+  const grid = ([x, z]) => [x + W / 2 - 0.5, z + H / 2 - 0.5];
+
+  // where the boss can sit down (grid units, facing rot): the conference table, the couch, every desk, the computers
+  const seats = [
+    ...meeting.seats.map((s, i) => ({ id: `meet${i}`, at: s, rot: i < meeting.seats.length / 2 ? 0 : Math.PI })),
+    ...lounge.couchSeats.map((s, i) => ({ id: `couch${i}`, at: [s[0], s[1] - 0.15], rot: Math.PI })),
+    ...Object.entries(desks).map(([id, d]) => ({ id: `desk:${id}`, at: d.seat, rot: Math.PI, desk: id })),
+    ...computers.map((c) => ({ id: `pc:${c.kind}`, at: [c.front[0], c.front[1] - 0.15], rot: Math.PI, computer: c.kind })),
+  ];
+  // the view deck on the roof: its seats in grid units too, for the agents' visits
+  const D = deckLayout(W, H);
+  const deck = { ...D, seatCells: D.seats.map((s) => ({ ...s, cell: grid(s.at) })), arriveCell: grid(D.arrive), doorCell: grid(D.door) };
 
   return {
     W, H, cols: 1, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
-    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception, computers,
+    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception, computers, lift, deck, seats, projectors,
     mart: martInGrid(toWorld([-10, 14.5]), W, H),
     // where visitors from the channels stand, in front of the reception desk
     frontDesk: { spots: [[28, 27], [26, 27], [30, 27], [27, 28], [29, 28], [25, 28], [31, 28]] },

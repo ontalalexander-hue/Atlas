@@ -7,9 +7,11 @@ import { Html } from '@react-three/drei';
 import { useOffice, positions } from './store.js';
 import Person from './Person.jsx';
 import { overviewPose } from './Look.jsx';
-import { TOP as ROOF_TOP } from './Roof.jsx';
+import { TOP as ROOF_TOP, roofLift } from './Roof.jsx';
 import { cityWalkable } from './city.js';
 import { martFree } from './mart.js';
+import { canStandDeck } from './deck.js';
+import { DESK as FRONT_DESK } from './Reception.jsx';
 
 const BOSS_CEILING = ROOF_TOP - 0.7;
 import { tr, STATE_LABEL } from './i18n.js';
@@ -33,7 +35,8 @@ function wallCells(L) {
   return wallCache.get(L);
 }
 
-function canStand(L, x, z) {
+function canStand(L, x, z, onDeck = false) {
+  if (onDeck) { const [wx, wz] = L.toWorld([x, z]); return !!L.deck && canStandDeck(L.deck, wx, wz); }
   const m = L.mart?.world;
   for (const [dx, dz] of [[-R, -R], [R, -R], [-R, R], [R, R]]) {
     const cx = x + dx, cz = z + dz;
@@ -49,8 +52,14 @@ function canStand(L, x, z) {
 }
 
 // Monitorlar: stollar (agent loglari), monitoring devori (xizmatlar), majlis ekrani (umumiy lenta)
-function screensOf(L, agents) {
+function screensOf(L, agents, onDeck = false) {
+  // up on the deck there is only the lift back down
+  if (onDeck) return L.deck ? [{ kind: 'lift', id: 'down', label: tr('the lift'), at: L.deck.doorCell }] : [];
   const list = [];
+  if (L.lift) list.push({ kind: 'lift', id: 'up', label: tr('the lift'), at: L.lift.front });
+  for (const pj of L.projectors ?? []) list.push({ kind: 'projector', id: pj.id, label: tr('the projector'), at: pj.at });
+  // the receptionists, across the front desk
+  (L.reception?.seats ?? []).forEach((s, i) => { if (FRONT_DESK[i]) list.push({ kind: 'reception', id: FRONT_DESK[i].name, label: FRONT_DESK[i].name, at: [s[0], 26.25] }); });
   for (const [deskId, d] of Object.entries(L.desks)) {
     const owner = Object.values(agents).find((a) => a.deskId === deskId);
     if (owner) list.push({ kind: 'desk', id: owner.id, label: owner.name, at: [d.desk[0], d.desk[1] + 0.9] });
@@ -64,6 +73,84 @@ function screensOf(L, agents) {
   if (L.meeting.screen) list.push({ kind: 'feed', id: 'feed', label: tr('Meeting screen'), at: L.meeting.view ?? [L.meeting.screen.x, 14.6] });
   for (const c of L.computers ?? []) list.push({ kind: 'computer', id: c.kind, label: L.plan?.[c.kind]?.name || c.kind, at: c.front });
   return list;
+}
+
+/** Where the boss can sit: the floor's seats, the mart's, or the deck's (grid units). */
+function seatsOf(L, onDeck) {
+  if (onDeck) return (L.deck?.seatCells ?? []).map((s) => ({ id: `deck:${s.id}`, at: s.cell, rot: s.rot }));
+  const mart = (L.mart?.spots ?? []).filter((s) => s.sit).map((s) => ({ id: `mart:${s.id}`, at: s.cell, rot: s.rot }));
+  return [...(L.seats ?? []), ...mart];
+}
+/** Is someone (an agent) already in this seat? */
+function seatTaken(seat, onDeck) {
+  for (const [id, p] of Object.entries(positions)) {
+    if (id === 'boss' || !p || !!p.deck !== onDeck) continue;
+    if (Math.hypot(p.x - seat.at[0], p.z - seat.at[1]) < 0.55) return true;
+  }
+  return false;
+}
+// A camera jump asked for by the lift: the next frame puts the camera behind the boss at the new place.
+const jump = { pending: false };
+
+/** E, or a click on the prompt: stand up, take the lift, talk to the desk, use a computer, open a screen, or sit. */
+export function bossAction() {
+  const s = useOffice.getState();
+  const L = s.layout;
+  const p = positions.boss;
+  if (!s.boss || !p) return;
+  if (p.sit) { standUp(L, p); return; }
+  const { screen: near, seat: nearSeat } = inReach(L, s.agents, p);
+  if (near?.kind === 'lift') {
+    if (near.id === 'up' && L.deck) { Object.assign(p, { x: L.deck.arriveCell[0], z: L.deck.arriveCell[1], rot: 0, deck: true }); roofLift.snap = true; }
+    else Object.assign(p, { x: L.lift.front[0], z: L.lift.front[1], rot: Math.PI / 2, deck: false });
+    useOffice.setState({ bossOnDeck: !!p.deck, bossOutside: !!p.deck, nearScreen: null });
+    jump.pending = true;
+    return;
+  }
+  if (near?.kind === 'projector') { s.setProjectorOpen(s.projectorOpen ? null : near.id); return; }
+  if (near?.kind === 'reception') { s.setReception(s.reception ? null : near.id); return; }
+  if (near?.kind === 'computer') {
+    if (s.computer) { s.setComputer(null); return; }
+    s.setComputer(near.id);
+    const seat = (L.seats ?? []).find((x) => x.computer === near.id);
+    if (seat && !seatTaken(seat, false)) sitDown(p, seat);
+    return;
+  }
+  if (near) { s.setScreenOpen(!s.screenOpen); return; }
+  if (nearSeat) sitDown(p, nearSeat);
+}
+
+/** The screen (lift, desk, computer, monitor) and the free seat within reach of where the boss stands. */
+function inReach(L, agents, p) {
+  const onDeck = !!p.deck;
+  let screen = null, bestD = 1.9;
+  for (const s of screensOf(L, agents, onDeck)) {
+    const d = Math.hypot(s.at[0] - p.x, s.at[1] - p.z);
+    if (d < bestD) { screen = s; bestD = d; }
+  }
+  let seat = null;
+  if (!p.sit && !screen) {
+    let sd = 1.1;
+    for (const s of seatsOf(L, onDeck)) {
+      const d = Math.hypot(s.at[0] - p.x, s.at[1] - p.z);
+      if (d < sd && !seatTaken(s, onDeck)) { seat = s; sd = d; }
+    }
+  }
+  return { screen, seat };
+}
+function sitDown(p, seat) {
+  Object.assign(p, { sit: seat, x: seat.at[0], z: seat.at[1], rot: seat.rot });
+  useOffice.setState({ bossSeat: seat.id.replace(/^deck:/, ''), nearSeat: null });
+}
+function standUp(L, p) {
+  const seat = p.sit;
+  p.sit = null;
+  useOffice.setState({ bossSeat: null });
+  // step out of the chair: in front of it if that is clear, else the nearest clear spot round it
+  const fx = Math.sin(seat.rot), fz = Math.cos(seat.rot);
+  const tries = [[fx * 0.7, fz * 0.7], [-fx * 0.7, -fz * 0.7]];
+  for (let r = 0.6; r <= 1.8; r += 0.4) for (let a = 0; a < 8; a++) tries.push([Math.sin(a * Math.PI / 4) * r, Math.cos(a * Math.PI / 4) * r]);
+  for (const [dx, dz] of tries) if (canStand(L, seat.at[0] + dx, seat.at[1] + dz, !!p.deck)) { p.x = seat.at[0] + dx; p.z = seat.at[1] + dz; return; }
 }
 
 export function BossController() {
@@ -97,9 +184,8 @@ export function BossController() {
       if (k === 'c' && !s.boss) { s.setCinema(!s.cinema); return; }
       if (!s.boss) return;
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-      if (k === 'e' && s.nearScreen?.kind === 'computer') s.setComputer(s.computer ? null : s.nearScreen.id);
-      else if (k === 'e' && s.nearScreen) s.setScreenOpen(!s.screenOpen);
-      if (k === 'escape') { if (s.screenOpen) s.setScreenOpen(false); else s.setBoss(false); }
+      if (k === 'e') bossAction();
+      if (k === 'escape') { if (s.screenOpen) s.setScreenOpen(false); else if (s.reception) s.setReception(null); else if (s.projectorOpen) s.setProjectorOpen(null); else s.setBoss(false); }
     };
     const up = (e) => { keys[e.key.toLowerCase()] = false; };
     const blur = () => { for (const k in keys) keys[k] = false; };
@@ -146,12 +232,15 @@ export function BossController() {
     const len = Math.hypot(mx, mz);
     const run = !!keys.shift;
     let moving = false;
-    if (len > 0 && !st.screenOpen) {
+    const onDeck = !!p.deck;
+    // walking off gets you out of the chair
+    if (len > 0 && p.sit && !st.screenOpen) standUp(L, p);
+    if (len > 0 && !st.screenOpen && !p.sit) {
       mx /= len; mz /= len;
       const sp = (run ? RUN : WALK) * dt;
       const nx = p.x + mx * sp, nz = p.z + mz * sp;
-      if (canStand(L, nx, p.z)) p.x = nx;
-      if (canStand(L, p.x, nz)) p.z = nz;
+      if (canStand(L, nx, p.z, onDeck)) p.x = nx;
+      if (canStand(L, p.x, nz, onDeck)) p.z = nz;
       let diff = Math.atan2(mx, mz) - p.rot;
       diff = Math.atan2(Math.sin(diff), Math.cos(diff));
       p.rot += diff * Math.min(1, dt * 14);
@@ -159,14 +248,25 @@ export function BossController() {
     }
     pose.current.moving = moving;
     pose.current.run = run;
+    // seated at a computer that is open: typing
+    pose.current.mode = p.sit ? (st.computer && p.sit.computer ? 'working' : 'sit') : 'idle';
 
     const [wx, wz] = L.toWorld([p.x, p.z]);
-    root.current.position.set(wx, 0, wz);
+    const floorY = onDeck ? ROOF_TOP + roofLift.y : 0;
+    root.current.position.set(wx, floorY, wz);
     root.current.rotation.y = p.rot;
+
+    // just off the lift: the camera comes along, behind and a little above on the deck, off to the side in the lobby
+    if (jump.pending) {
+      jump.pending = false;
+      controls.target.set(wx, floorY + 1.2, wz);
+      if (onDeck) camera.position.set(wx - Math.sin(p.rot) * 4, floorY + 4.6, wz - Math.cos(p.rot) * 4);
+      else camera.position.set(wx + 3.5, 2.6, wz + 3.5);
+    }
 
     // kamera ergashadi
     const k = Math.min(1, dt * 8);
-    const dx = (wx - controls.target.x) * k, dz = (wz - controls.target.z) * k, dy = (1.2 - controls.target.y) * k;
+    const dx = (wx - controls.target.x) * k, dz = (wz - controls.target.z) * k, dy = (floorY + 1.2 - controls.target.y) * k;
     controls.target.x += dx; controls.target.y += dy; controls.target.z += dz;
     camera.position.x += dx; camera.position.y += dy; camera.position.z += dz;
     // the camera keeps the distance you chose, but never on the far side of a wall. When a wall is close behind
@@ -180,7 +280,7 @@ export function BossController() {
         const freeAlong = (ux, uz) => {
           for (let d = 0.6; d < want; d += 0.2) {
             const gx = p.x + ux * d, gz = p.z + uz * d;
-            if (insideBuilding(L, gx, gz) && wallCells(L).has(Math.round(gz) * L.W + Math.round(gx))) return Math.max(1.2, d - 0.45);
+            if (!onDeck && insideBuilding(L, gx, gz) && wallCells(L).has(Math.round(gz) * L.W + Math.round(gx))) return Math.max(1.2, d - 0.45);
           }
           return want;
         };
@@ -208,8 +308,11 @@ export function BossController() {
     }
 
     // outside or in: the roof's glass band shows from the street, and inside the camera stays under the ceiling
-    const outside = !insideBuilding(L, p.x, p.z);
+    // (up on the deck counts as outside: the roof is under your feet, not over your head)
+    const outside = onDeck || !insideBuilding(L, p.x, p.z);
     if (outside !== !!st.bossOutside) useOffice.setState({ bossOutside: outside });
+    if (onDeck !== !!st.bossOnDeck) useOffice.setState({ bossOnDeck: onDeck });
+    if (onDeck && camera.position.y < floorY + 0.8) camera.position.y = floorY + 0.8;
     // inside the mart its roof goes and its walls drop, and the camera stays low
     const inMart = !!L.mart && L.mart.world.contains(wx, wz);
     if (inMart !== !!st.bossInMart) useOffice.setState({ bossInMart: inMart });
@@ -217,19 +320,16 @@ export function BossController() {
     if (!outside && st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
 
     // yaqin monitor
-    let best = null, bestD = 1.9;
-    for (const s of screensOf(L, st.agents)) {
-      const d = Math.hypot(s.at[0] - p.x, s.at[1] - p.z);
-      if (d < bestD) { best = s; bestD = d; }
-    }
+    const { screen: best, seat } = inReach(L, st.agents, p);
     const key = best ? `${best.kind}:${best.id}` : null;
     if (key !== lastNear.current) { lastNear.current = key; st.setNearScreen(best); }
+    if ((seat?.id ?? null) !== (st.nearSeat?.id ?? null)) useOffice.setState({ nearSeat: seat });
 
     // agentlar salomlashadi
     const now = Date.now();
     for (const a of Object.values(st.agents)) {
       const ap = positions[a.id];
-      if (!ap) continue;
+      if (!ap || !!ap.deck !== onDeck) continue;
       const d = Math.hypot(ap.x - p.x, ap.z - p.z);
       if (d < 1.6) {
         if (['idle', 'talking'].includes(a.state)) ap.rot = Math.atan2(p.x - ap.x, p.z - ap.z);
@@ -266,7 +366,7 @@ export function BossController() {
 const LV = { error: 'err', warn: 'warn', info: '' };
 
 export function BossHud() {
-  const { boss, nearScreen, screenOpen, setScreenOpen, setBoss, agents, services, feed } = useOffice();
+  const { boss, nearScreen, screenOpen, setScreenOpen, setBoss, agents, services, feed, bossSeat, nearSeat, reception } = useOffice();
   if (!boss) return null;
   const agent = nearScreen?.kind === 'desk' ? agents[nearScreen.id] : null;
 
@@ -277,22 +377,39 @@ export function BossHud() {
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> {tr('walk')}</span>
         <span><kbd>Shift</kbd> {tr('run')}</span>
         <span>🖱 {tr('camera')}</span>
-        <span><kbd>E</kbd> {tr('monitor')}</span>
+        <span><kbd>E</kbd> {tr('use · sit · talk')}</span>
         <button onClick={() => setBoss(false)}>{tr('Exit')} <kbd>Esc</kbd></button>
       </div>
 
-      {nearScreen && !screenOpen && nearScreen.kind === 'computer' && (
-        <button className="boss-prompt" onClick={() => useOffice.getState().setComputer(nearScreen.id)}>
+      {bossSeat && (
+        <button className="boss-prompt" onClick={bossAction}><kbd>E</kbd> {tr('Stand up')}</button>
+      )}
+      {!bossSeat && nearScreen?.kind === 'lift' && (
+        <button className="boss-prompt" onClick={bossAction}>
+          <kbd>E</kbd> {nearScreen.id === 'up' ? tr('Take the lift up to the view deck') : tr('Take the lift back down')}
+        </button>
+      )}
+      {!bossSeat && nearScreen?.kind === 'reception' && !reception && (
+        <button className="boss-prompt" onClick={bossAction}><kbd>E</kbd> {tr('Talk to {name} at the front desk', { name: nearScreen.label })}</button>
+      )}
+      {!bossSeat && nearScreen?.kind === 'projector' && (
+        <button className="boss-prompt" onClick={bossAction}><kbd>E</kbd> {nearScreen.id === 'meeting' ? tr('Use the projector · present, or call a meeting') : tr('Use the projector · show your screen or a video')}</button>
+      )}
+      {!bossSeat && !nearScreen && nearSeat && (
+        <button className="boss-prompt" onClick={bossAction}><kbd>E</kbd> {tr('Sit down')}</button>
+      )}
+      {!bossSeat && nearScreen && !screenOpen && nearScreen.kind === 'computer' && (
+        <button className="boss-prompt" onClick={bossAction}>
           <kbd>E</kbd> {tr('Use the {label} computer', { label: nearScreen.label })}
         </button>
       )}
-      {nearScreen && !screenOpen && nearScreen.kind !== 'computer' && (
+      {!bossSeat && nearScreen && !screenOpen && !['computer', 'lift', 'reception', 'projector'].includes(nearScreen.kind) && (
         <button className="boss-prompt" onClick={() => setScreenOpen(true)}>
           <kbd>E</kbd> {tr('Open the {label} monitor', { label: nearScreen.label })}
         </button>
       )}
 
-      {nearScreen && screenOpen && (
+      {nearScreen && screenOpen && !['computer', 'lift', 'reception', 'projector'].includes(nearScreen.kind) && (
         <div className="term-wrap" onClick={() => setScreenOpen(false)}>
           <div className={`term ${agent?.state === 'panic' ? 'panic' : ''}`} onClick={(e) => e.stopPropagation()}>
             <div className="term-bar" style={{ background: agent?.state === 'panic' ? '#ff2d3a' : agent?.color ?? '#2b2f36' }}>

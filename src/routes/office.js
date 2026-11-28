@@ -32,7 +32,9 @@ import { createOfficeStatus, channelBoard, heartbeatBoard, cronBoard, memoryBoar
 import { getHeartbeatStatus } from "../lib/heartbeat.js";
 import { getCronStatus } from "../lib/cron.js";
 import config from "../config/env.js";
-import { createOfficeWorld, normalizePlan } from "../lib/office-world.js";
+import { createOfficeWorld, normalizePlan, PLAN_SETTING } from "../lib/office-world.js";
+import { departmentTeam } from "../lib/departments.js";
+import { scheduleBoard } from "../lib/office-schedule.js";
 import { offsiteStatus } from "../lib/offsite-backup.js";
 
 /** The off-site backup as the memory board shows it: set up or not, when the last good copy was made, whether the last try failed. */
@@ -100,7 +102,7 @@ officeRouter.use((req, _res, next) => {
 });
 
 officeRouter.get("/team", (_req, res) => {
-  res.json({ team: officeTeam(getAgents()), project: PROJECT });
+  res.json({ team: wholeTeam(), project: PROJECT });
 });
 
 officeRouter.get("/usage", (req, res) => {
@@ -131,7 +133,6 @@ officeRouter.get("/status", (req, res) => {
 });
 
 // ── The room plan and the world it shows ─────────────────────────────────────────────────────────────────────────
-const PLAN_SETTING = "office.plan";
 const PLAN_MAX_CHARS = 20_000;
 const world = createOfficeWorld();
 
@@ -141,6 +142,21 @@ function currentPlan() {
   const from = raw ? "settings" : process.env.ATLAS_OFFICE_PLAN ? "environment" : "default";
   return { ...normalizePlan(raw ?? process.env.ATLAS_OFFICE_PLAN ?? null), from };
 }
+
+/** The helpers, then the departments' agents. */
+function wholeTeam() {
+  let depts = [];
+  try { depts = departmentTeam(currentPlan().plan); } catch { /* the helpers alone */ }
+  return officeTeam([...getAgents(), ...depts]);
+}
+
+// The schedule board: the plan's jobs (run elsewhere, shown only) and Atlas's own, around now.
+officeRouter.get("/schedule", (_req, res) => {
+  const { plan } = currentPlan();
+  let atlas = [];
+  try { atlas = getCronStatus()?.jobs ?? []; } catch { /* the plan's jobs alone */ }
+  res.json(scheduleBoard(plan.schedule, atlas, { zone: config.TIMEZONE || "UTC" }));
+});
 
 officeRouter.get("/plan", (_req, res) => {
   const { plan, problems, from } = currentPlan();
@@ -241,7 +257,9 @@ officeRouter.post("/rooms/:kind/mirror", async (req, res) => {
   if (!text) return res.status(400).json({ error: "Nothing to post." });
   const cm = req.app.get("channelManager");
   try {
-    await cm.sendMessage("discord", room.discord, `💻 **Alex** · office computer (${room.name}): ${text}`);
+    // who typed it: the name the owner goes by in the office (plain text only, no Discord markup)
+    const who = String(req.body?.who ?? "").replace(/[^\p{L}\p{N} ._-]/gu, "").trim().slice(0, 30) || "The owner";
+    await cm.sendMessage("discord", room.discord, `💻 **${who}** · office computer (${room.name}): ${text}`);
     if (reply) await cm.sendMessage("discord", room.discord, reply);
     res.json({ ok: true });
   } catch (err) {
@@ -265,7 +283,7 @@ officeRouter.get("/events", (req, res) => {
   });
   const send = (ev) => { try { res.write(`data: ${JSON.stringify(ev)}\n\n`); } catch { /* the page went away */ } };
 
-  send({ hook: "Snapshot", project: PROJECT, team: officeTeam(getAgents()), services: [], logs: [] });
+  send({ hook: "Snapshot", project: PROJECT, team: wholeTeam(), services: [], logs: [] });
   // A turn already under way when the page opens: Atlas is at its desk, not idle.
   if (activeTurnList().length) send({ hook: "UserPromptSubmit", prompt: "" });
 

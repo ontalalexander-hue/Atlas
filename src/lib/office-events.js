@@ -41,6 +41,8 @@ export function officeTeam(agents = []) {
       name: clip(a.name || a.id, 30),
       kind: KIND[a.id] || "generic",
       ...(/^#[0-9a-f]{6}$/i.test(a.color || "") ? { color: a.color } : {}),
+      // a department's agent sits in its own room
+      ...(typeof a.room === "string" && /^[a-z]{2,20}$/.test(a.room) ? { room: a.room } : {}),
     }));
 }
 

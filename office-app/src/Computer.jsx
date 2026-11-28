@@ -8,6 +8,7 @@ import { RoundedBox } from '@react-three/drei';
 import { useOffice } from './store.js';
 import { loadRoomChat, sendRoomMessage, linkRoom, loadDiscordChannels } from './live.js';
 import { tr } from './i18n.js';
+import { OfficeChair } from './Office.jsx';
 
 function screenTexture(title, sub, linked) {
   const c = document.createElement('canvas');
@@ -49,6 +50,8 @@ export function RoomComputer({ kind }) {
         <mesh position={[0, 0.88, -0.02]}><boxGeometry args={[0.08, 0.2, 0.06]} /><meshStandardMaterial color="#9aa0a8" metalness={0.7} roughness={0.3} /></mesh>
       </group>
       <mesh position={[0, 0.79, 0.18]}><boxGeometry args={[0.5, 0.02, 0.16]} /><meshStandardMaterial color="#e4e6ea" /></mesh>
+      {/* a chair: sit down to use it (boss mode), or for the agent working here */}
+      <group position={[0, 0, 0.85]}><OfficeChair /></group>
       <pointLight position={[0, 1.4, 0.5]} intensity={0.6 + lamps * 1.5} distance={2.5} color="#7fd4c8" />
     </group>
   );

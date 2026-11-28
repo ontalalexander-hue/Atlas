@@ -16,8 +16,12 @@
  */
 import { getKey as vaultGet } from "./key-vault.js";
 import { redactSecrets } from "./redact.js";
+import { parseCron } from "./office-schedule.js";
 
 export const KINDS = Object.freeze(["ceo", "growth", "sales", "separate", "market", "church", "personal", "library", "studio", "server"]);
+// The rooms that are departments: each listed in the owner's plan gets an agent of its own (lib/departments.js).
+export const DEPT_KINDS = Object.freeze(["growth", "sales", "separate", "market", "church", "personal"]);
+export const PLAN_SETTING = "office.plan";
 const HELPERS_DEFAULT = Object.freeze({ finance: "market", coder: "server", researcher: "library", writer: "studio", quick: "sales" });
 const TTL_MS = 5 * 60_000;
 const TIMEOUT_MS = 12_000;
@@ -85,6 +89,11 @@ export function normalizePlan(input) {
     const railway = list(r.railway, 20, 60);
     if (railway.length) room.railway = railway;
     if (r.lifeos === true) room.lifeos = true;
+    // a department: its own agent, unless the plan says `"dept": false`; `lead` is that agent's name
+    if (DEPT_KINDS.includes(r.kind)) {
+      room.dept = r.dept !== false;
+      if (room.dept && r.lead) room.lead = str(r.lead, 30);
+    }
     // a Discord channel this room's computer shares its conversation with (a channel id: digits only)
     if (r.discord != null && r.discord !== "") {
       if (/^\d{5,25}$/.test(String(r.discord))) room.discord = String(r.discord);
@@ -109,7 +118,20 @@ export function normalizePlan(input) {
       else problems.push(`Skipped helper ${JSON.stringify(id)}: room kind ${JSON.stringify(kind)} is not one of ${KINDS.join(", ")}.`);
     }
   }
-  return { plan: { rooms: KINDS.map((k) => byKind.get(k)), days, helpers }, problems };
+  // jobs the owner runs elsewhere (Claude scheduled tasks on their computer): shown on the schedule board, never run
+  const schedule = [];
+  for (const j of Array.isArray(raw.schedule) ? raw.schedule.slice(0, 40) : []) {
+    const name = str(j?.name, 80);
+    const cron = str(j?.cron, 80);
+    if (!name || !parseCron(cron)) {
+      problems.push(`Skipped scheduled job ${JSON.stringify(j?.name ?? null)}: it needs a name and a schedule like "CRON_TZ=Europe/London 15 16 * * *".`);
+      continue;
+    }
+    const room = KINDS.includes(j.room) ? j.room : null;
+    if (j.room && !room) problems.push(`Scheduled job ${JSON.stringify(name)}: room ${JSON.stringify(j.room)} is not one of ${KINDS.join(", ")}.`);
+    schedule.push({ name, cron, ...(room ? { room } : {}), where: j.where === "atlas" ? "atlas" : "pc", ...(j.paused === true ? { paused: true } : {}) });
+  }
+  return { plan: { rooms: KINDS.map((k) => byKind.get(k)), days, helpers, schedule }, problems };
 }
 
 // ─────────────────────────────────────────────────────────────── sources
