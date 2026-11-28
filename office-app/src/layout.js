@@ -33,7 +33,7 @@ export const KIND_COLOR = {
   data: '#7c4dff', design: '#ec4899', docs: '#a0784a', security: '#d9534f', generic: '#14b8a6',
 };
 const RUG = {
-  manager: '#b9a48a', lounge: '#c99a86', meeting: '#c4b394', garden: '#a9b98f',
+  manager: '#b9a48a', lounge: '#c99a86', meeting: '#c4b394', garden: '#a9b98f', equipment: '#9aa3ad', training: '#b7c2a0',
   backend: '#8fa4b8', frontend: '#b29bbd', devops: '#8fae99', mobile: '#8fb7c9', qa: '#c9a08f',
   data: '#a39bc4', design: '#c99bb2', docs: '#b9a68a', security: '#b99393', generic: '#93b8b0',
 };
@@ -60,9 +60,10 @@ function slotPos(i) {
 
 export function buildLayout(team) {
   const roles = team.filter((r) => r.id !== 'manager');
-  const slots = [{ kind: 'manager', id: 'manager', name: 'Manager' }, { kind: 'lounge', id: 'lounge', name: tr('Lounge') },
-    { kind: 'meeting', id: 'meeting', name: tr('Meeting room') },
-    ...roles.map((r) => ({ kind: r.kind || kindOf(r.id), id: r.id, name: r.name || prettyName(r.id), role: true }))];
+  const slots = [{ kind: 'manager', id: 'manager', name: tr('Atlas') }, { kind: 'lounge', id: 'lounge', name: tr('Pantry & lounge') },
+    { kind: 'meeting', id: 'meeting', name: tr('Conference room') },
+    ...roles.map((r) => ({ kind: r.kind || kindOf(r.id), id: r.id, name: r.name || prettyName(r.id), role: true })),
+    { kind: 'equipment', id: 'equipment', name: tr('Equipment room') }, { kind: 'training', id: 'training', name: tr('Training room') }];
   const placed = slots.map((s, i) => ({ ...s, pos: slotPos(i) }));
   const cols = Math.max(2, ...placed.map((s) => s.pos[0] + 1));
   // bo'sh qolgan slotlar — yashil zona
@@ -148,6 +149,22 @@ export function buildLayout(team) {
       for (let x = x0 + 2; x <= x0 + 6; x++) for (let z = 16; z <= 17; z++) block(x, z);
       add('standBoard', [[x0 + 8, 16]]);
       plant(x0, 20); plant(x0 + 9, 20);
+    } else if (s.kind === 'equipment') {
+      const back = T ? 1 : 14;
+      add('serverRack', [[x0 + 1, back], [x0 + 2, back]]);
+      add('ups', [[x0 + 3, back]]);
+      add('shelf', [[x0 + 5, back], [x0 + 6, back]]);
+      add('shelf', [[x0 + 7, back], [x0 + 8, back]], { tools: true });
+      add('lockers', [[x0, T ? 4 : 17], [x0, T ? 5 : 18]], { rot: Math.PI / 2 });
+      add('workbench', [[x0 + 4, T ? 4 : 17], [x0 + 5, T ? 4 : 17]]);
+      add('crates', [[x0 + 8, T ? 5 : 18]]);
+      add('printer', [[x0 + 9, T ? 3 : 16]]);
+      plant(x0, T ? 1 : 20);
+    } else if (s.kind === 'training') {
+      const back = T ? 1 : 14;
+      add('whiteboard', [[x0 + 1, back], [x0 + 2, back], [x0 + 3, back]]);
+      for (const dz of T ? [3, 5] : [16, 18]) for (const dx of [1, 4, 8]) add('schoolDesk', [[x0 + dx, dz]]);
+      plant(x0 + 9, T ? 1 : 20); plant(x0, T ? 7 : 20);
     } else if (s.kind === 'garden') {
       const zs = T ? [1, 3, 5] : [15, 17, 19];
       for (const [i, z] of zs.entries()) { plant(x0 + 1 + (i % 2) * 2, z); plant(x0 + 7 + (i % 2), z); }
@@ -174,6 +191,8 @@ export function buildLayout(team) {
   const corridor = { id: 'corridor', kind: 'corridor', name: '', x: [1, W - 2], z: [9, 12] };
   rooms.push(corridor);
   add('waterCooler', [[1, 12]]);
+  add('reception', [[2, 9], [3, 9]]);
+  if (cols >= 3) decor.push({ type: 'usageBoard', at: [2 * COL + 8.3, 8] });
   add('vending', [[W - 2, 9]]);
   for (let c = 1; c < cols; c++) add('bench', [[c * COL + 2, 12], [c * COL + 3, 12]]);
   decor.push({ type: 'clock', at: [8.6, 8] });
@@ -209,6 +228,8 @@ export function buildLayout(team) {
   return {
     W, H, cols, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting,
     roomOf, roomAt, entrance: ENTRANCE, bossStart: [1, 10.5], key: rooms.map((r) => r.id).join('|'),
+    // Outside the front door (grid cells left of the building): the store, where to stand, and the way there.
+    outside: { store: [-10, 14.5], storeSpot: [-5.5, 16], walk: [[-1, 10.5], [-5.5, 10.5]], door: [1, 10] },
   };
 }
 

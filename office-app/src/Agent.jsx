@@ -18,6 +18,7 @@ export default function Agent({ id }) {
   const boss = useOffice((s) => s.boss);
   const cinema = useOffice((s) => s.cinema);
   const settings = useOffice((s) => s.settings);
+  const roofClosed = useOffice((s) => s.roofClosed);
   // ko'rsatiladigan daraja: panika/ishlamay qolish holatida — kamida signal darajasi
   const rawSev = a ? maxSev(a.sev ?? 'info', a.state === 'panic' ? (a.alarm?.severity ?? 'info') : a.down ? (a.down.severity ?? 'info') : 'info') : 'info';
   const vis = visibleSev(rawSev, settings) ?? ((a?.state === 'panic' || a?.down) ? 'major' : null);
@@ -124,7 +125,7 @@ export default function Agent({ id }) {
         </mesh>
       )}
       <Person color={a.color} look={lookFor(id)} pose={pose} tie={id === 'manager'} />
-      <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
+      {!(roofClosed && !a.away) && <Html position={[0, 2.05, 0]} center distanceFactor={boss || cinema ? 6 : 15} zIndexRange={[10, 0]} style={{ pointerEvents: 'none' }}>
         <div className="tag-wrap">
           {showBubble && <div className={`bubble ${a.bubbleKind}`}>{a.bubble}</div>}
           <div className={`tag ${tagClass}`}>
@@ -136,7 +137,7 @@ export default function Agent({ id }) {
             {a.errors > 0 && <span className="tag-err">{a.errors}</span>}
           </div>
         </div>
-      </Html>
+      </Html>}
     </group>
   );
 }

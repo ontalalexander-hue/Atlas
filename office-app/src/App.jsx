@@ -1,17 +1,122 @@
 import { useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, SoftShadows } from '@react-three/drei';
 import Office from './Office.jsx';
 import Agent from './Agent.jsx';
 import { useOffice } from './store.js';
 import { SEV, SEV_LOWER, LEVELS, rank, visibleSev, atLeast, maxSev } from './severity.js';
-import { tr, lang, setLang, LANGS, LOCALE, STATE_LABEL, SERVICE_LABEL } from './i18n.js';
+import { tr, LOCALE, STATE_LABEL, SERVICE_LABEL } from './i18n.js';
 import { startSim, stopSim } from './sim.js';
-import { startLive, stopLive, handleEvent, resolveServer } from './live.js';
+import { startLive, stopLive, handleEvent, resolveServer, sendOrder } from './live.js';
 import { startSun } from './sun.js';
 import { BossController, BossHud } from './Boss.jsx';
 import { replayUrl, startReplay, stopReplay } from './replay.js';
 import { SkyBackdrop, StudioLight, Effects, CinemaCamera } from './Look.jsx';
+import Sky from './Sky.jsx';
+
+// A phone or a small tablet: a lighter picture, and the panel as a sheet that pulls up.
+function useSmall() {
+  const q = '(max-width: 760px)';
+  const [small, setSmall] = useState(() => { try { return matchMedia(q).matches; } catch { return false; } });
+  useEffect(() => {
+    let m; try { m = matchMedia(q); } catch { return undefined; }
+    const on = () => setSmall(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return small;
+}
+
+const fmtTokens = (n) => (n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}K` : String(n || 0));
+const fmtReset = (ms) => {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return d.toDateString() === new Date().toDateString()
+    ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString([], { weekday: 'short', hour: 'numeric' });
+};
+
+function UsageMeter({ title, limit, used }) {
+  const left = limit?.leftPct;
+  const known = typeof left === 'number';
+  const tone = !known ? '' : left > 40 ? 'ok' : left > 15 ? 'warn' : 'low';
+  return (
+    <div className="meter">
+      <div className="meter-top">
+        <span>{title}</span>
+        <b className={tone}>{known ? tr('{n}% left', { n: Math.round(left) }) : used ? tr('{n} tokens', { n: fmtTokens(used.tokens) }) : '—'}</b>
+      </div>
+      {known && <div className="meter-bar"><i className={tone} style={{ width: `${Math.max(2, left)}%` }} /></div>}
+      <div className="meter-sub">
+        {known
+          ? [limit.resetsAt ? tr('resets {t}', { t: fmtReset(limit.resetsAt) }) : '', used ? tr('{n} tokens used', { n: fmtTokens(used.tokens) }) : ''].filter(Boolean).join(' · ')
+          : tr('Atlas has not been told its share of the plan yet')}
+      </div>
+    </div>
+  );
+}
+
+function UsageCard() {
+  const usage = useOffice((s) => s.usage);
+  if (!usage) return null;
+  const done = Object.values(usage.done || {}).reduce((a, b) => a + b, 0);
+  return (
+    <div className="usage">
+      <h2>{tr('Claude usage')}</h2>
+      <UsageMeter title={tr('5-hour window')} limit={usage.limits?.fiveHour} used={usage.used?.fiveHour} />
+      <UsageMeter title={tr('This week')} limit={usage.limits?.sevenDay} used={usage.used?.sevenDay} />
+      <p className="usage-day">{tr('Today: {d} tasks done · {t} tokens', { d: done, t: fmtTokens(usage.used?.today?.tokens || 0) })}</p>
+    </div>
+  );
+}
+
+// Type an order right in the office. It goes to Atlas, or to the helper picked (Atlas hands it over).
+function OrderBar() {
+  const agents = useOffice((s) => s.agents);
+  const selected = useOffice((s) => s.selected);
+  const order = useOffice((s) => s.order);
+  const setOrder = useOffice((s) => s.setOrder);
+  const conn = useOffice((s) => s.conn);
+  const [to, setTo] = useState('manager');
+  const [text, setText] = useState('');
+  useEffect(() => { if (selected && agents[selected]) setTo(selected); }, [selected]); // eslint-disable-line react-hooks/exhaustive-deps
+  const busy = !!order?.busy;
+  const submit = (e) => {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t || busy) return;
+    setText('');
+    sendOrder(to, t);
+  };
+  const who = order ? agents[order.to]?.name || 'Atlas' : '';
+  return (
+    <div className="order">
+      {order && (
+        <div className={`order-reply ${order.error ? 'bad' : ''}`}>
+          <div className="order-head">
+            <b>{order.to === 'manager' ? tr('You asked Atlas') : tr('You asked the {name}', { name: who })}</b>
+            <span className="order-q">{order.text}</span>
+            {!busy && <button type="button" className="order-x" onClick={() => setOrder(null)} aria-label={tr('Close')}>×</button>}
+          </div>
+          <div className="order-body">
+            {order.reply || (busy ? tr('Working on it… watch the floor.') : '')}
+            {order.error && <p className="order-err">{order.error}</p>}
+          </div>
+        </div>
+      )}
+      <form className="order-form" onSubmit={submit}>
+        <select value={to} onChange={(e) => setTo(e.target.value)} aria-label={tr('Who gets the order')}>
+          {Object.values(agents).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+        <input
+          value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} enterKeyHint="send"
+          placeholder={conn === 'on' ? tr('Give an order…') : tr('Not connected to Atlas')}
+        />
+        <button type="submit" disabled={busy || !text.trim()}>{busy ? tr('Sent') : tr('Send')}</button>
+      </form>
+    </div>
+  );
+}
 
 const CONN = {
   off: [tr('Not connected'), '#8f9bb3'],
@@ -75,6 +180,60 @@ function SunRow() {
           </label>
         </>
       )}
+    </div>
+  );
+}
+
+function RoofRow() {
+  const roofMode = useOffice((s) => s.roofMode);
+  const setRoofMode = useOffice((s) => s.setRoofMode);
+  return (
+    <div className="roof-row">
+      <span>{tr('Roof')}</span>
+      <div className="seg seg3">
+        {[['auto', tr('Auto')], ['on', tr('On')], ['off', tr('Off')]].map(([k, l]) => (
+          <button key={k} className={roofMode === k ? 'on' : ''} onClick={() => setRoofMode(k)} title={k === 'auto' ? tr('Lifts off while someone is working') : ''}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Where the camera stands for each view. `small` is a phone, held upright.
+function poseFor(name, W, H, small) {
+  const f = (W + 14) / (small ? 20 : 23);
+  if (name === 'street') return { pos: [-W / 2 - 22, 3.2, H / 2 + 26], target: [-W / 2 + 8, 8, -6] };
+  if (name === 'deck') return { pos: [-W / 2 + 4, 9, H / 2 + 15], target: [-W / 2 + 11, 3, 4] };
+  return { pos: small ? [5 * f, 26 * f, 26 * f] : [9 * f, 23 * f, 29 * f], target: [-5, 0, 0.5] };
+}
+
+function Views({ small }) {
+  const view = useOffice((s) => s.view);
+  const W = useOffice((s) => s.layout.W);
+  const H = useOffice((s) => s.layout.H);
+  const camera = useThree((s) => s.camera);
+  const controls = useThree((s) => s.controls);
+  useEffect(() => {
+    if (!controls) return;
+    const p = poseFor(view?.name || 'overview', W, H, small);
+    camera.position.set(...p.pos);
+    controls.target.set(...p.target);
+    controls.update();
+  }, [view, controls, camera, W, H, small]);
+  return null;
+}
+
+function ViewRow() {
+  const setView = useOffice((s) => s.setView);
+  const name = useOffice((s) => s.view?.name || 'overview');
+  return (
+    <div className="roof-row">
+      <span>{tr('View')}</span>
+      <div className="seg seg3">
+        {[['overview', tr('Floor')], ['street', tr('Street')], ['deck', tr('Deck')]].map(([k, l]) => (
+          <button key={k} className={name === k ? 'on' : ''} onClick={() => setView(k)}>{l}</button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -215,7 +374,7 @@ function Services() {
 }
 
 function Panel() {
-  const { mode, conn, agents, selected, feed, setMode, select, muted, toggleMute, clearErrors, replayInfo } = useOffice();
+  const { mode, conn, agents, selected, feed, select, muted, toggleMute, clearErrors, replayInfo, sheet, setSheet, usage } = useOffice();
   const isReplay = !!replayInfo;
   const list = Object.values(agents);
   const sel = selected && agents[selected];
@@ -224,7 +383,10 @@ function Panel() {
   const settings = useOffice((s) => s.settings);
 
   return (
-    <aside className="panel">
+    <aside className={`panel ${sheet ? 'open' : ''}`}>
+      <button type="button" className="sheet-handle" onClick={() => setSheet(!sheet)} aria-expanded={sheet}>
+        <i />{sheet ? tr('Hide details') : tr('Show the team and usage')}
+      </button>
       <div className="brand">
         <div className="brand-row">
           <div>
@@ -232,9 +394,6 @@ function Panel() {
             <a className="back-link" href="/">← {tr('Back to Atlas')}</a>
             <p className="sub">{tr('{n} working · {m} total', { n: working, m: list.length })}</p>
             <Counts />
-          </div>
-          <div className="lang" role="group" aria-label={tr('Language')}>
-            {LANGS.map((l) => <button key={l} className={lang === l ? 'on' : ''} onClick={() => lang !== l && setLang(l)}>{l.toUpperCase()}</button>)}
           </div>
           <button className="icon-btn" onClick={toggleMute} title={muted ? tr('Unmute') : tr('Mute')}>{muted ? '🔕' : '🔔'}</button>
         </div>
@@ -244,12 +403,6 @@ function Panel() {
             <span>{replayInfo.recordedAt} · {tr('real hook events')}</span>
             <div className="replay-bar"><i style={{ width: `${(100 * replayInfo.at) / Math.max(1, replayInfo.total)}%` }} /></div>
           </div>
-        )}
-        {!isReplay && (
-        <div className="seg" role="tablist">
-          <button className={mode === 'sim' ? 'on' : ''} onClick={() => setMode('sim')}>{tr('Simulation')}</button>
-          <button className={mode === 'live' ? 'on' : ''} onClick={() => setMode('live')}>Live</button>
-        </div>
         )}
         {mode === 'live' && !isReplay && (
           <div className="conn">
@@ -261,9 +414,12 @@ function Panel() {
         <BossRow />
         <ErrorSettings />
         <SunRow />
+        <RoofRow />
+        <ViewRow />
       </div>
 
       <div className="scroll">
+        <UsageCard />
         <div className="agents">
           {list.map((a) => {
             const isBad = a.state === 'panic' || a.down;
@@ -273,6 +429,7 @@ function Panel() {
                 <span className="dot" style={{ background: a.color }} />
                 <span className="nm">
                   {a.name}
+                  {usage?.done?.[a.id] > 0 && <span className="done-count" title={tr('Tasks done today')}>✓ {usage.done[a.id]}</span>}
                   {a.errors > 0 && (
                     <span className="err-count" onClick={(e) => { e.stopPropagation(); clearErrors(a.id); }} title={tr('Error count (click to clear)')}>{a.errors}</span>
                   )}
@@ -341,15 +498,15 @@ function AlertBanner() {
   );
 }
 
-function Lights() {
+function Lights({ small }) {
   const sky = useOffice((s) => s.sky);
   const W = useOffice((s) => s.layout.W);
-  const half = W / 2 + 4;
+  const half = W / 2 + 16;
   const [dx, dy, dz] = sky.sunDir;
   return (
     <>
-      <SoftShadows size={14} samples={12} focus={0.6} />
-      <fog attach="fog" args={[sky.horizon, 45 + W, 90 + W * 2]} />
+      {!small && <SoftShadows size={14} samples={12} focus={0.6} />}
+      <fog attach="fog" args={[sky.horizon, 170 + W, 430]} />
       <ambientLight intensity={sky.ambient * 0.6} color={sky.ambientColor} />
       <hemisphereLight args={[sky.hemiTop, sky.hemiBottom, sky.hemiI]} />
       <directionalLight
@@ -357,7 +514,7 @@ function Lights() {
         intensity={sky.sunI}
         color={sky.sunColor}
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={small ? [2048, 2048] : [4096, 4096]}
         shadow-bias={-0.0003}
         shadow-normalBias={0.02}
         shadow-camera-left={-half}
@@ -376,6 +533,9 @@ export default function App() {
   const mode = useOffice((s) => s.mode);
   const ids = useOffice((s) => Object.keys(s.agents).join(','));
   const sky = useOffice((s) => s.sky);
+  const small = useSmall();
+  const W = useOffice((s) => s.layout.W);
+  const cam = poseFor('overview', W, 22, small).pos;
 
   useEffect(() => {
     startSun();
@@ -408,23 +568,26 @@ export default function App() {
       <div className="stage" style={{ background: `linear-gradient(180deg, ${sky.top} 0%, ${sky.horizon} 70%)` }}>
         <Canvas
           shadows
-          dpr={[1, 2]}
+          dpr={small ? [1, 1.5] : [1, 2]}
           gl={{ antialias: false, powerPreference: 'high-performance', stencil: false }}
-          camera={{ position: [9, 21, 25], fov: 34, near: 0.5, far: 400 }}
+          camera={{ position: cam, fov: small ? 44 : 34, near: 0.5, far: 500 }}
           onPointerMissed={() => { const s = useOffice.getState(); if (s.selected) s.select(s.selected); }}
         >
           <SkyBackdrop />
           <StudioLight />
-          <Lights />
+          <Sky />
+          <Lights small={small} />
           <Office />
           {ids.split(',').map((id) => <Agent key={id} id={id} />)}
-          <OrbitControls makeDefault target={[0, 0, 0.5]} maxPolarAngle={1.2} minDistance={8} maxDistance={45} enableDamping dampingFactor={0.08} />
+          <OrbitControls makeDefault target={[-5, 0, 0.5]} maxPolarAngle={1.5} minDistance={8} maxDistance={190} enableDamping dampingFactor={0.08} />
+          <Views small={small} />
           <BossController />
           <CinemaCamera />
-          <Effects />
+          {!small && <Effects />}
         </Canvas>
         <AlertBanner />
         <BossHud />
+        <OrderBar />
       </div>
       <Panel />
     </div>

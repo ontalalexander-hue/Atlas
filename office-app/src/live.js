@@ -30,6 +30,78 @@ let running = []; // ishga tushgan sub-agentlar (agent_type kelmasa zaxira)
 // a background sub-agent always sends agent_type; the fallback is only for foreground ones
 const actorOf = (e) => { const fg = running.filter((r) => !r.async); return norm(e.agent_type) || (fg.length ? fg[fg.length - 1].agent : 'manager'); };
 
+// ---------- the board's numbers ----------
+let usageTimer = null;
+export function refreshUsage(delay = 0) {
+  clearTimeout(usageTimer);
+  usageTimer = setTimeout(() => {
+    fetch(`${SERVER}/usage`, { credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j) S().setUsage(j); })
+      .catch(() => {});
+  }, delay);
+}
+
+// ---------- an order typed in the office ----------
+const csrfCookie = () => { const m = document.cookie.match(/(?:^|;\s*)atlas_csrf=([^;]+)/); return m ? m[1] : ''; };
+async function csrfToken() {
+  if (csrfCookie()) return csrfCookie();
+  await fetch('/api/auth/csrf', { credentials: 'same-origin', cache: 'no-store' }).catch(() => null);
+  return csrfCookie();
+}
+
+/** Send what was typed to Atlas (its own "Office" chat). `to` is a helper's id, or 'manager' for Atlas itself. */
+export async function sendOrder(to, text) {
+  const s = S();
+  const helper = to && to !== 'manager' ? s.agents[to] : null;
+  const message = helper ? `Hand this to the ${helper.name} (your "${to}" helper) and tell me what they found: ${text}` : text;
+  const order = { busy: true, to: helper ? to : 'manager', text, reply: '', error: '' };
+  s.setOrder(order);
+  const put = (p) => { Object.assign(order, p); S().setOrder({ ...order }); };
+  try {
+    const csrf = await csrfToken();
+    const res = await fetch('/api/chat/send', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+      body: JSON.stringify({ channelKey: 'web:office', message, clientMsgId: `office-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }),
+    });
+    if (res.status === 401) { location.href = '/'; return; }
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      put({ busy: false, error: j.error || tr('Atlas did not take the order ({n}).', { n: res.status }) });
+      return;
+    }
+    if (!(res.headers.get('content-type') || '').includes('text/event-stream')) {
+      const j = await res.json().catch(() => ({}));
+      put({ busy: false, reply: j.response || '' });
+      return;
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n\n')) >= 0) {
+        const block = buf.slice(0, i); buf = buf.slice(i + 2);
+        const ev = (block.match(/^event: (.*)$/m) || [])[1];
+        const data = (block.match(/^data: (.*)$/m) || [])[1];
+        if (!ev || !data) continue;
+        let d; try { d = JSON.parse(data); } catch { continue; }
+        if (ev === 'text' && d.content) put({ reply: order.reply + d.content });
+        else if (ev === 'error') put({ error: d.message || tr('Something went wrong.') });
+      }
+    }
+    put({ busy: false });
+  } catch (err) {
+    put({ busy: false, error: order.reply ? '' : tr('Could not reach Atlas. Check your connection.') });
+  }
+  refreshUsage(2500);
+}
+
 function startSub(agent, task) {
   const s = S();
   s.ensureAgent(agent);
@@ -47,6 +119,7 @@ function finishSub(agent) {
   s.say(agent, tr('Done!'), 2500, 'ok');
   s.patch(agent, { task: '' });
   setTimeout(() => S().goToLounge(agent), 1200);
+  refreshUsage(2500);
 }
 
 export function handleEvent(e) {
@@ -172,6 +245,7 @@ export function handleEvent(e) {
       s.setState('manager', 'idle');
       s.patch('manager', { task: '' });
       s.say('manager', tr('Answer ready ✓'), 3000, 'ok');
+      refreshUsage(2500);
       s.log('manager', tr('Answer ready'));
       break;
     }
@@ -184,8 +258,18 @@ export function handleEvent(e) {
 }
 
 let es = null;
+let usagePoll = null;
+let snackTimer = null;
 export async function startLive() {
   stopLive();
+  refreshUsage();
+  usagePoll = setInterval(() => refreshUsage(), 60_000);
+  // now and then, someone with nothing to do pops out to the store
+  snackTimer = setInterval(() => {
+    if (document.hidden || Math.random() > 0.6) return;
+    const idle = Object.values(S().agents).filter((a) => a.id !== 'manager' && a.state === 'idle' && !a.away && !a.down);
+    if (idle.length) S().storeRun(idle[Math.floor(Math.random() * idle.length)].id);
+  }, 40_000);
   S().setConn('connecting');
   const base = await resolveServer();
   if (S().mode !== 'live') return;
@@ -200,6 +284,7 @@ export async function startLive() {
 }
 export function stopLive() {
   if (es) { es.close(); es = null; }
+  clearInterval(usagePoll); clearInterval(snackTimer);
   running = [];
   S().setConn('off');
 }

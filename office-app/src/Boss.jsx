@@ -90,7 +90,7 @@ export function BossController() {
       const o = overviewPose(L);
       controls.target.copy(o.target);
       camera.position.copy(o.pos);
-      controls.minDistance = 8; controls.maxDistance = 45 * f; controls.maxPolarAngle = 1.2;
+      controls.minDistance = 8; controls.maxDistance = 110 * f; controls.maxPolarAngle = 1.5;
     }
     controls.update();
   }, [boss, controls, camera, L]);

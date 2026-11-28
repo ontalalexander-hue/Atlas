@@ -9,8 +9,11 @@ import { useOffice, positions } from './store.js';
 
 // Default overview: a three-quarter "diorama" angle instead of a flat top-down view.
 export function overviewPose(L) {
-  const f = Math.max(1, L.W / 34);
-  return { pos: new THREE.Vector3(10 * f, 27 * f, 33 * f), target: new THREE.Vector3(0.5, 0, 1.5) };
+  // far enough back to take in the whole floor and the store beside it; closer in on an upright phone
+  let small = false;
+  try { small = matchMedia('(max-width: 760px)').matches; } catch { /* not a browser */ }
+  const f = (L.W + 14) / (small ? 20 : 23);
+  return { pos: small ? new THREE.Vector3(5 * f, 26 * f, 26 * f) : new THREE.Vector3(9 * f, 23 * f, 29 * f), target: new THREE.Vector3(-5, 0, 0.5) };
 }
 
 // Sky gradient drawn inside the scene, so post-processing sees it too.

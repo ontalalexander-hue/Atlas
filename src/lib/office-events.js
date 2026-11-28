@@ -96,12 +96,14 @@ export function createOfficeTranslator() {
     if (p.kind === "tool_end") {
       const mine = open.get(key(evt));
       const spawned = mine?.has(p.id);
+      const subagent = spawned ? mine.get(p.id) : undefined;
       if (spawned) mine.delete(p.id);
       const tool = spawned ? SPAWN : undefined;
       if (p.ok === false) {
         return [{ hook: "PostToolUseFailure", tool: tool || "Tool", tool_use_id: p.id, agent_type: MANAGER, session_id, error: clip(p.preview, 300), severity: "moderate" }];
       }
-      return spawned ? [{ hook: "PostToolUse", tool, tool_use_id: p.id, agent_type: MANAGER, session_id }] : [];
+      // `subagent`: who finished the job (the board's count of tasks done).
+      return spawned ? [{ hook: "PostToolUse", tool, tool_use_id: p.id, agent_type: MANAGER, session_id, subagent }] : [];
     }
 
     if (p.kind === "sub_tool_start") {

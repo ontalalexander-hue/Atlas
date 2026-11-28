@@ -5,6 +5,8 @@ import { useOffice } from './store.js';
 import { SEV, visibleSev } from './severity.js';
 import Decor from './Details.jsx';
 import Windows from './Windows.jsx';
+import Outside from './Outside.jsx';
+import Roof from './Roof.jsx';
 import { tr } from './i18n.js';
 
 export const C = {
@@ -116,6 +118,7 @@ function Floors({ L }) {
   const wood = useWoodTexture(L.W, L.H);
   const theme = useOffice((s) => (s.sky.lamps > 0.5 ? 'night' : 'day'));
   const boss = useOffice((s) => s.boss);
+  const roofClosed = useOffice((s) => s.roofClosed);
   return (
     <group>
       <mesh rotation-x={-Math.PI / 2} position-y={0.001} receiveShadow>
@@ -137,7 +140,7 @@ function Floors({ L }) {
             <RoundedBox args={[w - 2.4, 0.02, d - 2.4]} radius={0.01} position={[cx, 0.012, cz]} receiveShadow>
               <meshStandardMaterial color={r.rug} roughness={1} />
             </RoundedBox>
-            {r.name && (
+            {r.name && !roofClosed && (
               <Html position={[cx, 0.05, L.toWorld([0, r.z[1]])[1] + 0.25]} center distanceFactor={boss ? 7 : 16} zIndexRange={[5, 0]} style={{ pointerEvents: 'none' }}>
                 <div className={`room-label ${theme}`}>{r.name}</div>
               </Html>
@@ -230,6 +233,26 @@ function Desk({ L, id, desk, seat }) {
 // ---------- Majlis xonasi ----------
 function Meeting({ L }) {
   const night = useOffice((s) => s.sky.lamps > 0.5);
+  const task = useOffice((s) => s.agents.manager?.task || '');
+  const busy = useOffice((s) => Object.values(s.agents).filter((a) => a.id !== 'manager' && (a.state === 'working' || (a.state === 'walking' && a.after?.state === 'working'))).map((a) => a.name).join(', '));
+  const slide = useMemo(() => { const c = document.createElement('canvas'); c.width = 1024; c.height = 360; const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }, []);
+  useEffect(() => {
+    const g = slide.image.getContext('2d');
+    g.fillStyle = '#12305f'; g.fillRect(0, 0, 1024, 360);
+    g.fillStyle = '#1f7ae0'; g.fillRect(0, 0, 1024, 70);
+    g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.font = '800 38px Inter, system-ui, sans-serif';
+    g.fillText('NOW WORKING ON', 30, 36);
+    g.font = '700 46px Inter, system-ui, sans-serif';
+    const words = (task || 'Nothing right now. Waiting for your next request.').split(' ');
+    let line = '', y = 130;
+    for (const w of words) {
+      if (g.measureText(`${line} ${w}`).width > 960 && line) { g.fillText(line, 30, y); line = w; y += 58; if (y > 250) break; } else line = line ? `${line} ${w}` : w;
+    }
+    if (y <= 250) g.fillText(line, 30, y);
+    g.fillStyle = '#9ecbff'; g.font = '600 32px Inter, system-ui, sans-serif';
+    g.fillText(busy ? `With: ${busy}` : 'Helpers on standby', 30, 322);
+    slide.needsUpdate = true;
+  }, [task, busy, slide]);
   const m = L.meeting;
   if (!m.table) return null;
   const [x, z] = L.toWorld([center(...m.table.x), center(...m.table.z)]);
@@ -251,10 +274,7 @@ function Meeting({ L }) {
       })}
       <group position={[scx, 0, scz + 0.12]}>
         <RoundedBox args={[2.6, 1.0, 0.06]} radius={0.02} position-y={0.95} castShadow><meshStandardMaterial color={C.metal} /></RoundedBox>
-        <mesh position={[0, 0.95, 0.032]}><planeGeometry args={[2.48, 0.88]} /><meshStandardMaterial color="#2b5cab" emissive="#3a72d6" emissiveIntensity={night ? 1.2 : 0.55} /></mesh>
-        {[0, 1, 2, 3].map((i) => (
-          <mesh key={i} position={[-0.8 + i * 0.5, 0.78 + (i % 2) * 0.12, 0.035]}><planeGeometry args={[0.32, 0.3 + (i % 3) * 0.12]} /><meshBasicMaterial color="#9ecbff" transparent opacity={0.7} /></mesh>
-        ))}
+        <mesh position={[0, 0.95, 0.032]}><planeGeometry args={[2.48, 0.88]} /><meshBasicMaterial map={slide} toneMapped={false} color={night ? '#ffffff' : '#e6e6e6'} /></mesh>
       </group>
     </group>
   );
@@ -337,20 +357,12 @@ function Instanced({ L, cells, geometry, material, y = 0, scale = [1, 1, 1] }) {
 
 function RoomLights({ L }) {
   const lamps = useOffice((s) => Math.round(s.sky.lamps * 20) / 20);
-  if (lamps < 0.05) return null;
+  const roofClosed = useOffice((s) => s.roofClosed);
+  if (lamps < 0.05 || roofClosed) return null;
   return L.rooms.map((r) => {
     const [cx, cz] = L.toWorld([center(r.x[0], r.x[1]), center(r.z[0], r.z[1])]);
     return <pointLight key={r.id} position={[cx, 3.4, cz]} intensity={(r.kind === 'corridor' ? 5 : 9) * lamps} distance={10} decay={1.6} color="#ffd9a8" />;
   });
-}
-
-function Ground({ L }) {
-  const ground = useOffice((s) => s.sky.ground);
-  return (
-    <RoundedBox args={[L.W + 3, 0.6, L.H + 3]} radius={0.25} position-y={-0.31} receiveShadow>
-      <meshStandardMaterial color={ground} roughness={1} />
-    </RoundedBox>
-  );
 }
 
 export default function Office() {
@@ -359,7 +371,7 @@ export default function Office() {
     <group>
       <RoomLights L={L} />
       <Windows L={L} />
-      <Ground L={L} key={`g${L.W}`} />
+      <Outside L={L} key={`g${L.W}`} />
       <Floors L={L} />
       <Walls L={L} />
       {Object.entries(L.desks).map(([id, d]) => <Desk key={`${id}`} L={L} id={id} {...d} />)}
@@ -367,6 +379,7 @@ export default function Office() {
       <Lounge L={L} />
       {L.decor.map((d, i) => <Decor key={`${L.key}-${i}`} L={L} item={d} />)}
       <Plants L={L} />
+      <Roof L={L} key={`r${L.W}`} />
     </group>
   );
 }

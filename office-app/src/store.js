@@ -89,6 +89,21 @@ export const useOffice = create((set, get) => ({
   cinemaShot: null, // { kind: 'overview' } | { kind: 'follow', id, dist?, height? } — pins one shot
   setCinema: (cinema) => set({ cinema, cinemaShot: null }),
   setCinemaShot: (cinemaShot) => set({ cinemaShot }),
+  // the board: { limits: { fiveHour, sevenDay }, used: { today, fiveHour, sevenDay }, done: { [agentId]: n } }
+  usage: null,
+  setUsage: (usage) => set({ usage }),
+  // an order typed in the office: { busy, to, text, reply, error }
+  order: null,
+  setOrder: (order) => set({ order }),
+  // the roof: 'auto' lifts it while there is something to watch inside, 'on' keeps it, 'off' removes it
+  roofMode: (() => { try { return localStorage.getItem('atlas-office-roof') || 'auto'; } catch { return 'auto'; } })(),
+  setRoofMode: (roofMode) => { try { localStorage.setItem('atlas-office-roof', roofMode); } catch {} set({ roofMode }); },
+  roofClosed: false, // is the roof down right now (name tags and room labels under it are hidden)
+  setRoofClosed: (roofClosed) => { if (get().roofClosed !== roofClosed) set({ roofClosed }); },
+  view: null, // { name: 'overview'|'street'|'deck', n } — a camera position asked for from the panel
+  setView: (name) => set({ view: { name, n: Date.now() } }),
+  sheet: false, // phone: is the panel pulled up
+  setSheet: (sheet) => set({ sheet }),
   nearScreen: null, // { kind: 'desk'|'services'|'feed', id, label }
   screenOpen: false,
 
@@ -155,8 +170,12 @@ export const useOffice = create((set, get) => ({
     if (!a || !pos) return;
     if (!force && a.down) return;
     if (!force && get().isPanicking(id)) { get().patch(id, { resume: { cell, after } }); return; }
-    const path = findPath(get().layout, [pos.x, pos.z], cell);
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after });
+    // Outside (on a snack run): back along the walk and in through the front door first.
+    const L = get().layout;
+    const out = pos.x < 0.5;
+    let path = findPath(L, out ? L.outside.door : [pos.x, pos.z], cell);
+    if (out) path = [...[...L.outside.walk].reverse().filter((w) => w[0] > pos.x + 0.2), L.outside.door, ...path];
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false });
   },
   goToDesk: (id, after = { state: 'working' }) => {
     const a = get().agents[id];
@@ -168,6 +187,20 @@ export const useOffice = create((set, get) => ({
     if (!a) return;
     const spots = get().layout.lounge.spots;
     get().goTo(id, spots[a.index % spots.length], after);
+  },
+  // A helper with nothing to do walks out to the store, stands there a while, and comes back.
+  storeRun: (id) => {
+    const a = get().agents[id];
+    const pos = positions[id];
+    const L = get().layout;
+    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || get().isPanicking(id)) return;
+    const path = [...findPath(L, [pos.x, pos.z], L.outside.door), ...L.outside.walk, L.outside.storeSpot];
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'idle' }, away: true });
+    get().say(id, tr('Snack run 🥤'), 3000);
+    setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.away && b.state === 'idle') { get().say(id, tr('Back to the floor'), 2500); get().goToLounge(id); }
+    }, 24_000);
   },
   arrived: (id) => {
     const a = get().agents[id];
