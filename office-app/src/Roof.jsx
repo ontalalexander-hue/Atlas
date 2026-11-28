@@ -9,7 +9,7 @@ import { tr } from './i18n.js';
 
 // The roof's walking surface: high enough that boss mode, walking about inside with the roof on, has room for its
 // camera (BOSS_CEILING in Boss.jsx stays under it).
-export const TOP = 10.0;
+export const TOP = 7.0;
 const WALL = 1.3; // where the outer walls stop: a band of windows fills the gap up to the slab
 const LIFT = 15;
 
