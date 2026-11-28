@@ -321,6 +321,112 @@ export function handleEvent(e) {
   }
 }
 
+// ---------- the room computers ----------
+async function getJson(url) {
+  const res = await fetch(url, { credentials: 'same-origin' });
+  if (res.status === 401) { location.href = '/'; return null; }
+  const j = await res.json().catch(() => ({}));
+  return res.ok ? j : { error: j.error || tr('Atlas answered {n}.', { n: res.status }) };
+}
+async function sendJson(method, url, body) {
+  const csrf = await csrfToken();
+  const res = await fetch(url, { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) }, body: JSON.stringify(body) });
+  const j = await res.json().catch(() => ({}));
+  return res.ok ? j : { error: j.error || tr('Atlas answered {n}.', { n: res.status }) };
+}
+/** A room's chat: { key, linked, messages: [{ role, text }] } or { error }. */
+export function loadRoomChat(kind) {
+  return getJson(`${SERVER}/rooms/${encodeURIComponent(kind)}/chat`).then((j) => j || { error: 'signed out' });
+}
+export function loadDiscordChannels() {
+  return getJson(`${SERVER}/discord-channels`).then((j) => j || { error: 'signed out' });
+}
+export async function linkRoom(kind, discord) {
+  const r = await sendJson('PUT', `${SERVER}/rooms/${encodeURIComponent(kind)}/link`, { discord });
+  if (!r.error) refreshWorld();
+  return r;
+}
+
+/**
+ * Send what was typed at a room's computer. The first message of a room's own chat tells Atlas which department it
+ * is answering for; every message says where it was typed. A room linked to Discord gets the exchange posted there.
+ */
+export async function sendRoomMessage(kind, chat, room, text, onText) {
+  const name = room?.name || kind;
+  let message;
+  if (chat.linked) message = `[From Alex at the office computer in ${name}] ${text}`;
+  else if (!chat.messages.length) {
+    const lines = [`[Office computer: ${name}. You are answering as this room's department assistant.`];
+    if (room?.subtitle) lines.push(`About it: ${room.subtitle}.`);
+    if (room?.notes?.length) lines.push(`Notes: ${room.notes.join('; ')}.`);
+    if (kind === 'separate') lines.push('This department is kept separate from the others: do not bring in anything about the other departments or businesses.');
+    message = `${lines.join(' ')}]\n\n${text}`;
+  } else message = `[Office computer: ${name}] ${text}`;
+  let reply = '';
+  try {
+    const csrf = await csrfToken();
+    const res = await fetch('/api/chat/send', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+      body: JSON.stringify({ channelKey: chat.key, message, clientMsgId: `office-${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }),
+    });
+    if (res.status === 401) { location.href = '/'; return { error: 'signed out' }; }
+    if (!res.ok) { const j = await res.json().catch(() => ({})); return { error: j.error || tr('Atlas did not take it ({n}).', { n: res.status }) }; }
+    if (!(res.headers.get('content-type') || '').includes('text/event-stream')) {
+      const j = await res.json().catch(() => ({}));
+      reply = j.response || '';
+      onText(reply);
+    } else {
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      let err = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          const block = buf.slice(0, i); buf = buf.slice(i + 2);
+          const ev = (block.match(/^event: (.*)$/m) || [])[1];
+          const data = (block.match(/^data: (.*)$/m) || [])[1];
+          if (!ev || !data) continue;
+          let d; try { d = JSON.parse(data); } catch { continue; }
+          if (ev === 'text' && d.content) { reply += d.content; onText(reply); }
+          else if (ev === 'error') err = d.message || tr('Something went wrong.');
+        }
+      }
+      if (err && !reply) return { error: err };
+    }
+  } catch {
+    return { error: tr('Could not reach Atlas. Check your connection.') };
+  }
+  if (chat.linked && reply) {
+    const r = await sendJson('POST', `${SERVER}/rooms/${encodeURIComponent(kind)}/mirror`, { text, reply });
+    if (r.error) return { error: tr('Answered here, but not posted to Discord: {e}', { e: r.error }) };
+  }
+  return { ok: true };
+}
+
+// friends at the mart's snack tables talk to each other
+const TABLE_LINES = ['This siopao is so good 😋', 'Atlas has us busy today!', 'Any jobs for you yet?', "Let's race at the arcade 🎮", "Coffee's on me ☕", 'Did you see the city at night?', 'Five more minutes, then back to work', 'Who finished the most tasks today?'];
+function martChatter() {
+  const L = S().layout;
+  if (!L.mart || document.hidden) return;
+  const bySpot = Object.fromEntries(L.mart.spots.map((s) => [s.id, s]));
+  const here = Object.values(S().agents).filter((a) => a.martSpot && a.away && a.state === 'idle');
+  const tables = {};
+  for (const a of here) { const t = bySpot[a.martSpot]?.table; if (t != null) (tables[t] ??= []).push(a); }
+  for (const group of Object.values(tables)) {
+    if (group.length < 2) continue;
+    const speaker = group[Math.floor(Math.random() * group.length)];
+    S().say(speaker.id, tr(TABLE_LINES[Math.floor(Math.random() * TABLE_LINES.length)]), 4000);
+  }
+  // someone at the arcade: a cheer now and then
+  const gamer = here.find((a) => a.martSpot === 'arcade');
+  if (gamer && Math.random() < 0.4) S().say(gamer.id, tr(['🎮 New high score!', '🕹️ One more round', '😤 So close!'][Math.floor(Math.random() * 3)]), 3000);
+}
+
 let es = null;
 let usagePoll = null;
 let statusPoll = null;
@@ -336,10 +442,14 @@ export async function startLive() {
   worldPoll = setInterval(() => { if (!document.hidden) refreshWorld(); }, 60_000);
   // now and then, someone with nothing to do pops out to the store
   snackTimer = setInterval(() => {
-    if (document.hidden || Math.random() > 0.6) return;
+    if (document.hidden) return;
+    martChatter();
+    if (Math.random() > 0.35) return;
+    const atMart = Object.values(S().agents).filter((a) => a.martSpot).length;
+    if (atMart >= 4) return;
     const idle = Object.values(S().agents).filter((a) => a.id !== 'manager' && a.state === 'idle' && !a.away && !a.down);
     if (idle.length) S().storeRun(idle[Math.floor(Math.random() * idle.length)].id);
-  }, 40_000);
+  }, 12_000);
   S().setConn('connecting');
   const base = await resolveServer();
   if (S().mode !== 'live') return;

@@ -85,6 +85,11 @@ export function normalizePlan(input) {
     const railway = list(r.railway, 20, 60);
     if (railway.length) room.railway = railway;
     if (r.lifeos === true) room.lifeos = true;
+    // a Discord channel this room's computer shares its conversation with (a channel id: digits only)
+    if (r.discord != null && r.discord !== "") {
+      if (/^\d{5,25}$/.test(String(r.discord))) room.discord = String(r.discord);
+      else problems.push(`Room ${r.kind}: ${JSON.stringify(r.discord)} is not a Discord channel id.`);
+    }
     byKind.set(r.kind, room);
   }
   const days = {};

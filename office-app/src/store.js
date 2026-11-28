@@ -54,6 +54,7 @@ function agentsFor(team, L, inLounge) {
 const stamp = () => new Date().toLocaleTimeString(LOCALE, { hour12: false });
 const calmTimers = {};
 const sickTimers = {};
+const martTimers = {};
 // visitors: one per conversation waiting on Atlas, keyed by a short id of our own
 const visitorIds = new Map();
 let visitorSeq = 0;
@@ -153,6 +154,10 @@ export const useOffice = create((set, get) => ({
   select: (id) => set({ selected: get().selected === id ? null : id }),
   setBoss: (boss) => set({ boss, bossOutside: false, screenOpen: false, nearScreen: null, selected: null }),
   bossOutside: false,   // boss mode, standing out in the city rather than in the office building
+  bossInMart: false,    // boss mode, inside Atlas Mart
+  // the room whose computer is open (its kind), or null
+  computer: null,
+  setComputer: (computer) => set({ computer }),
   setBossName: (bossName) => { try { localStorage.setItem('agent-office-boss', bossName); } catch {} set({ bossName }); },
   setNearScreen: (nearScreen) => set({ nearScreen, ...(nearScreen ? {} : { screenOpen: false }) }),
   setScreenOpen: (screenOpen) => set({ screenOpen }),
@@ -210,7 +215,11 @@ export const useOffice = create((set, get) => ({
     const L = get().layout;
     const out = pos.x < 0.5 || pos.z > L.H - 1.5;
     let path = findPath(L, out ? L.outside.door : [pos.x, pos.z], cell);
-    if (out) {
+    if (a.martSpot && L.mart) {
+      // in the mart: out through its door first, then the walk back
+      const spot = L.mart.spots.find((s) => s.id === a.martSpot);
+      path = [...[...(spot?.viaCells ?? [])].reverse(), L.mart.middle, L.mart.inside, L.mart.outside, ...[...L.outside.walk].reverse(), L.outside.door, ...path];
+    } else if (out) {
       // back along the walk from the nearest point on it
       const walk = L.outside.walk;
       const far = (w) => Math.hypot(w[0] - pos.x, w[1] - pos.z);
@@ -218,7 +227,7 @@ export const useOffice = create((set, get) => ({
       walk.forEach((w, i) => { if (far(w) < far(walk[near])) near = i; });
       path = [...walk.slice(0, near + 1).reverse(), L.outside.door, ...path];
     }
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false, seated: false, bed: null });
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after, away: false, seated: false, bed: null, martSpot: null });
   },
   goToDesk: (id, after = { state: 'working' }) => {
     const a = get().agents[id];
@@ -232,18 +241,32 @@ export const useOffice = create((set, get) => ({
     get().goTo(id, spots[a.index % spots.length], after);
   },
   // A helper with nothing to do walks out to the store, stands there a while, and comes back.
+  // A helper with nothing to do goes to Atlas Mart: a shelf, the fridges, the counter, the arcade, or a seat at a
+  // snack table (next to a colleague already there when there is one), and comes back after a while.
   storeRun: (id) => {
     const a = get().agents[id];
     const pos = positions[id];
     const L = get().layout;
-    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || get().isPanicking(id)) return;
-    const path = [...findPath(L, [pos.x, pos.z], L.outside.door), ...L.outside.walk, L.outside.storeSpot];
-    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'idle' }, away: true });
-    get().say(id, tr('Snack run 🥤'), 3000);
-    setTimeout(() => {
+    if (!a || !pos || id === 'manager' || a.state !== 'idle' || a.away || a.down || get().isPanicking(id) || !L.mart) return;
+    const taken = new Set(Object.values(get().agents).filter((x) => x.martSpot).map((x) => x.martSpot));
+    const free = L.mart.spots.filter((s) => !taken.has(s.id));
+    if (!free.length) return;
+    const tablesInUse = new Set(L.mart.spots.filter((s) => taken.has(s.id) && s.table != null).map((s) => s.table));
+    const company = free.filter((s) => s.table != null && tablesInUse.has(s.table));
+    const spot = company.length ? company[0] : free[Math.floor(Math.random() * free.length)];
+    const path = [...findPath(L, [pos.x, pos.z], L.outside.door), ...L.outside.walk, L.mart.outside, L.mart.inside, L.mart.middle, ...spot.viaCells, spot.cell];
+    get().patch(id, { path, pathId: a.pathId + 1, state: 'walking', after: { state: 'idle', rot: spot.rot, sit: !!spot.sit }, away: true, seated: false, martSpot: spot.id });
+    get().say(id, tr('Snack break 🍙'), 3000);
+    clearTimeout(martTimers[id]);
+    martTimers[id] = setTimeout(() => {
       const b = get().agents[id];
-      if (b?.away && b.state === 'idle') { get().say(id, tr('Back to the floor'), 2500); get().goToDesk(id, { state: 'idle' }); }
-    }, 24_000);
+      if (b?.martSpot === spot.id && b.state !== 'walking') get().say(id, spot.line ? tr(spot.line) : tr('😋 So good'), 4000);
+    }, 12_000);
+    clearTimeout(martTimers[`${id}#out`]);
+    martTimers[`${id}#out`] = setTimeout(() => {
+      const b = get().agents[id];
+      if (b?.martSpot === spot.id && b.away && b.state === 'idle') { get().say(id, tr('Back to the office'), 2500); get().goToDesk(id, { state: 'idle' }); }
+    }, 55_000 + Math.random() * 30_000);
   },
   arrived: (id) => {
     const a = get().agents[id];

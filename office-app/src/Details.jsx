@@ -7,6 +7,7 @@ import { useOffice } from './store.js';
 import { rank } from './severity.js';
 import { tr } from './i18n.js';
 import { todayTheme } from './layout.js';
+import { RoomComputer } from './Computer.jsx';
 
 const METAL = '#1f232a';
 const OAK = '#c9a27a';
@@ -1174,7 +1175,7 @@ const COMPONENTS = {
   shelf: Shelf, lockers: Lockers, workbench: Workbench, crates: Crates, whiteboard: Whiteboard, schoolDesk: SchoolDesk,
   reception: Reception, usageBoard: UsageBoard,
   opsWall: OpsWall, inboxBoard: InboxBoard, memoryBoard: MemoryBoard, triageBoard: TriageBoard,
-  roomBoard: RoomBoard, agentDesk: AgentDesk, stalls: Stalls,
+  roomBoard: RoomBoard, agentDesk: AgentDesk, stalls: Stalls, roomComputer: RoomComputer,
   frontDesk: FrontDesk, floorLogo: FloorLogo, bed: Bed, medCross: MedCross,
   toilet: Toilet, sink: Sink, stall: Stall, phoneBooth: PhoneBooth, kitchenCounter: KitchenCounter, cafeTable: CafeTable,
 };

@@ -9,6 +9,7 @@ import Person from './Person.jsx';
 import { overviewPose } from './Look.jsx';
 import { TOP as ROOF_TOP } from './Roof.jsx';
 import { cityWalkable } from './city.js';
+import { martFree } from './mart.js';
 
 const BOSS_CEILING = ROOF_TOP - 0.7;
 import { tr, STATE_LABEL } from './i18n.js';
@@ -32,20 +33,16 @@ function wallCells(L) {
   return wallCache.get(L);
 }
 
-function storeBox(L) {
-  const [sx, sz] = L.toWorld(L.outside.store);
-  return [[sx - 2.8, sx + 4.4, sz - 3.5, sz + 3.5]];   // the shop and its awning
-}
-
 function canStand(L, x, z) {
-  const extra = storeBox(L);
+  const m = L.mart?.world;
   for (const [dx, dz] of [[-R, -R], [R, -R], [-R, R], [R, R]]) {
     const cx = x + dx, cz = z + dz;
     if (insideBuilding(L, cx, cz)) {
       if (!L.isFree(Math.round(cx), Math.round(cz))) return false;
     } else {
       const [wx, wz] = L.toWorld([cx, cz]);
-      if (!cityWalkable(wx, wz, extra)) return false;
+      if (!cityWalkable(wx, wz)) return false;
+      if (m && !martFree(m, wx, wz)) return false;
     }
   }
   return true;
@@ -65,6 +62,7 @@ function screensOf(L, agents) {
     }
   }
   if (L.meeting.screen) list.push({ kind: 'feed', id: 'feed', label: tr('Meeting screen'), at: L.meeting.view ?? [L.meeting.screen.x, 14.6] });
+  for (const c of L.computers ?? []) list.push({ kind: 'computer', id: c.kind, label: L.plan?.[c.kind]?.name || c.kind, at: c.front });
   return list;
 }
 
@@ -99,7 +97,8 @@ export function BossController() {
       if (k === 'c' && !s.boss) { s.setCinema(!s.cinema); return; }
       if (!s.boss) return;
       if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-      if (k === 'e' && s.nearScreen) s.setScreenOpen(!s.screenOpen);
+      if (k === 'e' && s.nearScreen?.kind === 'computer') s.setComputer(s.computer ? null : s.nearScreen.id);
+      else if (k === 'e' && s.nearScreen) s.setScreenOpen(!s.screenOpen);
       if (k === 'escape') { if (s.screenOpen) s.setScreenOpen(false); else s.setBoss(false); }
     };
     const up = (e) => { keys[e.key.toLowerCase()] = false; };
@@ -211,6 +210,10 @@ export function BossController() {
     // outside or in: the roof's glass band shows from the street, and inside the camera stays under the ceiling
     const outside = !insideBuilding(L, p.x, p.z);
     if (outside !== !!st.bossOutside) useOffice.setState({ bossOutside: outside });
+    // inside the mart its roof goes and its walls drop, and the camera stays low
+    const inMart = !!L.mart && L.mart.world.contains(wx, wz);
+    if (inMart !== !!st.bossInMart) useOffice.setState({ bossInMart: inMart });
+    if (inMart && camera.position.y > 3.6) camera.position.y = 3.6;
     if (!outside && st.roofClosed && camera.position.y > BOSS_CEILING) camera.position.y = BOSS_CEILING;
 
     // yaqin monitor
@@ -278,7 +281,12 @@ export function BossHud() {
         <button onClick={() => setBoss(false)}>{tr('Exit')} <kbd>Esc</kbd></button>
       </div>
 
-      {nearScreen && !screenOpen && (
+      {nearScreen && !screenOpen && nearScreen.kind === 'computer' && (
+        <button className="boss-prompt" onClick={() => useOffice.getState().setComputer(nearScreen.id)}>
+          <kbd>E</kbd> {tr('Use the {label} computer', { label: nearScreen.label })}
+        </button>
+      )}
+      {nearScreen && !screenOpen && nearScreen.kind !== 'computer' && (
         <button className="boss-prompt" onClick={() => setScreenOpen(true)}>
           <kbd>E</kbd> {tr('Open the {label} monitor', { label: nearScreen.label })}
         </button>

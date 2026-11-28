@@ -3,6 +3,7 @@
 // plus the shared rooms (conference, reception, sick bay). What each is called, which helper sits where, which other
 // agents have a desk and what a room shows all come from the plan, which lives in the owner's settings, never here.
 import { tr } from './i18n.js';
+import { martLayout } from './mart.js';
 
 // Rol nomidan xona turi
 export function kindOf(id = '') {
@@ -51,6 +52,13 @@ const DEFAULT_NAMES = {
 const DEFAULT_HELPERS = { finance: 'market', coder: 'server', researcher: 'library', writer: 'studio', quick: 'sales' };
 
 const WEEKDAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+/** Atlas Mart (mart.js) with its points in grid units, for the agents' walks: world → grid is x + W/2 - 0.5. */
+function martInGrid([cx, cz], W, H) {
+  const m = martLayout(cx, cz);
+  const g = ([x, z]) => [x + W / 2 - 0.5, z + H / 2 - 0.5];
+  return { world: m, outside: g(m.outside), inside: g(m.inside), middle: g(m.middle), spots: m.spots.map((s) => ({ ...s, cell: g(s.at), viaCells: (s.via ?? []).map(g) })) };
+}
 /** Today's theme from the plan: { label, room } (either may be missing), or null. */
 export function todayTheme(plan, date = new Date()) {
   const v = plan?.days?.[WEEKDAYS[date.getDay()]];
@@ -89,7 +97,8 @@ export function buildLayout(team, plan = null) {
 
   // ---- walls ----
   hwall(0, 0, W - 1, 'outer'); hwall(H - 1, 0, W - 1, 'outer', DOOR);
-  vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer');
+  // the separate wing has its own private door on the outside (east) wall, and none onto the office floor
+  vwall(0, 0, H - 1, 'outer'); vwall(W - 1, 0, H - 1, 'outer', [5, 6]);
   // top row: CEO office | growth HQ | sales room, glass fronts on the two income rooms
   // (their front wall is at z 8, so the hallway in front of them, z 9 to 10, is two cells wide)
   hwall(8, 1, 11, 'solid', [6, 7]); vwall(12, 1, 8, 'solid');
@@ -259,6 +268,14 @@ export function buildLayout(team, plan = null) {
   plant(58, 32);
   windows.push(['right', 27], ['right', 31], ['bottom', 53.5]);
 
+  // ---- a computer in every room of the plan: its desk, and where you stand to use it ----
+  const COMPUTERS = {
+    ceo: [3, 4], growth: [22, 3], sales: [41, 4], separate: [54, 11], market: [8, 14],
+    church: [8, 25], personal: [16, 25], library: [45, 30], studio: [55, 30], server: [46, 13],
+  };
+  const computers = Object.entries(COMPUTERS).map(([kind, [x, z]]) => ({ kind, desk: [x, z], front: [x, z + 1] }));
+  for (const c of computers) add('roomComputer', [c.desk], { kind: c.kind });
+
   // ---- who sits where: each helper in the room its plan names, the plan's other agents at the desks left ----
   const used = new Set();
   const take = (kind) => {
@@ -317,11 +334,12 @@ export function buildLayout(team, plan = null) {
 
   return {
     W, H, cols: 1, toWorld, isFree, walls, wallSegments, rooms, desks, decor, plants, windows, lounge, meeting, tables, floors, lights,
-    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception,
+    roomOf, roomAt, entrance: DOOR.map((x) => [x, H - 1]), door: { x: doorX, z: H - 1 }, clinic, plan: P, reception, computers,
+    mart: martInGrid(toWorld([-10, 14.5]), W, H),
     // where visitors from the channels stand, in front of the reception desk
     frontDesk: { spots: [[28, 27], [26, 27], [30, 27], [27, 28], [29, 28], [25, 28], [31, 28]] },
     bossStart: [doorX, H - 4], bossRot: Math.PI, key: `${W}|${rooms.map((r) => `${r.id}:${r.name}`).join('|')}|${Object.keys(desks).join(',')}`,
     // Outside: the way from the front door round to the store on the left, and where to stand there.
-    outside: { store: [-10, 14.5], storeSpot: [-5.5, 16], walk: [[doorX, H - 1], [doorX, H + 1.5], [-5.5, H + 1.5]], door: [DOOR[0], H - 2] },
+    outside: { store: [-10, 14.5], storeSpot: [-3.6, 14.5], walk: [[doorX, H - 1], [doorX, H + 1.5], [-3.6, H + 1.5]], door: [DOOR[0], H - 2] },
   };
 }
