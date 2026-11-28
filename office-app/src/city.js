@@ -42,6 +42,11 @@ function build() {
       const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       const dist = Math.hypot(cx, cz);
       blocks.push({ x0, x1, z0, z1 });
+      // the block right in front of the office is an open plaza: the cameras stand there
+      const front = z0 === LOT.z1 + STREET && x1 > LOT.x0 && x0 < LOT.x1;
+      if (front) { parks.push({ x0: x0 + SIDEWALK, x1: x1 - SIDEWALK, z0: z0 + SIDEWALK, z1: z1 - SIDEWALK, plaza: true }); continue; }
+      // in front of the office (the side the cameras look from) only low shops, so nothing hides it
+      const lowOnly = cz > 0 && Math.abs(cx) < 110 && z0 < 110;
       // now and then a small park, mostly near the middle
       if (r() < (dist < 90 ? 0.18 : 0.08)) { parks.push({ x0: x0 + SIDEWALK, x1: x1 - SIDEWALK, z0: z0 + SIDEWALK, z1: z1 - SIDEWALK }); continue; }
       // the block's buildable area, cut into lots of about 18 m
@@ -55,6 +60,7 @@ function build() {
           const t = Math.min(1, dist / 180);
           const roll = r() * 0.75 + t * 0.45;
           let type = roll < 0.28 ? 0 : roll < 0.48 ? 1 : roll < 0.66 ? 2 : roll < 0.82 ? 3 : roll < 0.95 ? 4 : 5;
+          if (lowOnly) type = Math.min(type, 1);
           while (type > 0 && (TYPES[type].w > lw - 1 || TYPES[type].d > ld - 1)) type--;
           const T = TYPES[type];
           if (T.w > lw || T.d > ld) continue;
